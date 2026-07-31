@@ -7,7 +7,7 @@ import { RecapDashboard } from '../components/RecapDashboard';
 import { OfficialPrintView } from '../components/OfficialPrintView';
 import { PinLoginModal } from '../components/PinLoginModal';
 import { useScore } from '../context/ScoreContext';
-import { Trophy } from 'lucide-react';
+import { Trophy, Code2 } from 'lucide-react';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'juri' | 'rekap' | 'print'>('juri');
@@ -37,15 +37,16 @@ export default function Home() {
         {activeTab === 'print' && <OfficialPrintView />}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-slate-900/60 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500 no-print mt-8">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 font-medium">
-            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+      {/* Footer License */}
+      <footer className="bg-slate-900/80 border-t border-slate-800 py-5 text-center text-xs text-slate-400 no-print mt-12">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-semibold text-slate-300">
+            <Trophy className="w-4 h-4 text-amber-400" />
             <span>Sistem Penilaian Lomba HUT Kemerdekaan RI Ke-81 • Permata Discovery</span>
           </div>
-          <div className="text-[11px] text-slate-400">
-            Dibuat untuk memudahkan Panitia Sie Acara & Siap Deploy di <span className="text-white font-bold">Vercel</span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <Code2 className="w-3.5 h-3.5 text-red-400" />
+            <span>Designed & Developed by <strong className="text-white font-bold tracking-wide">Irfan Arisaldy</strong> © 2026</span>
           </div>
         </div>
       </footer>

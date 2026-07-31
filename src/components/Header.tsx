@@ -1,16 +1,12 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { useScore } from '../context/ScoreContext';
 import { EVENT_INFO } from '../data/competitionDefaults';
 import {
   Trophy,
   ClipboardCheck,
   FileText,
-  RotateCcw,
-  Sparkles,
-  Download,
-  Upload,
   CheckCircle2,
   LogOut,
   Wifi,
@@ -23,36 +19,11 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   const {
-    loadDemoData,
-    resetAllData,
-    exportJSON,
-    importJSON,
     isLoaded,
     authState,
     logout,
     isRealtimeConnected,
   } = useScore();
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        const success = importJSON(content);
-        if (success) {
-          alert('Data rekap berhasil di-import!');
-        } else {
-          alert('Format file JSON tidak valid!');
-        }
-      }
-    };
-    reader.readAsText(file);
-  };
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-xl no-print">
@@ -81,12 +52,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             </div>
           </div>
 
-          {/* User Auth Badge & Action Buttons */}
+          {/* User Auth Badge & Connection Status */}
           <div className="flex flex-wrap items-center gap-2">
             
             {/* Auth Badge */}
             {authState.role !== 'guest' && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-slate-200">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-slate-200 shadow-inner">
                 {authState.role === 'admin' ? (
                   <span className="text-amber-400 flex items-center gap-1">👑 {authState.judgeName}</span>
                 ) : (
@@ -102,66 +73,14 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
               </div>
             )}
 
-            {/* Admin only features */}
-            {authState.role === 'admin' && (
-              <>
-                <button
-                  onClick={loadDemoData}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all shadow-sm cursor-pointer"
-                  title="Isi data nilai otomatis untuk demo & pengujian"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Isi Data Contoh (Demo)
-                </button>
-
-                <button
-                  onClick={exportJSON}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all cursor-pointer"
-                  title="Export backup data nilai ke JSON"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export
-                </button>
-
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all cursor-pointer"
-                  title="Import data nilai dari JSON"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  Import
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".json"
-                  className="hidden"
-                />
-
-                <button
-                  onClick={() => {
-                    if (confirm('Apakah Anda yakin ingin mengosongkan seluruh data penilaian?')) {
-                      resetAllData();
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all cursor-pointer"
-                  title="Reset data nilai"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset
-                </button>
-              </>
-            )}
-
             {/* Connection status indicator */}
             {isLoaded && (
               isRealtimeConnected ? (
-                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 font-semibold">
                   <Wifi className="w-3 h-3 animate-pulse text-emerald-400" /> Realtime Live
                 </span>
               ) : (
-                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 font-semibold">
                   <CheckCircle2 className="w-3 h-3" /> Auto-Saved (Lokal)
                 </span>
               )
