@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   AllScores,
   AuthState,
@@ -77,6 +77,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [lockedCards, setLockedCards] = useState<Record<string, boolean>>({});
   const [lastResetTs, setLastResetTs] = useState<number>(0);
 
+  // Timestamp of last local slider interaction to prevent polling race-condition flickering
+  const lastLocalInteractionRef = useRef<number>(0);
+
   // Helper to check if a specific participant card is locked for a judge
   const isCardLocked = useCallback((judgeId: string, participantId: string): boolean => {
     const key = `${judgeId}_${participantId}`;
@@ -94,7 +97,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   }, []);
 
-  // Poll /api/scores endpoint every 1.5s and sync Admin reset across all devices
+  // Poll /api/scores endpoint every 2s with race-condition protection
   useEffect(() => {
     const fetchApiScores = async () => {
       try {
@@ -102,7 +105,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (res.ok) {
           const data = await res.json();
           
-          // If remote reset timestamp is newer, or scores are empty after reset, wipe local state!
+          // If remote reset timestamp is newer, wipe local state!
           if (data.resetTimestamp && data.resetTimestamp > lastResetTs) {
             setLastResetTs(data.resetTimestamp);
             setScores({});
@@ -117,24 +120,51 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
           }
 
+          // Merge remote scores without overwriting recent local slider dragging (< 3 seconds)
           if (data.scores) {
-            setScores(data.scores);
+            setScores(prev => {
+              const now = Date.now();
+              const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
+
+              if (!isRecentlyEdited) {
+                return data.scores;
+              }
+
+              // Deep merge: keep current active judge's local edits intact!
+              const merged = { ...data.scores };
+              if (prev[activeJudgeId]) {
+                merged[activeJudgeId] = prev[activeJudgeId];
+              }
+              return merged;
+            });
           }
+
           if (data.judgeNotes) {
-            setJudgeNotes(data.judgeNotes);
+            setJudgeNotes(prev => {
+              const now = Date.now();
+              const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
+              if (!isRecentlyEdited) {
+                return data.judgeNotes;
+              }
+              const mergedNotes = { ...data.judgeNotes };
+              if (prev[activeJudgeId]) {
+                mergedNotes[activeJudgeId] = prev[activeJudgeId];
+              }
+              return mergedNotes;
+            });
           }
           setIsRealtimeConnected(true);
         }
       } catch (e) {
-        // Fallback to local state if offline
+        // Fallback
       }
     };
 
     fetchApiScores();
-    const interval = setInterval(fetchApiScores, 1500);
+    const interval = setInterval(fetchApiScores, 2000);
 
     return () => clearInterval(interval);
-  }, [lastResetTs]);
+  }, [lastResetTs, activeJudgeId]);
 
   // Load initial state from LocalStorage
   useEffect(() => {
@@ -163,6 +193,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Save to /api/scores Endpoint & LocalStorage & Direct Google Sheets
   const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
+    lastLocalInteractionRef.current = Date.now();
+
     try {
       if (reset) {
         localStorage.removeItem(STORAGE_KEY_SCORES);
@@ -263,6 +295,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return; // Locked (N/A)
     }
 
+    lastLocalInteractionRef.current = Date.now();
+
     setScores(prev => {
       const judgeData = prev[judgeId] || {};
       const participantData = judgeData[participantId] || { scores: {} };
@@ -301,6 +335,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
+    lastLocalInteractionRef.current = Date.now();
+
     setScores(prev => {
       const judgeData = prev[judgeId] || {};
       const participantData = judgeData[participantId] || { scores: {} };
@@ -329,6 +365,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (authState.role === 'juri' && authState.judgeId !== judgeId) {
       return;
     }
+
+    lastLocalInteractionRef.current = Date.now();
 
     setJudgeNotes(prev => {
       const updatedNotes = {
