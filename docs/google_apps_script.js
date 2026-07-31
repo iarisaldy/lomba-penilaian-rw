@@ -87,8 +87,8 @@ function doPost(e) {
       var sRekap = ss.getSheetByName('Rekap Nilai');
       if (sRekap) {
         sRekap.clear();
-        sRekap.appendRow(['No', 'Kode Peserta', 'Nama Peserta', 'RT 01', 'RT 02', 'RT 03', 'RT 04', 'RT 05', 'RT 06', 'Total Nilai', 'Rata-Rata', 'Peringkat']);
-        sRekap.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#D9EAD3');
+        sRekap.appendRow(['No', 'RT Peserta', 'Juri RT 01', 'Juri RT 02', 'Juri RT 03', 'Juri RT 04', 'Juri RT 05', 'Juri RT 06', 'Total Nilai', 'Rata-Rata', 'Peringkat']);
+        sRekap.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#D9EAD3');
       }
       var sLog = ss.getSheetByName('Log Transaksi');
       if (sLog) {
@@ -145,9 +145,9 @@ function doPost(e) {
     var judgeNotes = data.judgeNotes || {};
 
     // Format Ulang Sheet Rekap
-    var headers = ['No', 'Kode Peserta', 'Nama Peserta'];
+    var headers = ['No', 'RT Peserta'];
     JUDGE_LIST.forEach(function(j) {
-      headers.push(j.code);
+      headers.push('Juri ' + j.code);
     });
     headers.push('Total Nilai', 'Rata-Rata', 'Peringkat');
     
@@ -225,7 +225,7 @@ function doPost(e) {
       var rankVal = match ? match.rank : 0;
       var rankLabel = rankVal === 1 ? '🏆 Juara 1' : (rankVal === 2 ? '🥈 Juara 2' : 'Peringkat ' + rankVal);
 
-      var rowData = [item.no, item.code, item.name];
+      var rowData = [item.no, item.code];
       item.scores.forEach(function(sc) { rowData.push(sc); });
       rowData.push(item.total, item.avg, rankLabel);
       
@@ -288,12 +288,12 @@ function readScoresFromSpreadsheet() {
   var masterNotes = {};
 
   var judgeList = [
-    { id: 'juri_rt01', code: 'RT 01', colIdx: 4 },
-    { id: 'juri_rt02', code: 'RT 02', colIdx: 5 },
-    { id: 'juri_rt03', code: 'RT 03', colIdx: 6 },
-    { id: 'juri_rt04', code: 'RT 04', colIdx: 7 },
-    { id: 'juri_rt05', code: 'RT 05', colIdx: 8 },
-    { id: 'juri_rt06', code: 'RT 06', colIdx: 9 }
+    { id: 'juri_rt01', code: 'RT 01', colIdx: 3 },
+    { id: 'juri_rt02', code: 'RT 02', colIdx: 4 },
+    { id: 'juri_rt03', code: 'RT 03', colIdx: 5 },
+    { id: 'juri_rt04', code: 'RT 04', colIdx: 6 },
+    { id: 'juri_rt05', code: 'RT 05', colIdx: 7 },
+    { id: 'juri_rt06', code: 'RT 06', colIdx: 8 }
   ];
 
   // 1. Baca langsung dari Sheet 'Rekap Nilai'
@@ -301,7 +301,7 @@ function readScoresFromSpreadsheet() {
   if (sheetRekap) {
     var lastRow = sheetRekap.getLastRow();
     if (lastRow > 1) {
-      var values = sheetRekap.getRange(2, 1, lastRow - 1, 12).getValues();
+      var values = sheetRekap.getRange(2, 1, lastRow - 1, 11).getValues();
       values.forEach(function(row) {
         var pCode = String(row[1]).trim();
         // FIX BUG-01: PARTICIPANT_MAP mengarah ke 'rt01' (tanpa prefix p_)
