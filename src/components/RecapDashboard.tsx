@@ -2,14 +2,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Award, Star, Users, CheckCircle, Flame, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
+import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, FileSpreadsheet, Check, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { getGoogleSheetsUrl, setGoogleSheetsUrl, testGoogleSheetsSync } from '../lib/googleSheetsClient';
 
 export const RecapDashboard: React.FC = () => {
   const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData } = useScore();
   const [confirmPin, setConfirmPin] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
+
+  // Google Sheets settings modal
+  const [showSheetsModal, setShowSheetsModal] = useState(false);
+  const [sheetsUrlInput, setSheetsUrlInput] = useState('');
+  const [sheetsStatus, setSheetsStatus] = useState('');
+
+  useEffect(() => {
+    setSheetsUrlInput(getGoogleSheetsUrl());
+  }, []);
 
   // Find top winners
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
@@ -45,6 +55,17 @@ export const RecapDashboard: React.FC = () => {
       alert('Seluruh data nilai penilaian berhasil dikosongkan!');
     } else {
       setResetError('PIN Admin Salah! Gunakan PIN 0000.');
+    }
+  };
+
+  const handleTestSheets = async () => {
+    setSheetsStatus('Mengirim data uji coba ke Google Sheets...');
+    setGoogleSheetsUrl(sheetsUrlInput);
+    const success = await testGoogleSheetsSync(sheetsUrlInput, scores, judgeNotes);
+    if (success) {
+      setSheetsStatus('✅ Permintaan dikirim! Cek file Google Sheet Anda sekarang (pastikan baris data baru terisi).');
+    } else {
+      setSheetsStatus('❌ Gagal terhubung ke Google Sheets. Periksa kembali URL Web App.');
     }
   };
 
@@ -115,15 +136,23 @@ export const RecapDashboard: React.FC = () => {
                 Panel Kontrol Admin Panitia
               </h3>
               <p className="text-xs text-slate-400">
-                Kelola data penilaian, isi data demo, atau reset ulang seluruh nilai peserta.
+                Kelola data penilaian, integrasi Google Sheets, atau reset ulang seluruh nilai peserta.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              onClick={() => setShowSheetsModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Koneksi Google Sheets
+            </button>
+
+            <button
               onClick={() => setShowResetModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-600/30 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-600/30 transition-all cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Reset Data Penilaian
@@ -135,12 +164,7 @@ export const RecapDashboard: React.FC = () => {
       {/* Winner Podium Showcase */}
       {juara1 && juara1.averageScore > 0 && (
         <div className="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden relative">
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-          
           <div className="text-center max-w-xl mx-auto mb-6 space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">
-              <Flame className="w-3.5 h-3.5" /> Papan Peringkat Sementara & Akhir
-            </div>
             <h2 className="text-2xl font-black text-white">
               Penetapan Hasil Pemenang
             </h2>
@@ -366,6 +390,63 @@ export const RecapDashboard: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Google Sheets Config Modal */}
+      {showSheetsModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 no-print">
+          <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-emerald-400">
+              <FileSpreadsheet className="w-7 h-7 flex-shrink-0" />
+              <div>
+                <h3 className="font-extrabold text-lg text-white">Pengaturan Integrasi Google Sheets</h3>
+                <p className="text-xs text-slate-400">Masukkan Web App URL dari Google Apps Script untuk sync otomatis ke spreadsheet.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Google Apps Script Web App URL:
+                </label>
+                <input
+                  type="url"
+                  value={sheetsUrlInput}
+                  onChange={(e) => setSheetsUrlInput(e.target.value)}
+                  placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                  className="w-full bg-slate-950 border border-slate-700 text-xs font-mono text-white rounded-xl p-3 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {sheetsStatus && (
+                <div className="text-xs bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-300 leading-relaxed font-medium">
+                  {sheetsStatus}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSheetsModal(false);
+                  setSheetsStatus('');
+                }}
+                className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700 cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={handleTestSheets}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-500 cursor-pointer shadow-lg shadow-emerald-600/30"
+              >
+                <Send className="w-3.5 h-3.5" />
+                Simpan & Tes Kirim ke Google Sheets
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Admin Reset Confirmation Modal */}
       {showResetModal && (
