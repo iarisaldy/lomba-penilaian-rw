@@ -229,18 +229,17 @@ function doPost(e) {
 
 function readScoresFromSpreadsheet() {
   var ss = getSpreadsheet();
-  var sheetLog = ss.getSheetByName('Log Transaksi');
   var masterScores = {};
   var masterNotes = {};
 
-  var judgeMap = {
-    'RT 01': 'juri_rt01', 'juri_rt01': 'juri_rt01',
-    'RT 02': 'juri_rt02', 'juri_rt02': 'juri_rt02',
-    'RT 03': 'juri_rt03', 'juri_rt03': 'juri_rt03',
-    'RT 04': 'juri_rt04', 'juri_rt04': 'juri_rt04',
-    'RT 05': 'juri_rt05', 'juri_rt05': 'juri_rt05',
-    'RT 06': 'juri_rt06', 'juri_rt06': 'juri_rt06'
-  };
+  var judgeList = [
+    { id: 'juri_rt01', code: 'RT 01', colIdx: 4 },
+    { id: 'juri_rt02', code: 'RT 02', colIdx: 5 },
+    { id: 'juri_rt03', code: 'RT 03', colIdx: 6 },
+    { id: 'juri_rt04', code: 'RT 04', colIdx: 7 },
+    { id: 'juri_rt05', code: 'RT 05', colIdx: 8 },
+    { id: 'juri_rt06', code: 'RT 06', colIdx: 9 }
+  ];
 
   var participantMap = {
     'RT 01': 'p_rt01', 'p_rt01': 'p_rt01',
@@ -251,11 +250,60 @@ function readScoresFromSpreadsheet() {
     'RT 06': 'p_rt06', 'p_rt06': 'p_rt06'
   };
 
-  if (sheetLog) {
-    var lastRow = sheetLog.getLastRow();
+  // 1. Baca langsung dari Sheet 'Rekap Nilai'
+  var sheetRekap = ss.getSheetByName('Rekap Nilai');
+  if (sheetRekap) {
+    var lastRow = sheetRekap.getLastRow();
     if (lastRow > 1) {
-      var values = sheetLog.getRange(2, 1, lastRow - 1, 9).getValues();
+      var values = sheetRekap.getRange(2, 1, lastRow - 1, 12).getValues();
       values.forEach(function(row) {
+        var pCode = String(row[1]).trim();
+        var pId = participantMap[pCode] || pCode;
+
+        if (pId) {
+          judgeList.forEach(function(j) {
+            var rawVal = row[j.colIdx - 1]; // 0-indexed column
+            if (rawVal !== 'N/A' && rawVal !== '' && rawVal !== null && !isNaN(rawVal)) {
+              var totalVal = Number(rawVal);
+              if (totalVal > 0) {
+                if (!masterScores[j.id]) masterScores[j.id] = {};
+                var c1Val = Math.round(totalVal * 0.3);
+                var c2Val = Math.round(totalVal * 0.3);
+                var c3Val = Math.round(totalVal * 0.2);
+                var c4Val = totalVal - (c1Val + c2Val + c3Val);
+                
+                masterScores[j.id][pId] = {
+                  scores: {
+                    c1: c1Val,
+                    c2: c2Val,
+                    c3: c3Val,
+                    c4: c4Val
+                  }
+                };
+              }
+            }
+          });
+        }
+      });
+    }
+  }
+
+  // 2. Baca dari 'Log Transaksi' jika tersedia untuk rincian c1-c4 yang presisi
+  var sheetLog = ss.getSheetByName('Log Transaksi');
+  if (sheetLog) {
+    var lastLog = sheetLog.getLastRow();
+    if (lastLog > 1) {
+      var logVals = sheetLog.getRange(2, 1, lastLog - 1, 9).getValues();
+      var judgeMap = {
+        'RT 01': 'juri_rt01', 'juri_rt01': 'juri_rt01',
+        'RT 02': 'juri_rt02', 'juri_rt02': 'juri_rt02',
+        'RT 03': 'juri_rt03', 'juri_rt03': 'juri_rt03',
+        'RT 04': 'juri_rt04', 'juri_rt04': 'juri_rt04',
+        'RT 05': 'juri_rt05', 'juri_rt05': 'juri_rt05',
+        'RT 06': 'juri_rt06', 'juri_rt06': 'juri_rt06'
+      };
+
+      logVals.forEach(function(row) {
         var jCode = String(row[1]).trim();
         var pCode = String(row[2]).trim();
         var jId = judgeMap[jCode] || jCode;
@@ -266,7 +314,7 @@ function readScoresFromSpreadsheet() {
         var c4 = Number(row[6] || 0);
         var note = String(row[8] || '').trim();
 
-        if (jId && pId) {
+        if (jId && pId && (c1 > 0 || c2 > 0 || c3 > 0 || c4 > 0)) {
           if (!masterScores[jId]) masterScores[jId] = {};
           masterScores[jId][pId] = {
             scores: { c1: c1, c2: c2, c3: c3, c4: c4 },
