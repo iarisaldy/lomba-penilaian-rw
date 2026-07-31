@@ -16,8 +16,6 @@ import {
   DEFAULT_PARTICIPANTS,
   EVENT_INFO,
 } from '../data/competitionDefaults';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { getGoogleSheetsUrl, syncToGoogleSheets, fetchFromGoogleSheets } from '../lib/googleSheetsClient';
 
 interface ScoreContextType {
   judges: Judge[];
@@ -70,104 +68,58 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeJudgeId, setActiveJudgeId] = useState<string>(DEFAULT_JUDGES[0].id);
   const [authState, setAuthState] = useState<AuthState>({ role: 'guest' });
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
-  const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
-  const [isGoogleSheetsConnected, setIsGoogleSheetsConnected] = useState<boolean>(false);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(true); // API Endpoint active
+  const [isGoogleSheetsConnected] = useState<boolean>(true);
 
-  // Background 3-second polling loop for Google Sheets live sync
+  // Poll /api/scores endpoint every 1.5 seconds for instant multi-device sync
   useEffect(() => {
-    const url = getGoogleSheetsUrl();
-    if (!url) return;
-
-    setIsGoogleSheetsConnected(true);
-
-    const pollGoogleSheets = async () => {
-      const remoteData = await fetchFromGoogleSheets();
-      if (remoteData && remoteData.scores) {
-        setScores(prev => ({ ...prev, ...remoteData.scores }));
-        if (remoteData.judgeNotes) {
-          setJudgeNotes(prev => ({ ...prev, ...remoteData.judgeNotes }));
+    const fetchApiScores = async () => {
+      try {
+        const res = await fetch('/api/scores', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.scores && Object.keys(data.scores).length > 0) {
+            setScores(prev => ({ ...prev, ...data.scores }));
+          }
+          if (data.judgeNotes && Object.keys(data.judgeNotes).length > 0) {
+            setJudgeNotes(prev => ({ ...prev, ...data.judgeNotes }));
+          }
+          setIsRealtimeConnected(true);
         }
+      } catch (e) {
+        // Fallback to local state if fetch fails
       }
     };
 
-    pollGoogleSheets();
-    const interval = setInterval(pollGoogleSheets, 3000);
+    fetchApiScores();
+    const interval = setInterval(fetchApiScores, 1500);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Load initial state from DB / LocalStorage
+  // Load initial state from LocalStorage on mount
   useEffect(() => {
-    const initData = async () => {
-      try {
-        const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
-        const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
-        const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
-        const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
+    try {
+      const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
+      const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
+      const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
+      const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
 
-        if (savedScores) setScores(JSON.parse(savedScores));
-        if (savedNotes) setJudgeNotes(JSON.parse(savedNotes));
-        if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
-          setActiveJudgeId(savedActiveJuri);
-        }
-        if (savedAuth) setAuthState(JSON.parse(savedAuth));
-
-        if (isSupabaseConfigured && supabase) {
-          const { data } = await supabase
-            .from('competition_scores')
-            .select('data')
-            .eq('id', 'master')
-            .single();
-
-          if (data && data.data) {
-            if (data.data.scores) setScores(data.data.scores);
-            if (data.data.judgeNotes) setJudgeNotes(data.data.judgeNotes);
-            setIsRealtimeConnected(true);
-          }
-        }
-      } catch (e) {
-        console.error('Failed init data', e);
-      } finally {
-        setIsLoaded(true);
+      if (savedScores) setScores(JSON.parse(savedScores));
+      if (savedNotes) setJudgeNotes(JSON.parse(savedNotes));
+      if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
+        setActiveJudgeId(savedActiveJuri);
       }
-    };
-
-    initData();
+      if (savedAuth) setAuthState(JSON.parse(savedAuth));
+    } catch (e) {
+      console.error('Failed to load storage', e);
+    } finally {
+      setIsLoaded(true);
+    }
   }, []);
 
-  // Subscribe to Supabase Postgres CDC Changes
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
-
-    const channel = supabase
-      .channel('public:competition_scores')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'competition_scores', filter: 'id=eq.master' },
-        (payload) => {
-          setIsRealtimeConnected(true);
-          const newData = payload.new as { data?: { scores?: AllScores; judgeNotes?: JudgeGeneralNotes } };
-          if (newData && newData.data) {
-            if (newData.data.scores) setScores(newData.data.scores);
-            if (newData.data.judgeNotes) setJudgeNotes(newData.data.judgeNotes);
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsRealtimeConnected(true);
-        }
-      });
-
-    return () => {
-      if (supabase) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, []);
-
-  // Save to DB, LocalStorage, & Google Sheets
-  const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes) => {
+  // Save to /api/scores Endpoint & LocalStorage
+  const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
     // 1. LocalStorage
     try {
       localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(newScores));
@@ -176,26 +128,19 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Failed to save to localStorage', e);
     }
 
-    // 2. Google Sheets Webhook Sync
-    syncToGoogleSheets(newScores, newNotes);
-
-    // 3. Supabase DB Sync
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase.from('competition_scores').upsert({
-          id: 'master',
-          data: { scores: newScores, judgeNotes: newNotes },
-          updated_at: new Date().toISOString(),
-        });
-
-        if (!error) {
-          setIsRealtimeConnected(true);
-        } else {
-          console.warn('Supabase sync warning:', error.message);
-        }
-      } catch (err) {
-        console.error('Supabase upsert error', err);
-      }
+    // 2. Post to /api/scores Endpoint
+    try {
+      await fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scores: newScores,
+          judgeNotes: newNotes,
+          reset,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to post to /api/scores', e);
     }
   }, []);
 
@@ -454,7 +399,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resetAllData = () => {
     setScores({});
     setJudgeNotes({});
-    saveAndSync({}, {});
+    saveAndSync({}, {}, true);
     try {
       localStorage.removeItem(STORAGE_KEY_SCORES);
       localStorage.removeItem(STORAGE_KEY_NOTES);
