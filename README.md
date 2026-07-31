@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏆 Sistem Penilaian & Rekapitulasi Lomba Otomatis (Vercel Ready)
+**HUT KEMERDEKAAN RI KE-81 • PERMATA DISCOVERY**
 
-## Getting Started
+Aplikasi web modern untuk otomatisasi penilaian dan rekapitulasi **Lomba Blind Rias Ibu-Ibu & Lomba Antar-RT**. Dibuat menggunakan **Next.js 14, TypeScript, & Tailwind CSS** untuk menggantikan proses rekap manual Excel/kertas.
 
-First, run the development server:
+---
+
+## 🌟 Fitur Utama
+
+1. **Auto Lock Nilai RT Sendiri (Rule N/A)**:
+   - Juri RT 01 secara otomatis terkunci (N/A) saat menilai peserta RT 01.
+   - Pembagi nilai rata-rata otomatis menyesuaikan dengan jumlah juri penilai netral (5 juri).
+2. **Matriks Rekapitulasi Real-Time**:
+   - Perhitungan **Total Nilai** dan **Rata-Rata Nilai** (presisi 2 desimal) dihitung secara instan.
+   - Papan Peringkat & Pemenang (🏆 Juara 1 & 🥈 Juara 2) ter-highlight otomatis.
+3. **Format Cetak PDF / Berita Acara Resmi**:
+   - Tampilan khusus A4 yang presisi dengan dokumen resmi (`rekap_penilaian_sie_acara_rw_v3.pdf`).
+   - Dilengkapi KOP HUT RI ke-81 Permata Discovery & kolom tanda tangan Koordinator Sie Acara serta Ketua RW.
+4. **Fitur Pendukung**:
+   - **Isi Data Contoh (Demo)**: Memasukkan data nilai sampel 6 juri dengan 1 klik untuk pengujian.
+   - **Export & Import JSON**: Memudahkan backup data nilai antar panitia.
+   - **Auto-Save LocalStorage**: Data nilai tersimpan di browser tanpa khawatir terhapus saat refresh.
+
+---
+
+## 🚀 Cara Menjalankan Secara Lokal
 
 ```bash
+# 1. Masuk ke direktori project
+cd /Users/muhammadirfan/Documents/lomba
+
+# 2. Jalankan server pengembangan
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) pada browser Anda.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 Cara Deploy ke Vercel (Gratis & Cepat)
 
-## Learn More
+### Opsi A: Lewat GitHub & Vercel Dashboard (Rekomendasi)
+1. Push project ini ke repository GitHub Anda (misal `lomba-penilaian-rw`).
+2. Buka [https://vercel.app](https://vercel.app) atau [https://vercel.com](https://vercel.com) dan login.
+3. Klik **"Add New"** -> **"Project"**.
+4. Import repository GitHub `lomba-penilaian-rw`.
+5. Klik **"Deploy"** (Vercel akan mendeteksi Next.js secara otomatis).
 
-To learn more about Next.js, take a look at the following resources:
+### Opsi B: Lewat Vercel CLI (Langsung dari Terminal)
+```bash
+# Install Vercel CLI jika belum ada
+npm install -g vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Deploy project
+vercel
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 📁 Struktur Dokumen Acuan
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Dokumen fisik acuan tersimpan di folder `docs/`:
+- `docs/rekap_penilaian_sie_acara_rw_v3.pdf`
+- `docs/formulir_penilaian_lomba_blind_rias_v2.pdf`

@@ -1,0 +1,243 @@
+'use client';
+
+import React from 'react';
+import { useScore } from '../context/ScoreContext';
+import { UserCheck, Lock, AlertCircle, MessageSquareText, Check, Shield } from 'lucide-react';
+
+export const JudgeForm: React.FC = () => {
+  const {
+    judges,
+    participants,
+    criteria,
+    scores,
+    judgeNotes,
+    activeJudgeId,
+    setActiveJudgeId,
+    updateCriteriaScore,
+    updateJudgeGeneralNotes,
+    getParticipantSubtotal,
+    authState,
+  } = useScore();
+
+  // If user is logged in as a specific Juri, force activeJudge to their own judgeId
+  const effectiveJudgeId =
+    authState.role === 'juri' && authState.judgeId
+      ? authState.judgeId
+      : activeJudgeId;
+
+  const activeJudge =
+    judges.find((j) => j.id === effectiveJudgeId) || judges[0];
+
+  return (
+    <div className="space-y-6">
+      {/* Judge Header Card */}
+      <div className="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-red-400 tracking-wider uppercase mb-1">
+              <UserCheck className="w-4 h-4" />
+              Lembar Penilaian Resmi
+            </div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              Formulir Penilaian — {activeJudge.name}
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Sebagai <span className="text-amber-400 font-bold">{activeJudge.name}</span>, Anda memberikan nilai untuk 5 RT peserta lainnya.
+            </p>
+          </div>
+
+          {/* Selector buttons (ONLY FOR ADMIN). For Juri, display locked badge! */}
+          {authState.role === 'admin' ? (
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                <Shield className="w-3 h-3" /> Mode Admin (Bisa Ganti Juri)
+              </span>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {judges.map((judge) => {
+                  const isActive = judge.id === activeJudge.id;
+                  return (
+                    <button
+                      key={judge.id}
+                      onClick={() => setActiveJudgeId(judge.id)}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                        isActive
+                          ? 'bg-gradient-to-b from-red-500 to-red-600 text-white border-red-400 shadow-lg shadow-red-500/20 scale-105'
+                          : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      <span>{judge.code}</span>
+                      {isActive && <Check className="w-3 h-3" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300">
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Akses Terkunci Khusus <strong className="text-amber-400">{activeJudge.name}</strong></span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Rules Notice */}
+      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-amber-200/90 leading-relaxed">
+          <span className="font-bold text-amber-400">Aturan Penilaian:</span> Berikan nilai berupa angka (1 s/d Nilai Maksimal per Kriteria) pada kolom masing-masing RT peserta. Juri <span className="font-semibold text-white">tidak dapat menilai RT sendiri</span> (dikunci secara otomatis sebagai <span className="font-bold text-amber-400">N/A</span>).
+        </div>
+      </div>
+
+      {/* Participants Scoring Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {participants.map((participant) => {
+          const isSelf = activeJudge.code === participant.code;
+          const participantScores = scores[activeJudge.id]?.[participant.id]?.scores || {};
+          const subtotal = getParticipantSubtotal(activeJudge.id, participant.id);
+
+          return (
+            <div
+              key={participant.id}
+              className={`rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col ${
+                isSelf
+                  ? 'bg-slate-900/40 border-slate-800/80 opacity-70'
+                  : 'bg-slate-900 border-slate-800 hover:border-slate-700 shadow-xl'
+              }`}
+            >
+              {/* Card Header */}
+              <div
+                className={`p-4 border-b flex items-center justify-between ${
+                  isSelf
+                    ? 'bg-slate-950/50 border-slate-800'
+                    : 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-9 h-9 rounded-xl font-black text-sm flex items-center justify-center border shadow-inner ${
+                      isSelf
+                        ? 'bg-slate-800 text-slate-500 border-slate-700'
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}
+                  >
+                    {participant.code}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-white">
+                      {participant.name}
+                    </h3>
+                    <span className="text-[11px] text-slate-400">
+                      {isSelf ? 'RT Sendiri' : 'Peserta Lomba'}
+                    </span>
+                  </div>
+                </div>
+
+                {isSelf ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-800 text-slate-400 px-2.5 py-1 rounded-lg border border-slate-700">
+                    <Lock className="w-3 h-3" /> N/A (Terkunci)
+                  </span>
+                ) : (
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                      Total Skor
+                    </div>
+                    <div className="text-lg font-black text-amber-400">
+                      {subtotal} <span className="text-xs text-slate-500 font-normal">/ 100</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Card Body - Criteria Inputs */}
+              <div className="p-4 space-y-4 flex-1">
+                {isSelf ? (
+                  <div className="py-8 text-center px-4 space-y-2">
+                    <Lock className="w-8 h-8 text-slate-600 mx-auto" />
+                    <p className="text-xs font-medium text-slate-400">
+                      Juri <span className="text-white font-bold">{activeJudge.code}</span> tidak memberikan nilai untuk <span className="text-white font-bold">{participant.code}</span>.
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Nilai RT sendiri dikecualikan dari perhitungan (N/A).
+                    </p>
+                  </div>
+                ) : (
+                  criteria.map((crit) => {
+                    const currentValue = participantScores[crit.id] ?? 0;
+
+                    return (
+                      <div key={crit.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-slate-300">
+                            {crit.name}
+                          </span>
+                          <span className="text-slate-400 text-[11px]">
+                            Maks <strong className="text-slate-200">{crit.maxScore}</strong>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={0}
+                            max={crit.maxScore}
+                            value={currentValue}
+                            onChange={(e) =>
+                              updateCriteriaScore(
+                                activeJudge.id,
+                                participant.id,
+                                crit.id,
+                                Number(e.target.value)
+                              )
+                            }
+                            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            max={crit.maxScore}
+                            value={currentValue === 0 ? '' : currentValue}
+                            onChange={(e) => {
+                              const val = Math.min(
+                                crit.maxScore,
+                                Math.max(0, Number(e.target.value))
+                              );
+                              updateCriteriaScore(
+                                activeJudge.id,
+                                participant.id,
+                                crit.id,
+                                val
+                              );
+                            }}
+                            placeholder="0"
+                            className="w-14 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-red-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* General Notes per Judge */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3">
+        <div className="flex items-center gap-2 text-sm font-bold text-white">
+          <MessageSquareText className="w-4 h-4 text-amber-400" />
+          Catatan / Kritik & Saran Juri ({activeJudge.name})
+          <span className="text-xs text-slate-400 font-normal">(Opsional)</span>
+        </div>
+        <textarea
+          rows={3}
+          value={judgeNotes[activeJudge.id] || ''}
+          onChange={(e) => updateJudgeGeneralNotes(activeJudge.id, e.target.value)}
+          placeholder={`Tuliskan catatan, tanggapan, atau kesan untuk seluruh penampilan lomba bagi ${activeJudge.name}...`}
+          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
+        />
+      </div>
+    </div>
+  );
+};
