@@ -152,21 +152,24 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           let serverScores = normalizeScores(data.scores || {});
           let serverNotes = data.judgeNotes || {};
 
-          // Synchronize with Central Server Master Scores with Anti-Flicker Reference Stability
+          // Synchronize with Central Server Master Scores with Accumulative Merge (prevents dropping to 0)
           if (Object.keys(serverScores).length > 0) {
             setScores(prev => {
               const now = Date.now();
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
 
-              let nextScores = serverScores;
-              if (isRecentlyEdited && prev[activeJudgeId]) {
-                nextScores = normalizeScores({
-                  ...serverScores,
-                  [activeJudgeId]: { ...(serverScores[activeJudgeId] || {}), ...prev[activeJudgeId] }
-                });
+              const mergedScores: Record<string, any> = { ...prev };
+              for (const jId of Object.keys(serverScores)) {
+                if (isRecentlyEdited && jId === activeJudgeId && prev[jId]) {
+                  mergedScores[jId] = { ...(serverScores[jId] || {}), ...prev[jId] };
+                } else {
+                  mergedScores[jId] = { ...(prev[jId] || {}), ...serverScores[jId] };
+                }
               }
 
+              const nextScores = normalizeScores(mergedScores);
               const prevNorm = normalizeScores(prev);
+
               if (JSON.stringify(prevNorm) === JSON.stringify(nextScores)) {
                 return prev; // Prevents unnecessary re-renders & flickering!
               }
@@ -176,18 +179,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
           if (Object.keys(serverNotes).length > 0) {
             setJudgeNotes(prev => {
-              const now = Date.now();
-              const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
-
-              let nextNotes = serverNotes;
-              if (isRecentlyEdited && prev[activeJudgeId]) {
-                nextNotes = { ...serverNotes, [activeJudgeId]: prev[activeJudgeId] };
+              const mergedNotes = { ...prev, ...serverNotes };
+              if (JSON.stringify(prev) === JSON.stringify(mergedNotes)) {
+                return prev;
               }
-
-              if (JSON.stringify(prev) === JSON.stringify(nextNotes)) {
-                return prev; // Prevents unnecessary re-renders & flickering!
-              }
-              return nextNotes;
+              return mergedNotes;
             });
           }
           setIsRealtimeConnected(true);
