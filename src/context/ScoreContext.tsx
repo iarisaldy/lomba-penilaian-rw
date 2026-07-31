@@ -123,15 +123,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           let serverScores = data.scores || {};
           let serverNotes = data.judgeNotes || {};
 
-          // Failsafe: If /api/scores returns empty scores, attempt direct browser fetch from Google Sheets
-          if (Object.keys(serverScores).length === 0) {
-            const directSheetData = await fetchGoogleSheetsScoresDirectly();
-            if (directSheetData && directSheetData.scores && Object.keys(directSheetData.scores).length > 0) {
-              serverScores = directSheetData.scores;
-              if (directSheetData.judgeNotes) serverNotes = directSheetData.judgeNotes;
-            }
-          }
-
           // Synchronize with Central Server Master Scores
           if (Object.keys(serverScores).length > 0) {
             setScores(prev => {
