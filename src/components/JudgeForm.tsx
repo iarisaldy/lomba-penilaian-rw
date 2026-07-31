@@ -231,7 +231,7 @@ export const JudgeForm: React.FC = () => {
                             type="number"
                             min={0}
                             max={crit.maxScore}
-                            value={currentValue === 0 ? '' : currentValue}
+                            value={currentValue}
                             disabled={isInputDisabled}
                             onChange={(e) => {
                               const val = Math.min(

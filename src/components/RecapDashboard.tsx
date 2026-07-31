@@ -5,6 +5,7 @@ import { useScore } from '../context/ScoreContext';
 import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, FileSpreadsheet, Send, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getGoogleSheetsUrl, setGoogleSheetsUrl, testGoogleSheetsSync } from '../lib/googleSheetsClient';
+import { EVENT_INFO } from '../data/competitionDefaults';
 
 export const RecapDashboard: React.FC = () => {
   const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData } = useScore();
@@ -47,13 +48,13 @@ export const RecapDashboard: React.FC = () => {
   const handleAdminResetConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
-    if (confirmPin.trim() === '0000') {
+    if (confirmPin.trim() === EVENT_INFO.adminPin) {
       resetAllData();
       setShowResetModal(false);
       setConfirmPin('');
       alert('Seluruh data nilai penilaian berhasil dikosongkan!');
     } else {
-      setResetError('PIN Admin Salah! Gunakan PIN 0000.');
+      setResetError(`PIN Admin Salah! Masukkan PIN yang benar.`);
     }
   };
 
@@ -465,7 +466,7 @@ export const RecapDashboard: React.FC = () => {
             <form onSubmit={handleAdminResetConfirm} className="space-y-4 pt-2">
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Masukkan PIN Admin (0000) untuk melanjutkan:
+                  Masukkan PIN Admin untuk melanjutkan:
                 </label>
                 <input
                   type="password"

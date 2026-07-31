@@ -33,6 +33,48 @@ function testPermissions() {
   Logger.log("Akses Spreadsheet Berhasil: " + ss.getName());
 }
 
+// ============================================================
+// MASTER DATA — ID harus SAMA PERSIS dengan frontend (tanpa prefix p_)
+// ============================================================
+var JUDGE_LIST = [
+  { id: 'juri_rt01', code: 'RT 01', name: 'Juri RT 01' },
+  { id: 'juri_rt02', code: 'RT 02', name: 'Juri RT 02' },
+  { id: 'juri_rt03', code: 'RT 03', name: 'Juri RT 03' },
+  { id: 'juri_rt04', code: 'RT 04', name: 'Juri RT 04' },
+  { id: 'juri_rt05', code: 'RT 05', name: 'Juri RT 05' },
+  { id: 'juri_rt06', code: 'RT 06', name: 'Juri RT 06' }
+];
+
+// FIX BUG-01: Participant IDs diubah dari 'p_rt01' → 'rt01' agar cocok dengan frontend
+var PARTICIPANT_LIST = [
+  { id: 'rt01', code: 'RT 01', name: 'Peserta RT 01' },
+  { id: 'rt02', code: 'RT 02', name: 'Peserta RT 02' },
+  { id: 'rt03', code: 'RT 03', name: 'Peserta RT 03' },
+  { id: 'rt04', code: 'RT 04', name: 'Peserta RT 04' },
+  { id: 'rt05', code: 'RT 05', name: 'Peserta RT 05' },
+  { id: 'rt06', code: 'RT 06', name: 'Peserta RT 06' }
+];
+
+// FIX NOTE-04: judgeMap & participantMap diletakkan di scope atas agar tidak terkena ReferenceError
+var JUDGE_MAP = {
+  'RT 01': 'juri_rt01', 'juri_rt01': 'juri_rt01',
+  'RT 02': 'juri_rt02', 'juri_rt02': 'juri_rt02',
+  'RT 03': 'juri_rt03', 'juri_rt03': 'juri_rt03',
+  'RT 04': 'juri_rt04', 'juri_rt04': 'juri_rt04',
+  'RT 05': 'juri_rt05', 'juri_rt05': 'juri_rt05',
+  'RT 06': 'juri_rt06', 'juri_rt06': 'juri_rt06'
+};
+
+// FIX BUG-01: Participant map juga mengarah ke ID tanpa prefix p_
+var PARTICIPANT_MAP = {
+  'RT 01': 'rt01', 'rt01': 'rt01', 'p_rt01': 'rt01',
+  'RT 02': 'rt02', 'rt02': 'rt02', 'p_rt02': 'rt02',
+  'RT 03': 'rt03', 'rt03': 'rt03', 'p_rt03': 'rt03',
+  'RT 04': 'rt04', 'rt04': 'rt04', 'p_rt04': 'rt04',
+  'RT 05': 'rt05', 'rt05': 'rt05', 'p_rt05': 'rt05',
+  'RT 06': 'rt06', 'rt06': 'rt06', 'p_rt06': 'rt06'
+};
+
 function doPost(e) {
   try {
     var contents = e.postData.contents;
@@ -51,7 +93,7 @@ function doPost(e) {
       var sLog = ss.getSheetByName('Log Transaksi');
       if (sLog) {
         sLog.clear();
-        sLog.appendRow(['Waktu Sync', 'Juri ID', 'Peserta ID', 'C1 (Teknik/Rias)', 'C2 (Warna)', 'C3 (Kreativitas)', 'C4 (Kekompakan)', 'Total Subtotal', 'Catatan Peserta']);
+        sLog.appendRow(['Waktu Sync', 'Juri ID', 'Peserta ID', 'C1 (Kerapian)', 'C2 (Kreativitas)', 'C3 (Kesulitan)', 'C4 (Kekompakan)', 'Total Subtotal', 'Catatan Peserta']);
         sLog.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#EFEFEF');
       }
       var sNotes = ss.getSheetByName('Catatan Juri');
@@ -73,13 +115,12 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Seluruh data berhasil direset' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
+
     var sheetRekap = ss.getSheetByName('Rekap Nilai');
     if (!sheetRekap) {
       sheetRekap = ss.insertSheet('Rekap Nilai');
     }
     sheetRekap.clear();
-    sheetRekap.appendRow(['No', 'Kode Peserta', 'Nama Peserta', 'RT 01', 'RT 02', 'RT 03', 'RT 04', 'RT 05', 'RT 06', 'Total Nilai', 'Rata-Rata', 'Peringkat']);
-    sheetRekap.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#D9EAD3');
 
     // 2. Buat / Ambil Sheet 'Log Transaksi'
     var sheetLog = ss.getSheetByName('Log Transaksi');
@@ -89,9 +130,9 @@ function doPost(e) {
         'Waktu Sync', 
         'Juri ID', 
         'Peserta ID', 
-        'C1 (Teknik/Rias)', 
-        'C2 (Warna)', 
-        'C3 (Kreativitas)', 
+        'C1 (Kerapian)', 
+        'C2 (Kreativitas)', 
+        'C3 (Kesulitan)', 
         'C4 (Kekompakan)', 
         'Total Subtotal', 
         'Catatan Peserta'
@@ -103,31 +144,9 @@ function doPost(e) {
     var scores = data.scores || {};
     var judgeNotes = data.judgeNotes || {};
 
-    // Mapping Kode Juri & Peserta
-    var judgeList = [
-      { id: 'juri_rt01', code: 'RT 01', name: 'Juri RT 01' },
-      { id: 'juri_rt02', code: 'RT 02', name: 'Juri RT 02' },
-      { id: 'juri_rt03', code: 'RT 03', name: 'Juri RT 03' },
-      { id: 'juri_rt04', code: 'RT 04', name: 'Juri RT 04' },
-      { id: 'juri_rt05', code: 'RT 05', name: 'Juri RT 05' },
-      { id: 'juri_rt06', code: 'RT 06', name: 'Juri RT 06' }
-    ];
-
-    var participantList = [
-      { id: 'p_rt01', code: 'RT 01', name: 'Peserta RT 01' },
-      { id: 'p_rt02', code: 'RT 02', name: 'Peserta RT 02' },
-      { id: 'p_rt03', code: 'RT 03', name: 'Peserta RT 03' },
-      { id: 'p_rt04', code: 'RT 04', name: 'Peserta RT 04' },
-      { id: 'p_rt05', code: 'RT 05', name: 'Peserta RT 05' },
-      { id: 'p_rt06', code: 'RT 06', name: 'Peserta RT 06' }
-    ];
-
     // Format Ulang Sheet Rekap
-    sheetRekap.clear();
-    
-    // Header Rekap
     var headers = ['No', 'Kode Peserta', 'Nama Peserta'];
-    judgeList.forEach(function(j) {
+    JUDGE_LIST.forEach(function(j) {
       headers.push(j.code);
     });
     headers.push('Total Nilai', 'Rata-Rata', 'Peringkat');
@@ -138,15 +157,16 @@ function doPost(e) {
     // Catat Log Transaksi & Buat Baris Rekap
     var recaps = [];
 
-    participantList.forEach(function(p, idx) {
+    PARTICIPANT_LIST.forEach(function(p, idx) {
       var rowScores = [];
       var totalScore = 0;
       var validJudgeCount = 0;
 
-      judgeList.forEach(function(j) {
+      JUDGE_LIST.forEach(function(j) {
         if (j.code === p.code) {
           rowScores.push('N/A');
         } else {
+          // FIX BUG-01: lookup by p.id ('rt01') karena frontend mengirim dengan ID tanpa prefix
           var pData = (scores[j.id] && scores[j.id][p.id]) ? scores[j.id][p.id] : {};
           var pScores = pData.scores || {};
           var c1 = Number(pScores.c1 || 0);
@@ -221,7 +241,7 @@ function doPost(e) {
     sheetNotes.appendRow(['Waktu Update', 'Juri', 'Catatan Umum']);
     sheetNotes.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FFF2CC');
     
-    judgeList.forEach(function(j) {
+    JUDGE_LIST.forEach(function(j) {
       if (judgeNotes[j.id]) {
         sheetNotes.appendRow([timestamp, j.code + ' (' + j.name + ')', judgeNotes[j.id]]);
       }
@@ -276,15 +296,6 @@ function readScoresFromSpreadsheet() {
     { id: 'juri_rt06', code: 'RT 06', colIdx: 9 }
   ];
 
-  var participantMap = {
-    'RT 01': 'p_rt01', 'p_rt01': 'p_rt01',
-    'RT 02': 'p_rt02', 'p_rt02': 'p_rt02',
-    'RT 03': 'p_rt03', 'p_rt03': 'p_rt03',
-    'RT 04': 'p_rt04', 'p_rt04': 'p_rt04',
-    'RT 05': 'p_rt05', 'p_rt05': 'p_rt05',
-    'RT 06': 'p_rt06', 'p_rt06': 'p_rt06'
-  };
-
   // 1. Baca langsung dari Sheet 'Rekap Nilai'
   var sheetRekap = ss.getSheetByName('Rekap Nilai');
   if (sheetRekap) {
@@ -293,7 +304,8 @@ function readScoresFromSpreadsheet() {
       var values = sheetRekap.getRange(2, 1, lastRow - 1, 12).getValues();
       values.forEach(function(row) {
         var pCode = String(row[1]).trim();
-        var pId = participantMap[pCode] || pCode;
+        // FIX BUG-01: PARTICIPANT_MAP mengarah ke 'rt01' (tanpa prefix p_)
+        var pId = PARTICIPANT_MAP[pCode] || pCode;
 
         if (pId) {
           judgeList.forEach(function(j) {
@@ -324,25 +336,19 @@ function readScoresFromSpreadsheet() {
   }
 
   // 2. Baca dari 'Log Transaksi' jika tersedia untuk rincian c1-c4 yang presisi
+  // (Ini akan override data rekap apabila ada, karena lebih detail/presisi)
   var sheetLog = ss.getSheetByName('Log Transaksi');
   if (sheetLog) {
     var lastLog = sheetLog.getLastRow();
     if (lastLog > 1) {
       var logVals = sheetLog.getRange(2, 1, lastLog - 1, 9).getValues();
-      var judgeMap = {
-        'RT 01': 'juri_rt01', 'juri_rt01': 'juri_rt01',
-        'RT 02': 'juri_rt02', 'juri_rt02': 'juri_rt02',
-        'RT 03': 'juri_rt03', 'juri_rt03': 'juri_rt03',
-        'RT 04': 'juri_rt04', 'juri_rt04': 'juri_rt04',
-        'RT 05': 'juri_rt05', 'juri_rt05': 'juri_rt05',
-        'RT 06': 'juri_rt06', 'juri_rt06': 'juri_rt06'
-      };
 
       logVals.forEach(function(row) {
         var jCode = String(row[1]).trim();
         var pCode = String(row[2]).trim();
-        var jId = judgeMap[jCode] || jCode;
-        var pId = participantMap[pCode] || pCode;
+        // FIX NOTE-04: Gunakan JUDGE_MAP & PARTICIPANT_MAP dari scope atas (tidak undefined lagi)
+        var jId = JUDGE_MAP[jCode] || jCode;
+        var pId = PARTICIPANT_MAP[pCode] || pCode;
         var c1 = Number(row[3] || 0);
         var c2 = Number(row[4] || 0);
         var c3 = Number(row[5] || 0);
@@ -360,6 +366,7 @@ function readScoresFromSpreadsheet() {
     }
   }
 
+  // FIX NOTE-04: Baca catatan juri menggunakan JUDGE_MAP dari scope atas
   var sheetNotes = ss.getSheetByName('Catatan Juri');
   if (sheetNotes) {
     var lastNotesRow = sheetNotes.getLastRow();
@@ -368,9 +375,10 @@ function readScoresFromSpreadsheet() {
       noteVals.forEach(function(row) {
         var jRaw = String(row[1]).trim();
         var noteText = String(row[2] || '').trim();
-        for (var code in judgeMap) {
+        // FIX NOTE-04: JUDGE_MAP sekarang tersedia dari scope atas
+        for (var code in JUDGE_MAP) {
           if (jRaw.indexOf(code) !== -1) {
-            masterNotes[judgeMap[code]] = noteText;
+            masterNotes[JUDGE_MAP[code]] = noteText;
           }
         }
       });

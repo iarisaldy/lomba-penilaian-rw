@@ -16,7 +16,7 @@ import {
   DEFAULT_PARTICIPANTS,
   EVENT_INFO,
 } from '../data/competitionDefaults';
-import { syncToGoogleSheets, fetchGoogleSheetsScoresDirectly } from '../lib/googleSheetsClient';
+import { syncToGoogleSheets } from '../lib/googleSheetsClient';
 
 interface ScoreContextType {
   judges: Judge[];
@@ -109,6 +109,12 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Timestamp of last local slider interaction to prevent polling race-condition flickering
   const lastLocalInteractionRef = useRef<number>(0);
 
+  // Ref that always holds the latest scores to avoid stale closures in callbacks
+  const scoresRef = useRef<AllScores>({});
+  useEffect(() => {
+    scoresRef.current = scores;
+  }, [scores]);
+
   // Helper to check if a specific participant card is locked for a judge
   const isCardLocked = useCallback((judgeId: string, participantId: string): boolean => {
     const key = `${judgeId}_${participantId}`;
@@ -187,14 +193,17 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             });
           }
           setIsRealtimeConnected(true);
+        } else {
+          setIsRealtimeConnected(false);
         }
       } catch (e) {
-        // Fallback
+        // Network error or server down — mark as disconnected
+        setIsRealtimeConnected(false);
       }
     };
 
     fetchApiScores();
-    const interval = setInterval(fetchApiScores, 2000);
+    const interval = setInterval(fetchApiScores, 3000);
 
     return () => clearInterval(interval);
   }, [lastResetTs, activeJudgeId]);
@@ -240,10 +249,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // Direct Google Sheets sync with 500ms debounce to prevent request flooding during slider drag
-    if (reset) {
-      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-      syncToGoogleSheets(newScores, newNotes);
-    } else {
+    // On reset, skip direct GAS sync — the POST to /api/scores below will forward the reset to GAS in background
+    if (!reset) {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
       syncTimeoutRef.current = setTimeout(() => {
         syncToGoogleSheets(newScores, newNotes);
@@ -314,7 +321,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const updateCriteriaScore = (
+  const updateCriteriaScore = useCallback((
     judgeId: string,
     participantId: string,
     criteriaId: string,
@@ -359,9 +366,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveAndSync(updatedScores, judgeNotes);
       return updatedScores;
     });
-  };
+  }, [authState, isCardLocked, judges, participants, judgeNotes, saveAndSync]);
 
-  const updateParticipantNotes = (
+  const updateParticipantNotes = useCallback((
     judgeId: string,
     participantId: string,
     notes: string
@@ -394,9 +401,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveAndSync(updatedScores, judgeNotes);
       return updatedScores;
     });
-  };
+  }, [authState, isCardLocked, judgeNotes, saveAndSync]);
 
-  const updateJudgeGeneralNotes = (judgeId: string, notes: string) => {
+  const updateJudgeGeneralNotes = useCallback((judgeId: string, notes: string) => {
     if (authState.role === 'admin') {
       return;
     }
@@ -413,10 +420,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         [judgeId]: notes,
       };
 
-      saveAndSync(scores, updatedNotes);
+      // Use scoresRef.current to avoid stale closure — always gets the latest scores state
+      saveAndSync(scoresRef.current, updatedNotes);
       return updatedNotes;
     });
-  };
+  }, [authState, saveAndSync]);
 
   const getParticipantSubtotal = (judgeId: string, participantId: string): number => {
     const judge = judges.find(j => j.id === judgeId);
@@ -467,7 +475,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
     });
 
-    const sorted = [...recaps].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
+    // Deep-clone before sort to prevent mutation of the original recaps objects
+    const sorted = recaps.map(r => ({ ...r })).sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
     
     let currentRank = 1;
     sorted.forEach((item, index) => {
@@ -477,13 +486,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       item.rank = currentRank;
     });
 
-    return recaps.map(r => {
-      const found = sorted.find(s => s.participantId === r.participantId);
-      return {
-        ...r,
-        rank: found ? found.rank : 0,
-      };
-    });
+    // Build a lookup map for O(1) rank retrieval instead of O(n) find
+    const rankMap = new Map(sorted.map(s => [s.participantId, s.rank]));
+
+    return recaps.map(r => ({
+      ...r,
+      rank: rankMap.get(r.participantId) ?? 0,
+    }));
   }, [scores, judges, participants]);
 
   const loadDemoData = () => {
