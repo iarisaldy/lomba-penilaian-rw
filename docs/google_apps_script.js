@@ -45,6 +45,9 @@ function doPost(e) {
     if (!sheetRekap) {
       sheetRekap = ss.insertSheet('Rekap Nilai');
     }
+    sheetRekap.clear();
+    sheetRekap.appendRow(['No', 'Kode Peserta', 'Nama Peserta', 'RT 01', 'RT 02', 'RT 03', 'RT 04', 'RT 05', 'RT 06', 'Total Nilai', 'Rata-Rata', 'Peringkat']);
+    sheetRekap.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#D9EAD3');
 
     // 2. Buat / Ambil Sheet 'Log Transaksi'
     var sheetLog = ss.getSheetByName('Log Transaksi');
