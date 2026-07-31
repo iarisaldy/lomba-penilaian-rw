@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Rounded Shield -->
+  <rect x="16" y="16" width="480" height="480" rx="110" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="12" />
+  
+  <!-- Red & White Flag Ribbon Badge -->
+  <path d="M 170,120 L 342,120 L 342,160 Q 256,180 170,160 Z" fill="url(#redGrad)" />
+  <path d="M 170,160 Q 256,180 342,160 L 342,190 L 170,190 Z" fill="#ffffff" />
+
+  <!-- Gold Trophy Icon -->
+  <path d="M 180,210 C 180,290 220,330 256,340 C 292,330 332,290 332,210 Z" fill="url(#goldGrad)" />
+  <!-- Handles -->
+  <path d="M 180,220 C 140,220 130,280 180,290 M 332,220 C 372,220 382,280 332,290" fill="none" stroke="url(#goldGrad)" stroke-width="18" stroke-linecap="round" />
+  <!-- Stem & Base -->
+  <rect x="240" y="340" width="32" height="50" fill="url(#goldGrad)" rx="6" />
+  <rect x="190" y="390" width="132" height="30" fill="url(#goldGrad)" rx="10" />
+
+  <!-- Star Top Accent -->
+  <polygon points="256,70 267,95 294,95 272,110 281,135 256,120 231,135 240,110 218,95 245,95" fill="#fbbf24" />
+</svg>
