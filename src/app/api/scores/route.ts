@@ -10,6 +10,8 @@ let globalResetTimestamp: number = 0;
 export async function GET() {
   try {
     const res = await fetch(GOOGLE_SHEETS_URL, {
+      method: 'GET',
+      redirect: 'follow',
       cache: 'no-store',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -17,14 +19,17 @@ export async function GET() {
     });
 
     if (res.ok) {
-      const data = await res.json();
-      if (typeof data.resetTimestamp === 'number' && data.resetTimestamp > globalResetTimestamp) {
-        globalResetTimestamp = data.resetTimestamp;
-        globalMasterScores = data.scores || {};
-        globalMasterNotes = data.judgeNotes || {};
-      } else if (data.scores) {
-        globalMasterScores = data.scores;
-        if (data.judgeNotes) globalMasterNotes = data.judgeNotes;
+      const text = await res.text();
+      if (text && text.trim().startsWith('{')) {
+        const data = JSON.parse(text);
+        if (typeof data.resetTimestamp === 'number' && data.resetTimestamp > globalResetTimestamp) {
+          globalResetTimestamp = data.resetTimestamp;
+          globalMasterScores = data.scores || {};
+          globalMasterNotes = data.judgeNotes || {};
+        } else if (data.scores) {
+          globalMasterScores = data.scores;
+          if (data.judgeNotes) globalMasterNotes = data.judgeNotes;
+        }
       }
     }
   } catch (e) {
@@ -67,6 +72,7 @@ export async function POST(request: Request) {
     try {
       await fetch(GOOGLE_SHEETS_URL, {
         method: 'POST',
+        redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           timestamp: new Date().toISOString(),
