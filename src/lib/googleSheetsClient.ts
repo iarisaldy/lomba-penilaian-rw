@@ -1,11 +1,17 @@
 // Helper for Syncing with Google Sheets via Google Apps Script Webhook
 
 export const getGoogleSheetsUrl = (): string => {
+  const defaultUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || 'https://script.google.com/macros/s/AKfycbxYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg/exec';
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('lomba_google_sheets_url');
+    // Clear old invalid cached URL automatically
+    if (saved && saved.includes('AKfycby9085h9R04WAHmNNwNq8qcugdQDvPN2tKqVOLaNXfisJM5_Vv1GMiEgeAHKoCGVpNiWw')) {
+      localStorage.removeItem('lomba_google_sheets_url');
+      return defaultUrl;
+    }
     if (saved && saved.trim() !== '') return saved.trim();
   }
-  return process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || 'https://script.google.com/macros/s/AKfycbxYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg/exec';
+  return defaultUrl;
 };
 
 export const setGoogleSheetsUrl = (url: string) => {
