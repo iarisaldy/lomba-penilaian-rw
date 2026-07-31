@@ -10,12 +10,22 @@ const getTargetUrl = () => {
   ) {
     return envUrl.trim();
   }
-  // Active Apps Script Web App URL from Deployment screenshot
   return 'https://script.google.com/macros/s/AKfycbyJc4QfsdBFFGqxKfxIpWZW-LPwh-3DByiacsv5o_r8zacVwW8ol-15CBJ_0vf98s/exec';
 };
 
+// Initial master scores matching Google Spreadsheet data (Juri RT 01)
+const INITIAL_MASTER_SCORES: Record<string, any> = {
+  juri_rt01: {
+    p_rt02: { scores: { c1: 20, c2: 20, c3: 12, c4: 12 }, notes: '' },
+    p_rt03: { scores: { c1: 18, c2: 18, c3: 11, c4: 11 }, notes: '' },
+    p_rt04: { scores: { c1: 30, c2: 30, c3: 17, c4: 18 }, notes: '' },
+    p_rt05: { scores: { c1: 15, c2: 15, c3: 10, c4: 10 }, notes: '' },
+    p_rt06: { scores: { c1: 28, c2: 28, c3: 18, c4: 19 }, notes: '' },
+  },
+};
+
 // Global in-memory state fallback on Vercel Serverless Function
-let globalMasterScores: Record<string, any> = {};
+let globalMasterScores: Record<string, any> = { ...INITIAL_MASTER_SCORES };
 let globalMasterNotes: Record<string, any> = {};
 let globalResetTimestamp: number = 0;
 
@@ -42,7 +52,7 @@ export async function GET() {
         if (data.judgeNotes) {
           globalMasterNotes = data.judgeNotes;
         }
-        if (typeof data.resetTimestamp === 'number') {
+        if (typeof data.resetTimestamp === 'number' && data.resetTimestamp > 0) {
           globalResetTimestamp = data.resetTimestamp;
         }
       }
