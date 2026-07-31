@@ -40,7 +40,39 @@ function doPost(e) {
 
     var ss = getSpreadsheet();
     
-    // 1. Buat / Ambil Sheet 'Rekap Nilai'
+    // Handle Reset Action
+    if (data.reset) {
+      var sRekap = ss.getSheetByName('Rekap Nilai');
+      if (sRekap) {
+        sRekap.clear();
+        sRekap.appendRow(['No', 'Kode Peserta', 'Nama Peserta', 'RT 01', 'RT 02', 'RT 03', 'RT 04', 'RT 05', 'RT 06', 'Total Nilai', 'Rata-Rata', 'Peringkat']);
+        sRekap.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#D9EAD3');
+      }
+      var sLog = ss.getSheetByName('Log Transaksi');
+      if (sLog) {
+        sLog.clear();
+        sLog.appendRow(['Waktu Sync', 'Juri ID', 'Peserta ID', 'C1 (Teknik/Rias)', 'C2 (Warna)', 'C3 (Kreativitas)', 'C4 (Kekompakan)', 'Total Subtotal', 'Catatan Peserta']);
+        sLog.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#EFEFEF');
+      }
+      var sNotes = ss.getSheetByName('Catatan Juri');
+      if (sNotes) {
+        sNotes.clear();
+        sNotes.appendRow(['Waktu Update', 'Juri', 'Catatan Umum']);
+        sNotes.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FFF2CC');
+      }
+
+      try {
+        var scriptProperties = PropertiesService.getScriptProperties();
+        scriptProperties.setProperty('MASTER_PAYLOAD', JSON.stringify({
+          scores: {},
+          judgeNotes: {},
+          resetTimestamp: data.resetTimestamp || Date.now()
+        }));
+      } catch(e) {}
+
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Seluruh data berhasil direset' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     var sheetRekap = ss.getSheetByName('Rekap Nilai');
     if (!sheetRekap) {
       sheetRekap = ss.insertSheet('Rekap Nilai');
