@@ -5,7 +5,7 @@ export const getGoogleSheetsUrl = (): string => {
     const saved = localStorage.getItem('lomba_google_sheets_url');
     if (saved && saved.trim() !== '') return saved.trim();
   }
-  return process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || 'https://script.google.com/macros/s/AKfycby9085h9R04WAHmNNwNq8qcugdQDvPN2tKqVOLaNXfisJM5_Vv1GMiEgeAHKoCGVpNiWw/exec';
+  return process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || 'https://script.google.com/macros/s/AKfycbxYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg/exec';
 };
 
 export const setGoogleSheetsUrl = (url: string) => {
