@@ -227,14 +227,96 @@ function doPost(e) {
   }
 }
 
+function readScoresFromSpreadsheet() {
+  var ss = getSpreadsheet();
+  var sheetLog = ss.getSheetByName('Log Transaksi');
+  var masterScores = {};
+  var masterNotes = {};
+
+  var judgeMap = {
+    'RT 01': 'juri_rt01', 'juri_rt01': 'juri_rt01',
+    'RT 02': 'juri_rt02', 'juri_rt02': 'juri_rt02',
+    'RT 03': 'juri_rt03', 'juri_rt03': 'juri_rt03',
+    'RT 04': 'juri_rt04', 'juri_rt04': 'juri_rt04',
+    'RT 05': 'juri_rt05', 'juri_rt05': 'juri_rt05',
+    'RT 06': 'juri_rt06', 'juri_rt06': 'juri_rt06'
+  };
+
+  var participantMap = {
+    'RT 01': 'p_rt01', 'p_rt01': 'p_rt01',
+    'RT 02': 'p_rt02', 'p_rt02': 'p_rt02',
+    'RT 03': 'p_rt03', 'p_rt03': 'p_rt03',
+    'RT 04': 'p_rt04', 'p_rt04': 'p_rt04',
+    'RT 05': 'p_rt05', 'p_rt05': 'p_rt05',
+    'RT 06': 'p_rt06', 'p_rt06': 'p_rt06'
+  };
+
+  if (sheetLog) {
+    var lastRow = sheetLog.getLastRow();
+    if (lastRow > 1) {
+      var values = sheetLog.getRange(2, 1, lastRow - 1, 9).getValues();
+      values.forEach(function(row) {
+        var jCode = String(row[1]).trim();
+        var pCode = String(row[2]).trim();
+        var jId = judgeMap[jCode] || jCode;
+        var pId = participantMap[pCode] || pCode;
+        var c1 = Number(row[3] || 0);
+        var c2 = Number(row[4] || 0);
+        var c3 = Number(row[5] || 0);
+        var c4 = Number(row[6] || 0);
+        var note = String(row[8] || '').trim();
+
+        if (jId && pId) {
+          if (!masterScores[jId]) masterScores[jId] = {};
+          masterScores[jId][pId] = {
+            scores: { c1: c1, c2: c2, c3: c3, c4: c4 },
+            notes: note
+          };
+        }
+      });
+    }
+  }
+
+  var sheetNotes = ss.getSheetByName('Catatan Juri');
+  if (sheetNotes) {
+    var lastNotesRow = sheetNotes.getLastRow();
+    if (lastNotesRow > 1) {
+      var noteVals = sheetNotes.getRange(2, 1, lastNotesRow - 1, 3).getValues();
+      noteVals.forEach(function(row) {
+        var jRaw = String(row[1]).trim();
+        var noteText = String(row[2] || '').trim();
+        for (var code in judgeMap) {
+          if (jRaw.indexOf(code) !== -1) {
+            masterNotes[judgeMap[code]] = noteText;
+          }
+        }
+      });
+    }
+  }
+
+  return { scores: masterScores, judgeNotes: masterNotes };
+}
+
 function doGet(e) {
   try {
     var scriptProperties = PropertiesService.getScriptProperties();
-    var payload = scriptProperties.getProperty('MASTER_PAYLOAD');
-    if (!payload) {
-      payload = JSON.stringify({ scores: {}, judgeNotes: {}, resetTimestamp: 0 });
+    var payloadRaw = scriptProperties.getProperty('MASTER_PAYLOAD');
+    var payload;
+
+    if (payloadRaw) {
+      payload = JSON.parse(payloadRaw);
     }
-    return ContentService.createTextOutput(payload)
+
+    if (!payload || !payload.scores || Object.keys(payload.scores).length === 0) {
+      var sheetData = readScoresFromSpreadsheet();
+      payload = {
+        scores: sheetData.scores,
+        judgeNotes: sheetData.judgeNotes,
+        resetTimestamp: 0
+      };
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(payload))
       .setMimeType(ContentService.MimeType.JSON);
   } catch(err) {
     return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
