@@ -3,7 +3,7 @@
 import React from 'react';
 import { useScore } from '../context/ScoreContext';
 import { EVENT_INFO } from '../data/competitionDefaults';
-import { Printer, Download } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 export const OfficialPrintView: React.FC = () => {
   const { judges, participants, recapData } = useScore();
@@ -100,7 +100,7 @@ export const OfficialPrintView: React.FC = () => {
 
                 return (
                   <tr key={participant.id} className="border-b border-slate-900 text-center font-medium">
-                    <td className="border border-slate-900 p-2 font-bold text-left bg-slate-50">
+                    <td className="border border-slate-900 p-2 font-bold text-center bg-slate-50">
                       {participant.code}
                     </td>
 
@@ -152,7 +152,7 @@ export const OfficialPrintView: React.FC = () => {
               <span>🏆 JUARA 1</span>
             </div>
             <div className="font-bold text-xs text-slate-800">
-              Pemenang: <span className="font-black text-slate-950 text-sm uppercase underline ml-1">{juara1 && juara1.averageScore > 0 ? `${juara1.participantName} (${juara1.participantCode})` : '....................'}</span>
+              Pemenang: <span className="font-black text-slate-950 text-sm uppercase underline ml-1">{juara1 && juara1.averageScore > 0 ? `Peserta ${juara1.participantCode}` : '....................'}</span>
             </div>
             <div className="text-xs font-semibold">
               Nilai Rata-Rata: <span className="font-bold text-slate-950">{juara1 && juara1.averageScore > 0 ? juara1.averageScore : '....................'}</span>
@@ -164,7 +164,7 @@ export const OfficialPrintView: React.FC = () => {
               <span>🥈 JUARA 2</span>
             </div>
             <div className="font-bold text-xs text-slate-800">
-              Pemenang: <span className="font-black text-slate-950 text-sm uppercase underline ml-1">{juara2 && juara2.averageScore > 0 ? `${juara2.participantName} (${juara2.participantCode})` : '....................'}</span>
+              Pemenang: <span className="font-black text-slate-950 text-sm uppercase underline ml-1">{juara2 && juara2.averageScore > 0 ? `Peserta ${juara2.participantCode}` : '....................'}</span>
             </div>
             <div className="text-xs font-semibold">
               Nilai Rata-Rata: <span className="font-bold text-slate-950">{juara2 && juara2.averageScore > 0 ? juara2.averageScore : '....................'}</span>
@@ -172,25 +172,25 @@ export const OfficialPrintView: React.FC = () => {
           </div>
         </div>
 
-        {/* Signatures Block */}
-        <div className="grid grid-cols-2 gap-8 text-center text-xs mt-12 mb-8 font-sans">
-          <div className="space-y-16">
+        {/* Signatures Block - Clean & Perfectly Aligned */}
+        <div className="grid grid-cols-2 gap-12 text-center text-xs mt-14 mb-8 font-sans">
+          <div className="flex flex-col justify-between items-center h-36">
             <div>
               <p className="font-semibold text-slate-700">Panitia Pelaksana,</p>
-              <p className="font-bold text-slate-900">{EVENT_INFO.organizer}</p>
+              <p className="font-extrabold text-slate-900 mt-0.5">{EVENT_INFO.organizer}</p>
             </div>
-            <div className="font-bold border-b border-slate-900 pb-1 w-48 mx-auto text-slate-400">
-              ( .................................................... )
+            <div className="border-b-2 border-slate-900 pb-1 w-64 text-center font-bold text-slate-800 whitespace-nowrap">
+              (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
             </div>
           </div>
 
-          <div className="space-y-16">
+          <div className="flex flex-col justify-between items-center h-36">
             <div>
               <p className="font-semibold text-slate-700">Mengetahui & Menyetujui,</p>
-              <p className="font-bold text-slate-900">{EVENT_INFO.approver}</p>
+              <p className="font-extrabold text-slate-900 mt-0.5">{EVENT_INFO.approver}</p>
             </div>
-            <div className="font-bold border-b border-slate-900 pb-1 w-48 mx-auto text-slate-400">
-              ( .................................................... )
+            <div className="border-b-2 border-slate-900 pb-1 w-64 text-center font-bold text-slate-800 whitespace-nowrap">
+              (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
             </div>
           </div>
         </div>
