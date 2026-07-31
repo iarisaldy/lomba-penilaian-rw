@@ -13,9 +13,9 @@ export const syncToGoogleSheets = async (scores: Record<string, any>, judgeNotes
   if (!url) return false;
 
   try {
-    const response = await fetch(url, {
+    await fetch(url, {
       method: 'POST',
-      mode: 'no-cors', // Google Apps Script Webhook CORS support
+      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -37,13 +37,13 @@ export const fetchFromGoogleSheets = async () => {
   if (!url) return null;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { method: 'GET', cache: 'no-store' });
     if (response.ok) {
       const data = await response.json();
       return data;
     }
   } catch (err) {
-    console.error('Failed to fetch from Google Sheets', err);
+    // Ignore fetch errors during polling
   }
   return null;
 };

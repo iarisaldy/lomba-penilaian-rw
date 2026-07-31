@@ -17,7 +17,7 @@ import {
   EVENT_INFO,
 } from '../data/competitionDefaults';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { getGoogleSheetsUrl, syncToGoogleSheets } from '../lib/googleSheetsClient';
+import { getGoogleSheetsUrl, syncToGoogleSheets, fetchFromGoogleSheets } from '../lib/googleSheetsClient';
 
 interface ScoreContextType {
   judges: Judge[];
@@ -73,10 +73,27 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
   const [isGoogleSheetsConnected, setIsGoogleSheetsConnected] = useState<boolean>(false);
 
-  // Check Google Sheets URL status
+  // Background 3-second polling loop for Google Sheets live sync
   useEffect(() => {
     const url = getGoogleSheetsUrl();
-    setIsGoogleSheetsConnected(Boolean(url));
+    if (!url) return;
+
+    setIsGoogleSheetsConnected(true);
+
+    const pollGoogleSheets = async () => {
+      const remoteData = await fetchFromGoogleSheets();
+      if (remoteData && remoteData.scores) {
+        setScores(prev => ({ ...prev, ...remoteData.scores }));
+        if (remoteData.judgeNotes) {
+          setJudgeNotes(prev => ({ ...prev, ...remoteData.judgeNotes }));
+        }
+      }
+    };
+
+    pollGoogleSheets();
+    const interval = setInterval(pollGoogleSheets, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Load initial state from DB / LocalStorage
