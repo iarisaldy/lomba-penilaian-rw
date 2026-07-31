@@ -115,6 +115,18 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     scoresRef.current = scores;
   }, [scores]);
 
+  // Refs for authState and activeJudgeId so polling closure always reads the latest value
+  // (without needing to add them to useEffect deps and restart the interval)
+  const authStateRef = useRef<AuthState>({ role: 'guest' });
+  useEffect(() => {
+    authStateRef.current = authState;
+  }, [authState]);
+
+  const activeJudgeIdRef = useRef<string>(DEFAULT_JUDGES[0].id);
+  useEffect(() => {
+    activeJudgeIdRef.current = activeJudgeId;
+  }, [activeJudgeId]);
+
   // Helper to check if a specific participant card is locked for a judge
   const isCardLocked = useCallback((judgeId: string, participantId: string): boolean => {
     const key = `${judgeId}_${participantId}`;
@@ -162,13 +174,38 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (Object.keys(serverScores).length > 0) {
             setScores(prev => {
               const now = Date.now();
-              const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
+              // Fallback protection window for guest/admin: 8 seconds (up from 3.5s)
+              const isRecentlyEdited = now - lastLocalInteractionRef.current < 8000;
+              // Read latest values from refs to avoid stale closure
+              const currentAuthState = authStateRef.current;
+              const currentActiveJudgeId = activeJudgeIdRef.current;
 
               const mergedScores: Record<string, any> = { ...prev };
               for (const jId of Object.keys(serverScores)) {
-                if (isRecentlyEdited && jId === activeJudgeId && prev[jId]) {
-                  mergedScores[jId] = { ...(serverScores[jId] || {}), ...prev[jId] };
+                // CORE FIX: If logged in as a specific juri, NEVER let server overwrite
+                // their own judge data. This permanently protects active juri input
+                // from any race condition with polling/Vercel cold instance.
+                const isOwnJudgeData =
+                  currentAuthState.role === 'juri' && currentAuthState.judgeId === jId;
+
+                const localWins =
+                  isOwnJudgeData || (isRecentlyEdited && jId === currentActiveJudgeId && prev[jId]);
+
+                if (localWins) {
+                  // Merge at participant-level: server fills in OTHER participants,
+                  // local data always wins for individual participant scores
+                  const merged: Record<string, any> = { ...(serverScores[jId] || {}) };
+                  const localJudge = prev[jId] || {};
+                  for (const pId of Object.keys(localJudge)) {
+                    // Local participant data always beats server (never revert to 0)
+                    merged[pId] = {
+                      ...(serverScores[jId]?.[pId] || {}),
+                      ...localJudge[pId],
+                    };
+                  }
+                  mergedScores[jId] = merged;
                 } else {
+                  // Server wins for other judges — accumulative, never drop existing local
                   mergedScores[jId] = { ...(prev[jId] || {}), ...serverScores[jId] };
                 }
               }
