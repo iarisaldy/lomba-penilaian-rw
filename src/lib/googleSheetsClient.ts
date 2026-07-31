@@ -66,3 +66,20 @@ export const testGoogleSheetsSync = async (targetUrl: string, sampleScores: Reco
     return false;
   }
 };
+
+export const fetchGoogleSheetsScoresDirectly = async (): Promise<{ scores?: Record<string, any>; judgeNotes?: Record<string, any> } | null> => {
+  const url = getGoogleSheetsUrl();
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim().startsWith('{')) {
+        return JSON.parse(text);
+      }
+    }
+  } catch (err) {
+    console.error('Failed direct fetch from Google Sheets', err);
+  }
+  return null;
+};

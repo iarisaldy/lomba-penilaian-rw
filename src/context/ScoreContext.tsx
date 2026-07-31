@@ -16,7 +16,7 @@ import {
   DEFAULT_PARTICIPANTS,
   EVENT_INFO,
 } from '../data/competitionDefaults';
-import { syncToGoogleSheets } from '../lib/googleSheetsClient';
+import { syncToGoogleSheets, fetchGoogleSheetsScoresDirectly } from '../lib/googleSheetsClient';
 
 interface ScoreContextType {
   judges: Judge[];
@@ -120,33 +120,45 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
           }
 
+          let serverScores = data.scores || {};
+          let serverNotes = data.judgeNotes || {};
+
+          // Failsafe: If /api/scores returns empty scores, attempt direct browser fetch from Google Sheets
+          if (Object.keys(serverScores).length === 0) {
+            const directSheetData = await fetchGoogleSheetsScoresDirectly();
+            if (directSheetData && directSheetData.scores && Object.keys(directSheetData.scores).length > 0) {
+              serverScores = directSheetData.scores;
+              if (directSheetData.judgeNotes) serverNotes = directSheetData.judgeNotes;
+            }
+          }
+
           // Synchronize with Central Server Master Scores
-          if (data.scores) {
+          if (Object.keys(serverScores).length > 0) {
             setScores(prev => {
               const now = Date.now();
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
 
               if (!isRecentlyEdited) {
-                return data.scores;
+                return serverScores;
               }
 
               // Keep current active judge's local slider dragging intact, but merge with server
-              const merged = { ...data.scores };
+              const merged = { ...serverScores };
               if (prev[activeJudgeId]) {
-                merged[activeJudgeId] = { ...(data.scores[activeJudgeId] || {}), ...prev[activeJudgeId] };
+                merged[activeJudgeId] = { ...(serverScores[activeJudgeId] || {}), ...prev[activeJudgeId] };
               }
               return merged;
             });
           }
 
-          if (data.judgeNotes) {
+          if (Object.keys(serverNotes).length > 0) {
             setJudgeNotes(prev => {
               const now = Date.now();
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
               if (!isRecentlyEdited) {
-                return data.judgeNotes;
+                return serverNotes;
               }
-              const mergedNotes = { ...data.judgeNotes };
+              const mergedNotes = { ...serverNotes };
               if (prev[activeJudgeId]) {
                 mergedNotes[activeJudgeId] = prev[activeJudgeId];
               }
