@@ -17,6 +17,7 @@ import {
   EVENT_INFO,
 } from '../data/competitionDefaults';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { getGoogleSheetsUrl, syncToGoogleSheets } from '../lib/googleSheetsClient';
 
 interface ScoreContextType {
   judges: Judge[];
@@ -49,6 +50,7 @@ interface ScoreContextType {
   importJSON: (jsonString: string) => boolean;
   isLoaded: boolean;
   isRealtimeConnected: boolean;
+  isGoogleSheetsConnected: boolean;
 }
 
 const STORAGE_KEY_SCORES = 'lomba_scores_v1';
@@ -69,8 +71,15 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [authState, setAuthState] = useState<AuthState>({ role: 'guest' });
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
+  const [isGoogleSheetsConnected, setIsGoogleSheetsConnected] = useState<boolean>(false);
 
-  // Load initial state from Supabase DB or LocalStorage
+  // Check Google Sheets URL status
+  useEffect(() => {
+    const url = getGoogleSheetsUrl();
+    setIsGoogleSheetsConnected(Boolean(url));
+  }, []);
+
+  // Load initial state from DB / LocalStorage
   useEffect(() => {
     const initData = async () => {
       try {
@@ -140,8 +149,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Save to Supabase DB & LocalStorage
+  // Save to DB, LocalStorage, & Google Sheets
   const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes) => {
+    // 1. LocalStorage
     try {
       localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(newScores));
       localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(newNotes));
@@ -149,6 +159,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Failed to save to localStorage', e);
     }
 
+    // 2. Google Sheets Webhook Sync
+    syncToGoogleSheets(newScores, newNotes);
+
+    // 3. Supabase DB Sync
     if (isSupabaseConfigured && supabase) {
       try {
         const { error } = await supabase.from('competition_scores').upsert({
@@ -223,7 +237,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     criteriaId: string,
     score: number
   ) => {
-    // Admin is strictly read-only for judge scoring
     if (authState.role === 'admin') {
       return;
     }
@@ -268,7 +281,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     participantId: string,
     notes: string
   ) => {
-    // Admin is strictly read-only for judge scoring
     if (authState.role === 'admin') {
       return;
     }
@@ -298,7 +310,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateJudgeGeneralNotes = (judgeId: string, notes: string) => {
-    // Admin is strictly read-only for judge scoring
     if (authState.role === 'admin') {
       return;
     }
@@ -485,6 +496,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         importJSON,
         isLoaded,
         isRealtimeConnected,
+        isGoogleSheetsConnected,
       }}
     >
       {children}
