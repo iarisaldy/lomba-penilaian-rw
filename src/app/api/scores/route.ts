@@ -100,23 +100,19 @@ export async function POST(request: Request) {
       }
     }
 
-    // Server-side forward to Google Apps Script for instant central persistence
-    try {
-      await fetch(targetUrl, {
-        method: 'POST',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          timestamp: new Date().toISOString(),
-          scores: globalMasterScores,
-          judgeNotes: globalMasterNotes,
-          reset: body.reset || false,
-          resetTimestamp: globalResetTimestamp,
-        }),
-      });
-    } catch (e) {
-      console.error('Failed server forward to Google Sheets', e);
-    }
+    // Non-blocking background sync to Google Apps Script for zero-lag instant API response
+    fetch(targetUrl, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        timestamp: new Date().toISOString(),
+        scores: globalMasterScores,
+        judgeNotes: globalMasterNotes,
+        reset: body.reset || false,
+        resetTimestamp: globalResetTimestamp,
+      }),
+    }).catch(e => console.error('Background server forward to Google Sheets failed', e));
 
     return NextResponse.json({
       success: true,
