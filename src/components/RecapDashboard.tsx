@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, FileSpreadsheet, Check, Send } from 'lucide-react';
+import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, FileSpreadsheet, Send, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getGoogleSheetsUrl, setGoogleSheetsUrl, testGoogleSheetsSync } from '../lib/googleSheetsClient';
 
@@ -63,10 +63,31 @@ export const RecapDashboard: React.FC = () => {
     setGoogleSheetsUrl(sheetsUrlInput);
     const success = await testGoogleSheetsSync(sheetsUrlInput, scores, judgeNotes);
     if (success) {
-      setSheetsStatus('✅ Permintaan dikirim! Cek file Google Sheet Anda sekarang (pastikan baris data baru terisi).');
+      setSheetsStatus('✅ Permintaan dikirim ke Google Apps Script! Jika belum terisi, pastikan di Apps Script setting "Jalankan Sebagai" diubah ke "Saya (email anda)".');
     } else {
       setSheetsStatus('❌ Gagal terhubung ke Google Sheets. Periksa kembali URL Web App.');
     }
+  };
+
+  const exportToCSV = () => {
+    let csv = "RT Peserta," + judges.map(j => `Nilai ${j.code}`).join(",") + ",Total Nilai,Rata-Rata Nilai,Peringkat / Juara\n";
+    
+    participants.forEach(p => {
+      const recap = recapData.find(r => r.participantId === p.id);
+      if (recap) {
+        const jScores = judges.map(j => (recap.scoresByJudge[j.id] === 'N/A' ? 'N/A' : recap.scoresByJudge[j.id]));
+        csv += `${p.code},` + jScores.join(",") + `,${recap.totalScore},${recap.averageScore},Peringkat #${recap.rank}\n`;
+      }
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Rekap_Nilai_Lomba_Permata_Discovery_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   return (
@@ -136,18 +157,26 @@ export const RecapDashboard: React.FC = () => {
                 Panel Kontrol Admin Panitia
               </h3>
               <p className="text-xs text-slate-400">
-                Kelola data penilaian, integrasi Google Sheets, atau reset ulang seluruh nilai peserta.
+                Kelola data penilaian, download spreadsheet Excel, integrasi Google Sheets, atau reset data.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              onClick={exportToCSV}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download Excel / CSV
+            </button>
+
+            <button
               onClick={() => setShowSheetsModal(true)}
               className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              Koneksi Google Sheets
+              Sync Google Sheets
             </button>
 
             <button
