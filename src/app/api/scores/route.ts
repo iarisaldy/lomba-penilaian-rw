@@ -38,21 +38,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Forward Server-to-Server to Google Sheets Webhook if URL exists
-    const googleSheetsUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL;
-    if (googleSheetsUrl && googleSheetsUrl.trim() !== '') {
-      fetch(googleSheetsUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reset: body.reset || false,
-          scores: globalMasterScores,
-          judgeNotes: globalMasterNotes,
-          timestamp: new Date().toISOString(),
-        }),
-      }).catch((e) => console.error('Background Google Sheets forward error:', e));
-    }
-
     return NextResponse.json({
       success: true,
       scores: globalMasterScores,
