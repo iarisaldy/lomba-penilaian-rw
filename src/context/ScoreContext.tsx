@@ -10,13 +10,11 @@ import {
   Participant,
   ParticipantRecap,
 } from '../types/scoring';
-import {
-  DEFAULT_CRITERIA,
+import { DEFAULT_CRITERIA,
   DEFAULT_JUDGES,
   DEFAULT_PARTICIPANTS,
   EVENT_INFO,
 } from '../data/competitionDefaults';
-import { syncToGoogleSheets } from '../lib/googleSheetsClient';
 
 interface ScoreContextType {
   judges: Judge[];
@@ -268,7 +266,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Save to /api/scores Endpoint & LocalStorage & Direct Google Sheets
+  // Save to /api/scores Endpoint & LocalStorage
+  // NOTE: GAS sync is handled server-side only (via /api/scores POST background fetch)
+  // to avoid double-write race condition that causes duplicate rows in Google Sheets.
   const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
     lastLocalInteractionRef.current = Date.now();
 
@@ -285,27 +285,33 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Failed to save to localStorage', e);
     }
 
-    // Direct Google Sheets sync with 500ms debounce to prevent request flooding during slider drag
-    // On reset, skip direct GAS sync — the POST to /api/scores below will forward the reset to GAS in background
-    if (!reset) {
-      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-      syncTimeoutRef.current = setTimeout(() => {
-        syncToGoogleSheets(newScores, newNotes);
-      }, 500);
-    }
+    // Debounce the POST to /api/scores to avoid flooding on rapid slider drag
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
-    try {
-      await fetch('/api/scores', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scores: newScores,
-          judgeNotes: newNotes,
-          reset,
-        }),
-      });
-    } catch (e) {
-      console.error('Failed to post to /api/scores', e);
+    if (reset) {
+      // Reset is urgent — send immediately, no debounce
+      try {
+        await fetch('/api/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, reset: true }),
+        });
+      } catch (e) {
+        console.error('Failed to post reset to /api/scores', e);
+      }
+    } else {
+      // Normal update — debounce 600ms, then POST once to server (server forwards to GAS)
+      syncTimeoutRef.current = setTimeout(async () => {
+        try {
+          await fetch('/api/scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, reset: false }),
+          });
+        } catch (e) {
+          console.error('Failed to post to /api/scores', e);
+        }
+      }, 600);
     }
   }, []);
 
