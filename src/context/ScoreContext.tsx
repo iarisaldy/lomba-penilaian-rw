@@ -120,30 +120,34 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
           }
 
-          // Merge remote scores safely (never wipe local scores with an empty server object)
-          if (data.scores && Object.keys(data.scores).length > 0) {
+          // Synchronize with Central Server Master Scores
+          if (data.scores) {
             setScores(prev => {
               const now = Date.now();
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
 
-              const merged = { ...prev, ...data.scores };
-              for (const judgeId of Object.keys(data.scores)) {
-                if (prev[judgeId] && isRecentlyEdited && judgeId === activeJudgeId) {
-                  merged[judgeId] = { ...data.scores[judgeId], ...prev[judgeId] };
-                } else {
-                  merged[judgeId] = { ...(prev[judgeId] || {}), ...data.scores[judgeId] };
-                }
+              if (!isRecentlyEdited) {
+                return data.scores;
+              }
+
+              // Keep current active judge's local slider dragging intact, but merge with server
+              const merged = { ...data.scores };
+              if (prev[activeJudgeId]) {
+                merged[activeJudgeId] = { ...(data.scores[activeJudgeId] || {}), ...prev[activeJudgeId] };
               }
               return merged;
             });
           }
 
-          if (data.judgeNotes && Object.keys(data.judgeNotes).length > 0) {
+          if (data.judgeNotes) {
             setJudgeNotes(prev => {
               const now = Date.now();
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
-              const mergedNotes = { ...prev, ...data.judgeNotes };
-              if (isRecentlyEdited && prev[activeJudgeId]) {
+              if (!isRecentlyEdited) {
+                return data.judgeNotes;
+              }
+              const mergedNotes = { ...data.judgeNotes };
+              if (prev[activeJudgeId]) {
                 mergedNotes[activeJudgeId] = prev[activeJudgeId];
               }
               return mergedNotes;
@@ -162,18 +166,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => clearInterval(interval);
   }, [lastResetTs, activeJudgeId]);
 
-  // Load initial state from LocalStorage
+  // Load initial Auth & Config state (Central server scores are loaded via fetchApiScores)
   useEffect(() => {
     try {
-      const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
-      const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
       const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
       const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
       const savedLockedCards = localStorage.getItem(STORAGE_KEY_LOCKED_CARDS);
       const savedResetTs = localStorage.getItem(STORAGE_KEY_RESET_TS);
 
-      if (savedScores) setScores(JSON.parse(savedScores));
-      if (savedNotes) setJudgeNotes(JSON.parse(savedNotes));
       if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
         setActiveJudgeId(savedActiveJuri);
       }
