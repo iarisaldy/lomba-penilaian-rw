@@ -63,6 +63,35 @@ const STORAGE_KEY_RESET_TS = 'lomba_last_reset_ts_v1';
 
 const ScoreContext = createContext<ScoreContextType | undefined>(undefined);
 
+const normalizeScores = (rawScores: Record<string, any>): Record<string, any> => {
+  if (!rawScores) return {};
+  const normalized: Record<string, any> = {};
+  const sortedJudgeKeys = Object.keys(rawScores).sort();
+
+  for (const jId of sortedJudgeKeys) {
+    normalized[jId] = {};
+    const pDict = rawScores[jId] || {};
+    const sortedPKeys = Object.keys(pDict).sort();
+
+    for (const rawPKey of sortedPKeys) {
+      const cleanPKey = rawPKey.replace('p_', '');
+      const item = pDict[rawPKey];
+      if (item && item.scores) {
+        normalized[jId][cleanPKey] = {
+          scores: {
+            c1: Number(item.scores.c1 || 0),
+            c2: Number(item.scores.c2 || 0),
+            c3: Number(item.scores.c3 || 0),
+            c4: Number(item.scores.c4 || 0),
+          },
+          notes: item.notes || '',
+        };
+      }
+    }
+  }
+  return normalized;
+};
+
 export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [judges] = useState<Judge[]>(DEFAULT_JUDGES);
   const [participants] = useState<Participant[]>(DEFAULT_PARTICIPANTS);
@@ -120,7 +149,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
           }
 
-          let serverScores = data.scores || {};
+          let serverScores = normalizeScores(data.scores || {});
           let serverNotes = data.judgeNotes || {};
 
           // Synchronize with Central Server Master Scores with Anti-Flicker Reference Stability
@@ -131,10 +160,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
               let nextScores = serverScores;
               if (isRecentlyEdited && prev[activeJudgeId]) {
-                nextScores = { ...serverScores, [activeJudgeId]: { ...(serverScores[activeJudgeId] || {}), ...prev[activeJudgeId] } };
+                nextScores = normalizeScores({
+                  ...serverScores,
+                  [activeJudgeId]: { ...(serverScores[activeJudgeId] || {}), ...prev[activeJudgeId] }
+                });
               }
 
-              if (JSON.stringify(prev) === JSON.stringify(nextScores)) {
+              const prevNorm = normalizeScores(prev);
+              if (JSON.stringify(prevNorm) === JSON.stringify(nextScores)) {
                 return prev; // Prevents unnecessary re-renders & flickering!
               }
               return nextScores;
