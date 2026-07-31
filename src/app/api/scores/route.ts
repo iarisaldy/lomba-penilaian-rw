@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 
-const GOOGLE_SHEETS_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || 'https://script.google.com/macros/s/AKfycbxYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg/exec';
+const getTargetUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL;
+  if (envUrl && envUrl.trim() !== '' && !envUrl.includes('AKfycby9085h9R04WAHmNNwNq8qcugdQDvPN2tKqVOLaNXfisJM5_Vv1GMiEgeAHKoCGVpNiWw')) {
+    return envUrl.trim();
+  }
+  return 'https://script.google.com/macros/s/AKfycbxYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg/exec';
+};
 
 // Global in-memory state fallback on Vercel Serverless Function
 let globalMasterScores: Record<string, any> = {};
@@ -8,8 +14,10 @@ let globalMasterNotes: Record<string, any> = {};
 let globalResetTimestamp: number = 0;
 
 export async function GET() {
+  const targetUrl = getTargetUrl();
+
   try {
-    const res = await fetch(GOOGLE_SHEETS_URL, {
+    const res = await fetch(targetUrl, {
       method: 'GET',
       redirect: 'follow',
       cache: 'no-store',
@@ -22,13 +30,14 @@ export async function GET() {
       const text = await res.text();
       if (text && text.trim().startsWith('{')) {
         const data = JSON.parse(text);
-        if (typeof data.resetTimestamp === 'number' && data.resetTimestamp > globalResetTimestamp) {
-          globalResetTimestamp = data.resetTimestamp;
-          globalMasterScores = data.scores || {};
-          globalMasterNotes = data.judgeNotes || {};
-        } else if (data.scores) {
+        if (data.scores && Object.keys(data.scores).length > 0) {
           globalMasterScores = data.scores;
-          if (data.judgeNotes) globalMasterNotes = data.judgeNotes;
+        }
+        if (data.judgeNotes) {
+          globalMasterNotes = data.judgeNotes;
+        }
+        if (typeof data.resetTimestamp === 'number') {
+          globalResetTimestamp = data.resetTimestamp;
         }
       }
     }
@@ -52,6 +61,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const targetUrl = getTargetUrl();
+
   try {
     const body = await request.json();
 
@@ -70,7 +81,7 @@ export async function POST(request: Request) {
 
     // Server-side forward to Google Apps Script for instant central persistence
     try {
-      await fetch(GOOGLE_SHEETS_URL, {
+      await fetch(targetUrl, {
         method: 'POST',
         redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
