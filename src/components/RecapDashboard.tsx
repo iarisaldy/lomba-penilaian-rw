@@ -25,7 +25,6 @@ export const RecapDashboard: React.FC = () => {
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
   const juara1 = sortedRecap[0];
   const juara2 = sortedRecap[1];
-  const juara3 = sortedRecap[2];
 
   // Check how many judges have submitted scores
   const judgesSubmittedCount = judges.filter((j) => {
@@ -199,10 +198,10 @@ export const RecapDashboard: React.FC = () => {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
             {/* Juara 1 */}
-            <div className="bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-900 border-2 border-amber-400/60 rounded-2xl p-5 text-center shadow-xl shadow-amber-500/10 flex flex-col items-center justify-center relative overflow-hidden order-1 lg:order-2">
-              <div className="absolute top-3 right-3 bg-amber-400 text-slate-950 font-black text-[10px] uppercase px-2 py-0.5 rounded-full">
+            <div className="bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-900 border-2 border-amber-400/60 rounded-2xl p-5 text-center shadow-xl shadow-amber-500/10 flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-2">
+              <div className="absolute top-3 right-3 bg-amber-400 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
                 Juara 1
               </div>
               <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg my-2">
@@ -221,8 +220,8 @@ export const RecapDashboard: React.FC = () => {
 
             {/* Juara 2 */}
             {juara2 && (
-              <div className="bg-gradient-to-b from-slate-700/30 via-slate-900 to-slate-900 border border-slate-500/50 rounded-2xl p-5 text-center shadow-xl flex flex-col items-center justify-center relative order-2 lg:order-1">
-                <div className="absolute top-3 right-3 bg-slate-300 text-slate-950 font-black text-[10px] uppercase px-2 py-0.5 rounded-full">
+              <div className="bg-gradient-to-b from-slate-700/30 via-slate-900 to-slate-900 border border-slate-500/50 rounded-2xl p-5 text-center shadow-xl flex flex-col items-center justify-center relative order-2 md:order-1">
+                <div className="absolute top-3 right-3 bg-slate-300 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
                   Juara 2
                 </div>
                 <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-slate-300 to-slate-100 text-slate-950 font-black text-xl flex items-center justify-center shadow-md my-2">
@@ -236,27 +235,6 @@ export const RecapDashboard: React.FC = () => {
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   Total Skor: {juara2.totalScore} poin
-                </p>
-              </div>
-            )}
-
-            {/* Juara 3 */}
-            {juara3 && (
-              <div className="bg-gradient-to-b from-amber-900/20 via-slate-900 to-slate-900 border border-amber-700/40 rounded-2xl p-5 text-center shadow-xl flex flex-col items-center justify-center relative order-3">
-                <div className="absolute top-3 right-3 bg-amber-700/80 text-amber-100 font-black text-[10px] uppercase px-2 py-0.5 rounded-full">
-                  Juara 3
-                </div>
-                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-700 to-amber-500 text-white font-black text-xl flex items-center justify-center shadow-md my-2">
-                  🥉
-                </div>
-                <h3 className="font-extrabold text-lg text-white">
-                  Peserta {juara3.participantCode}
-                </h3>
-                <p className="text-xs text-amber-200/90 font-semibold mt-1">
-                  Rata-Rata Nilai: <span className="text-base font-black text-white">{juara3.averageScore}</span>
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Total Skor: {juara3.totalScore} poin
                 </p>
               </div>
             )}
@@ -309,7 +287,6 @@ export const RecapDashboard: React.FC = () => {
 
                 const isRank1 = recap.rank === 1 && recap.averageScore > 0;
                 const isRank2 = recap.rank === 2 && recap.averageScore > 0;
-                const isRank3 = recap.rank === 3 && recap.averageScore > 0;
 
                 return (
                   <tr
@@ -374,10 +351,6 @@ export const RecapDashboard: React.FC = () => {
                       ) : isRank2 ? (
                         <span className="inline-flex items-center gap-1 bg-slate-300 text-slate-950 font-black text-xs px-2.5 py-1 rounded-full shadow-sm">
                           🥈 JUARA 2
-                        </span>
-                      ) : isRank3 ? (
-                        <span className="inline-flex items-center gap-1 bg-amber-800 text-amber-100 font-bold text-xs px-2.5 py-1 rounded-full">
-                          🥉 Juara 3
                         </span>
                       ) : (
                         <span className="text-slate-400 font-medium">
