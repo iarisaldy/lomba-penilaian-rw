@@ -106,23 +106,24 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const channel = supabase.channel(REALTIME_ROOM_NAME, {
       config: {
-        broadcast: { self: false },
+        broadcast: { self: true },
       },
     });
 
     channel
       .on('broadcast', { event: 'score_sync' }, ({ payload }) => {
-        if (payload.scores) {
+        if (payload && payload.scores) {
           setScores(payload.scores);
         }
-        if (payload.judgeNotes) {
+        if (payload && payload.judgeNotes) {
           setJudgeNotes(payload.judgeNotes);
         }
       })
       .subscribe((status) => {
+        console.log('Supabase Realtime Status:', status);
         if (status === 'SUBSCRIBED') {
           setIsRealtimeConnected(true);
-        } else {
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setIsRealtimeConnected(false);
         }
       });
@@ -138,14 +139,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Broadcast state changes to other devices in real-time
   const broadcastSync = useCallback((newScores: AllScores, newNotes: JudgeGeneralNotes) => {
-    if (realtimeChannel && isRealtimeConnected) {
+    if (realtimeChannel) {
       realtimeChannel.send({
         type: 'broadcast',
         event: 'score_sync',
         payload: { scores: newScores, judgeNotes: newNotes },
       });
     }
-  }, [realtimeChannel, isRealtimeConnected]);
+  }, [realtimeChannel]);
 
   // Save scores to LocalStorage when changed
   useEffect(() => {
