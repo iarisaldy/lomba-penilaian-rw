@@ -17,9 +17,19 @@
  * 9. Paste URL tersebut ke aplikasi web di menu "Sync Google Sheets" atau di file `.env.local` / Environment Variables Vercel.
  */
 
+var SPREADSHEET_ID = '1vySoeAq2TOjAzVeZ-Bl43H5NuPrfsz17cbme7R8Eht4';
+
+function getSpreadsheet() {
+  try {
+    var active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+  } catch (e) {}
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
 // Fungsi Pembantu: Jalankan fungsi ini 1x di Editor Apps Script (klik tombol "Jalankan") untuk memberikan izin Akses Spreadsheet (OAuth Permission)!
 function testPermissions() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   Logger.log("Akses Spreadsheet Berhasil: " + ss.getName());
 }
 
@@ -28,7 +38,7 @@ function doPost(e) {
     var contents = e.postData.contents;
     var data = JSON.parse(contents);
 
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSpreadsheet();
     
     // 1. Buat / Ambil Sheet 'Rekap Nilai'
     var sheetRekap = ss.getSheetByName('Rekap Nilai');
