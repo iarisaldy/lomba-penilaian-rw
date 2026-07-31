@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Award, Star, Users, CheckCircle, Flame, MessageSquare, RotateCcw, ShieldAlert, Sparkles, Download, Upload } from 'lucide-react';
+import { Trophy, Medal, Award, Star, Users, CheckCircle, Flame, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const RecapDashboard: React.FC = () => {
-  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData, loadDemoData, exportJSON, importJSON } = useScore();
+  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData } = useScore();
   const [confirmPin, setConfirmPin] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
@@ -62,7 +62,7 @@ export const RecapDashboard: React.FC = () => {
             </div>
             <div className="text-lg font-black text-white">
               {juara1 && juara1.averageScore > 0 ? (
-                <span>{juara1.participantName} <span className="text-amber-400 text-sm font-bold">({juara1.averageScore})</span></span>
+                <span>Peserta {juara1.participantCode} <span className="text-amber-400 text-sm font-bold">({juara1.averageScore})</span></span>
               ) : (
                 <span className="text-slate-500 text-sm">Belum ada data</span>
               )}
@@ -80,7 +80,7 @@ export const RecapDashboard: React.FC = () => {
             </div>
             <div className="text-lg font-black text-white">
               {juara2 && juara2.averageScore > 0 ? (
-                <span>{juara2.participantName} <span className="text-slate-300 text-sm font-bold">({juara2.averageScore})</span></span>
+                <span>Peserta {juara2.participantCode} <span className="text-slate-300 text-sm font-bold">({juara2.averageScore})</span></span>
               ) : (
                 <span className="text-slate-500 text-sm">Belum ada data</span>
               )}
@@ -156,7 +156,7 @@ export const RecapDashboard: React.FC = () => {
                 🏆
               </div>
               <h3 className="font-extrabold text-xl text-white">
-                {juara1.participantName}
+                Peserta {juara1.participantCode}
               </h3>
               <p className="text-xs text-amber-300 font-semibold mt-1">
                 Rata-Rata Nilai: <span className="text-lg font-black text-white">{juara1.averageScore}</span>
@@ -176,7 +176,7 @@ export const RecapDashboard: React.FC = () => {
                   🥈
                 </div>
                 <h3 className="font-extrabold text-lg text-white">
-                  {juara2.participantName}
+                  Peserta {juara2.participantCode}
                 </h3>
                 <p className="text-xs text-slate-300 font-semibold mt-1">
                   Rata-Rata Nilai: <span className="text-base font-black text-white">{juara2.averageScore}</span>
@@ -197,7 +197,7 @@ export const RecapDashboard: React.FC = () => {
                   🥉
                 </div>
                 <h3 className="font-extrabold text-lg text-white">
-                  {juara3.participantName}
+                  Peserta {juara3.participantCode}
                 </h3>
                 <p className="text-xs text-amber-200/90 font-semibold mt-1">
                   Rata-Rata Nilai: <span className="text-base font-black text-white">{juara3.averageScore}</span>
@@ -271,12 +271,9 @@ export const RecapDashboard: React.FC = () => {
                   >
                     {/* RT Peserta */}
                     <td className="px-4 py-3.5 font-bold text-white sticky left-0 bg-slate-900 border-r border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 font-extrabold flex items-center justify-center text-slate-300 text-xs">
-                          {participant.code}
-                        </span>
-                        <span>{participant.name}</span>
-                      </div>
+                      <span className="inline-flex items-center justify-center px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 font-extrabold text-amber-400 text-xs shadow-sm">
+                        {participant.code}
+                      </span>
                     </td>
 
                     {/* Nilai dari Juri RT 01 s/d 06 */}

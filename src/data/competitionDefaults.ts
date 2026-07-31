@@ -18,12 +18,12 @@ export const DEFAULT_CRITERIA: Criteria[] = [
 ];
 
 export const DEFAULT_PARTICIPANTS: Participant[] = [
-  { id: 'rt01', code: 'RT 01', name: 'Peserta RT 01' },
-  { id: 'rt02', code: 'RT 02', name: 'Peserta RT 02' },
-  { id: 'rt03', code: 'RT 03', name: 'Peserta RT 03' },
-  { id: 'rt04', code: 'RT 04', name: 'Peserta RT 04' },
-  { id: 'rt05', code: 'RT 05', name: 'Peserta RT 05' },
-  { id: 'rt06', code: 'RT 06', name: 'Peserta RT 06' },
+  { id: 'rt01', code: 'RT 01', name: 'RT 01' },
+  { id: 'rt02', code: 'RT 02', name: 'RT 02' },
+  { id: 'rt03', code: 'RT 03', name: 'RT 03' },
+  { id: 'rt04', code: 'RT 04', name: 'RT 04' },
+  { id: 'rt05', code: 'RT 05', name: 'RT 05' },
+  { id: 'rt06', code: 'RT 06', name: 'RT 06' },
 ];
 
 export const DEFAULT_JUDGES: Judge[] = [
