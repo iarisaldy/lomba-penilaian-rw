@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useScore } from '../context/ScoreContext';
-import { UserCheck, Lock, AlertCircle, MessageSquareText, Check, Shield } from 'lucide-react';
+import { UserCheck, Lock, AlertCircle, MessageSquareText, Check, Shield, Eye } from 'lucide-react';
 
 export const JudgeForm: React.FC = () => {
   const {
@@ -28,8 +28,29 @@ export const JudgeForm: React.FC = () => {
   const activeJudge =
     judges.find((j) => j.id === effectiveJudgeId) || judges[0];
 
+  const isAdmin = authState.role === 'admin';
+
   return (
     <div className="space-y-6">
+      {/* Admin Read-Only Notice Banner */}
+      {isAdmin && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold flex-shrink-0">
+              <Eye className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+                👑 Mode Admin — Pratinjau Lembar Penilaian (Read-Only)
+              </h3>
+              <p className="text-xs text-amber-200/90 mt-0.5">
+                Admin hanya berhak memantau & memeriksa isian juri. Input nilai dikunci khusus untuk Juri RT bersangkutan.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Judge Header Card */}
       <div className="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -46,11 +67,11 @@ export const JudgeForm: React.FC = () => {
             </p>
           </div>
 
-          {/* Selector buttons (ONLY FOR ADMIN). For Juri, display locked badge! */}
-          {authState.role === 'admin' ? (
+          {/* Selector buttons (ONLY FOR ADMIN TO INSPECT). For Juri, display locked badge! */}
+          {isAdmin ? (
             <div className="flex flex-col items-end gap-1">
               <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                <Shield className="w-3 h-3" /> Mode Admin (Bisa Ganti Juri)
+                <Shield className="w-3 h-3" /> Pilih Lembar Juri (Inspeksi Admin)
               </span>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {judges.map((judge) => {
@@ -61,7 +82,7 @@ export const JudgeForm: React.FC = () => {
                       onClick={() => setActiveJudgeId(judge.id)}
                       className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex flex-col items-center justify-center gap-1 cursor-pointer ${
                         isActive
-                          ? 'bg-gradient-to-b from-red-500 to-red-600 text-white border-red-400 shadow-lg shadow-red-500/20 scale-105'
+                          ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 scale-105'
                           : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
                       }`}
                     >
@@ -82,9 +103,9 @@ export const JudgeForm: React.FC = () => {
       </div>
 
       {/* Rules Notice */}
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3">
+      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-200/90 leading-relaxed">
+        <div className="text-xs text-slate-300 leading-relaxed">
           <span className="font-bold text-amber-400">Aturan Penilaian:</span> Berikan nilai berupa angka (1 s/d Nilai Maksimal per Kriteria) pada kolom masing-masing RT peserta. Juri <span className="font-semibold text-white">tidak dapat menilai RT sendiri</span> (dikunci secara otomatis sebagai <span className="font-bold text-amber-400">N/A</span>).
         </div>
       </div>
@@ -182,6 +203,7 @@ export const JudgeForm: React.FC = () => {
                             min={0}
                             max={crit.maxScore}
                             value={currentValue}
+                            disabled={isAdmin}
                             onChange={(e) =>
                               updateCriteriaScore(
                                 activeJudge.id,
@@ -190,13 +212,16 @@ export const JudgeForm: React.FC = () => {
                                 Number(e.target.value)
                               )
                             }
-                            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+                            className={`w-full h-2 rounded-lg appearance-none accent-red-500 ${
+                              isAdmin ? 'bg-slate-800 opacity-50 cursor-not-allowed' : 'bg-slate-800 cursor-pointer'
+                            }`}
                           />
                           <input
                             type="number"
                             min={0}
                             max={crit.maxScore}
                             value={currentValue === 0 ? '' : currentValue}
+                            disabled={isAdmin}
                             onChange={(e) => {
                               const val = Math.min(
                                 crit.maxScore,
@@ -210,7 +235,9 @@ export const JudgeForm: React.FC = () => {
                               );
                             }}
                             placeholder="0"
-                            className="w-14 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-red-500 transition-colors"
+                            className={`w-14 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-red-500 transition-colors ${
+                              isAdmin ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           />
                         </div>
                       </div>
@@ -228,14 +255,17 @@ export const JudgeForm: React.FC = () => {
         <div className="flex items-center gap-2 text-sm font-bold text-white">
           <MessageSquareText className="w-4 h-4 text-amber-400" />
           Catatan / Kritik & Saran Juri ({activeJudge.name})
-          <span className="text-xs text-slate-400 font-normal">(Opsional)</span>
+          <span className="text-xs text-slate-400 font-normal">{isAdmin ? '(Read-Only)' : '(Opsional)'}</span>
         </div>
         <textarea
           rows={3}
           value={judgeNotes[activeJudge.id] || ''}
+          disabled={isAdmin}
           onChange={(e) => updateJudgeGeneralNotes(activeJudge.id, e.target.value)}
-          placeholder={`Tuliskan catatan, tanggapan, atau kesan untuk seluruh penampilan lomba bagi ${activeJudge.name}...`}
-          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
+          placeholder={isAdmin ? `[Read-Only Admin] Catatan dari ${activeJudge.name}` : `Tuliskan catatan, tanggapan, atau kesan untuk seluruh penampilan lomba bagi ${activeJudge.name}...`}
+          className={`w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-colors ${
+            isAdmin ? 'opacity-50 cursor-not-allowed' : 'focus:border-slate-600'
+          }`}
         />
       </div>
     </div>

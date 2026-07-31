@@ -223,6 +223,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     criteriaId: string,
     score: number
   ) => {
+    // Admin is strictly read-only for judge scoring
+    if (authState.role === 'admin') {
+      return;
+    }
+
     if (authState.role === 'juri' && authState.judgeId !== judgeId) {
       return;
     }
@@ -263,6 +268,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     participantId: string,
     notes: string
   ) => {
+    // Admin is strictly read-only for judge scoring
+    if (authState.role === 'admin') {
+      return;
+    }
+
     if (authState.role === 'juri' && authState.judgeId !== judgeId) {
       return;
     }
@@ -288,6 +298,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateJudgeGeneralNotes = (judgeId: string, notes: string) => {
+    // Admin is strictly read-only for judge scoring
+    if (authState.role === 'admin') {
+      return;
+    }
+
     if (authState.role === 'juri' && authState.judgeId !== judgeId) {
       return;
     }
