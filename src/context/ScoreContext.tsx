@@ -120,34 +120,30 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
           }
 
-          // Merge remote scores without overwriting recent local slider dragging (< 3 seconds)
-          if (data.scores) {
+          // Merge remote scores safely (never wipe local scores with an empty server object)
+          if (data.scores && Object.keys(data.scores).length > 0) {
             setScores(prev => {
               const now = Date.now();
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
 
-              if (!isRecentlyEdited) {
-                return data.scores;
-              }
-
-              // Deep merge: keep current active judge's local edits intact!
-              const merged = { ...data.scores };
-              if (prev[activeJudgeId]) {
-                merged[activeJudgeId] = prev[activeJudgeId];
+              const merged = { ...prev, ...data.scores };
+              for (const judgeId of Object.keys(data.scores)) {
+                if (prev[judgeId] && isRecentlyEdited && judgeId === activeJudgeId) {
+                  merged[judgeId] = { ...data.scores[judgeId], ...prev[judgeId] };
+                } else {
+                  merged[judgeId] = { ...(prev[judgeId] || {}), ...data.scores[judgeId] };
+                }
               }
               return merged;
             });
           }
 
-          if (data.judgeNotes) {
+          if (data.judgeNotes && Object.keys(data.judgeNotes).length > 0) {
             setJudgeNotes(prev => {
               const now = Date.now();
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 3500;
-              if (!isRecentlyEdited) {
-                return data.judgeNotes;
-              }
-              const mergedNotes = { ...data.judgeNotes };
-              if (prev[activeJudgeId]) {
+              const mergedNotes = { ...prev, ...data.judgeNotes };
+              if (isRecentlyEdited && prev[activeJudgeId]) {
                 mergedNotes[activeJudgeId] = prev[activeJudgeId];
               }
               return mergedNotes;
