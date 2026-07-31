@@ -395,7 +395,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return 0;
     }
 
-    const participantScores = scores[judgeId]?.[participantId]?.scores || {};
+    const pData = scores[judgeId]?.[participantId] 
+      || scores[judgeId]?.[`p_${participantId}`] 
+      || (participantId.startsWith('p_') ? scores[judgeId]?.[participantId.replace('p_', '')] : undefined);
+    const participantScores = pData?.scores || {};
     return Object.values(participantScores).reduce((sum, val) => sum + (val || 0), 0);
   };
 
@@ -409,7 +412,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (judge.code === participant.code) {
           scoresByJudge[judge.id] = 'N/A';
         } else {
-          const pScores = scores[judge.id]?.[participant.id]?.scores || {};
+          const pData = scores[judge.id]?.[participant.id] 
+            || scores[judge.id]?.[`p_${participant.id}`] 
+            || (participant.id.startsWith('p_') ? scores[judge.id]?.[participant.id.replace('p_', '')] : undefined);
+          const pScores = pData?.scores || {};
           const sum = Object.values(pScores).reduce((acc, v) => acc + (v || 0), 0);
           scoresByJudge[judge.id] = sum;
           totalScore += sum;
