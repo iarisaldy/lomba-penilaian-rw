@@ -187,6 +187,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Save to /api/scores Endpoint & LocalStorage & Direct Google Sheets
   const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
     lastLocalInteractionRef.current = Date.now();
@@ -204,8 +206,16 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Failed to save to localStorage', e);
     }
 
-    // Direct Google Sheets sync from browser
-    syncToGoogleSheets(newScores, newNotes);
+    // Direct Google Sheets sync with 500ms debounce to prevent request flooding during slider drag
+    if (reset) {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncToGoogleSheets(newScores, newNotes);
+    } else {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        syncToGoogleSheets(newScores, newNotes);
+      }, 500);
+    }
 
     try {
       await fetch('/api/scores', {
