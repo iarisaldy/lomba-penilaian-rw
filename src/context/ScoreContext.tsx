@@ -17,7 +17,6 @@ import {
   EVENT_INFO,
 } from '../data/competitionDefaults';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ScoreContextType {
   judges: Judge[];
@@ -56,7 +55,6 @@ const STORAGE_KEY_SCORES = 'lomba_scores_v1';
 const STORAGE_KEY_NOTES = 'lomba_notes_v1';
 const STORAGE_KEY_ACTIVE_JURI = 'lomba_active_juri_v1';
 const STORAGE_KEY_AUTH = 'lomba_auth_v1';
-const REALTIME_ROOM_NAME = 'lomba_permata_discovery_v1';
 
 const ScoreContext = createContext<ScoreContextType | undefined>(undefined);
 
@@ -71,64 +69,69 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [authState, setAuthState] = useState<AuthState>({ role: 'guest' });
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
-  const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
 
-  // Load from LocalStorage on mount
+  // Load initial state from Supabase DB or LocalStorage
   useEffect(() => {
-    try {
-      const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
-      const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
-      const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
-      const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
+    const initData = async () => {
+      try {
+        const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
+        const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
+        const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
+        const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
 
-      if (savedScores) {
-        setScores(JSON.parse(savedScores));
+        if (savedScores) setScores(JSON.parse(savedScores));
+        if (savedNotes) setJudgeNotes(JSON.parse(savedNotes));
+        if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
+          setActiveJudgeId(savedActiveJuri);
+        }
+        if (savedAuth) setAuthState(JSON.parse(savedAuth));
+
+        if (isSupabaseConfigured && supabase) {
+          const { data } = await supabase
+            .from('competition_scores')
+            .select('data')
+            .eq('id', 'master')
+            .single();
+
+          if (data && data.data) {
+            if (data.data.scores) setScores(data.data.scores);
+            if (data.data.judgeNotes) setJudgeNotes(data.data.judgeNotes);
+            setIsRealtimeConnected(true);
+          }
+        }
+      } catch (e) {
+        console.error('Failed init data', e);
+      } finally {
+        setIsLoaded(true);
       }
-      if (savedNotes) {
-        setJudgeNotes(JSON.parse(savedNotes));
-      }
-      if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
-        setActiveJudgeId(savedActiveJuri);
-      }
-      if (savedAuth) {
-        setAuthState(JSON.parse(savedAuth));
-      }
-    } catch (e) {
-      console.error('Failed to load storage', e);
-    } finally {
-      setIsLoaded(true);
-    }
+    };
+
+    initData();
   }, []);
 
-  // Set up Supabase Realtime Broadcast channel if configured
+  // Subscribe to Supabase Postgres CDC Changes
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
 
-    const channel = supabase.channel(REALTIME_ROOM_NAME, {
-      config: {
-        broadcast: { self: true },
-      },
-    });
-
-    channel
-      .on('broadcast', { event: 'score_sync' }, ({ payload }) => {
-        if (payload && payload.scores) {
-          setScores(payload.scores);
+    const channel = supabase
+      .channel('public:competition_scores')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'competition_scores', filter: 'id=eq.master' },
+        (payload) => {
+          setIsRealtimeConnected(true);
+          const newData = payload.new as { data?: { scores?: AllScores; judgeNotes?: JudgeGeneralNotes } };
+          if (newData && newData.data) {
+            if (newData.data.scores) setScores(newData.data.scores);
+            if (newData.data.judgeNotes) setJudgeNotes(newData.data.judgeNotes);
+          }
         }
-        if (payload && payload.judgeNotes) {
-          setJudgeNotes(payload.judgeNotes);
-        }
-      })
+      )
       .subscribe((status) => {
-        console.log('Supabase Realtime Status:', status);
         if (status === 'SUBSCRIBED') {
           setIsRealtimeConnected(true);
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setIsRealtimeConnected(false);
         }
       });
-
-    setRealtimeChannel(channel);
 
     return () => {
       if (supabase) {
@@ -137,36 +140,33 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Broadcast state changes to other devices in real-time
-  const broadcastSync = useCallback((newScores: AllScores, newNotes: JudgeGeneralNotes) => {
-    if (realtimeChannel) {
-      realtimeChannel.send({
-        type: 'broadcast',
-        event: 'score_sync',
-        payload: { scores: newScores, judgeNotes: newNotes },
-      });
-    }
-  }, [realtimeChannel]);
-
-  // Save scores to LocalStorage when changed
-  useEffect(() => {
-    if (!isLoaded) return;
+  // Save to Supabase DB & LocalStorage
+  const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes) => {
     try {
-      localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(scores));
+      localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(newScores));
+      localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(newNotes));
     } catch (e) {
-      console.error('Failed to save scores', e);
+      console.error('Failed to save to localStorage', e);
     }
-  }, [scores, isLoaded]);
 
-  // Save notes to LocalStorage when changed
-  useEffect(() => {
-    if (!isLoaded) return;
-    try {
-      localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(judgeNotes));
-    } catch (e) {
-      console.error('Failed to save notes', e);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.from('competition_scores').upsert({
+          id: 'master',
+          data: { scores: newScores, judgeNotes: newNotes },
+          updated_at: new Date().toISOString(),
+        });
+
+        if (!error) {
+          setIsRealtimeConnected(true);
+        } else {
+          console.warn('Supabase sync warning:', error.message);
+        }
+      } catch (err) {
+        console.error('Supabase upsert error', err);
+      }
     }
-  }, [judgeNotes, isLoaded]);
+  }, []);
 
   // Save active judge selection
   useEffect(() => {
@@ -245,7 +245,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         },
       };
 
-      const updated = {
+      const updatedScores = {
         ...prev,
         [judgeId]: {
           ...judgeData,
@@ -253,8 +253,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         },
       };
 
-      broadcastSync(updated, judgeNotes);
-      return updated;
+      saveAndSync(updatedScores, judgeNotes);
+      return updatedScores;
     });
   };
 
@@ -271,7 +271,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const judgeData = prev[judgeId] || {};
       const participantData = judgeData[participantId] || { scores: {} };
 
-      const updated = {
+      const updatedScores = {
         ...prev,
         [judgeId]: {
           ...judgeData,
@@ -282,8 +282,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         },
       };
 
-      broadcastSync(updated, judgeNotes);
-      return updated;
+      saveAndSync(updatedScores, judgeNotes);
+      return updatedScores;
     });
   };
 
@@ -293,13 +293,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setJudgeNotes(prev => {
-      const updated = {
+      const updatedNotes = {
         ...prev,
         [judgeId]: notes,
       };
 
-      broadcastSync(scores, updated);
-      return updated;
+      saveAndSync(scores, updatedNotes);
+      return updatedNotes;
     });
   };
 
@@ -405,13 +405,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setScores(demoScores);
     setJudgeNotes(demoNotes);
-    broadcastSync(demoScores, demoNotes);
+    saveAndSync(demoScores, demoNotes);
   };
 
   const resetAllData = () => {
     setScores({});
     setJudgeNotes({});
-    broadcastSync({}, {});
+    saveAndSync({}, {});
     try {
       localStorage.removeItem(STORAGE_KEY_SCORES);
       localStorage.removeItem(STORAGE_KEY_NOTES);
@@ -436,7 +436,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (parsed.scores) {
         setScores(parsed.scores);
         if (parsed.judgeNotes) setJudgeNotes(parsed.judgeNotes);
-        broadcastSync(parsed.scores, parsed.judgeNotes || {});
+        saveAndSync(parsed.scores, parsed.judgeNotes || {});
         return true;
       }
       return false;
