@@ -48,13 +48,16 @@ interface ScoreContextType {
   importJSON: (jsonString: string) => boolean;
   isLoaded: boolean;
   isRealtimeConnected: boolean;
-  isGoogleSheetsConnected: boolean;
+  isFormLocked: boolean;
+  toggleFormLock: () => void;
 }
 
 const STORAGE_KEY_SCORES = 'lomba_scores_v1';
 const STORAGE_KEY_NOTES = 'lomba_notes_v1';
 const STORAGE_KEY_ACTIVE_JURI = 'lomba_active_juri_v1';
 const STORAGE_KEY_AUTH = 'lomba_auth_v1';
+const STORAGE_KEY_LOCKED = 'lomba_form_locked_v1';
+const STORAGE_KEY_RESET_TS = 'lomba_last_reset_ts_v1';
 
 const ScoreContext = createContext<ScoreContextType | undefined>(undefined);
 
@@ -68,26 +71,41 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeJudgeId, setActiveJudgeId] = useState<string>(DEFAULT_JUDGES[0].id);
   const [authState, setAuthState] = useState<AuthState>({ role: 'guest' });
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
-  const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(true); // API Endpoint active
-  const [isGoogleSheetsConnected] = useState<boolean>(true);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(true);
+  const [isFormLocked, setIsFormLocked] = useState<boolean>(false);
+  const [lastResetTs, setLastResetTs] = useState<number>(0);
 
-  // Poll /api/scores endpoint every 1.5 seconds for instant multi-device sync
+  // Poll /api/scores endpoint every 1.5s and sync Admin reset across all devices
   useEffect(() => {
     const fetchApiScores = async () => {
       try {
         const res = await fetch('/api/scores', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          if (data.scores && Object.keys(data.scores).length > 0) {
+          
+          // If remote reset timestamp is newer, wipe local state & localStorage!
+          if (data.resetTimestamp && data.resetTimestamp > lastResetTs) {
+            setLastResetTs(data.resetTimestamp);
+            try {
+              localStorage.setItem(STORAGE_KEY_RESET_TS, String(data.resetTimestamp));
+              localStorage.removeItem(STORAGE_KEY_SCORES);
+              localStorage.removeItem(STORAGE_KEY_NOTES);
+            } catch (e) {}
+            setScores({});
+            setJudgeNotes({});
+            return;
+          }
+
+          if (data.scores) {
             setScores(prev => ({ ...prev, ...data.scores }));
           }
-          if (data.judgeNotes && Object.keys(data.judgeNotes).length > 0) {
+          if (data.judgeNotes) {
             setJudgeNotes(prev => ({ ...prev, ...data.judgeNotes }));
           }
           setIsRealtimeConnected(true);
         }
       } catch (e) {
-        // Fallback to local state if fetch fails
+        // Fallback to local state if offline
       }
     };
 
@@ -95,15 +113,17 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const interval = setInterval(fetchApiScores, 1500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [lastResetTs]);
 
-  // Load initial state from LocalStorage on mount
+  // Load initial state from LocalStorage
   useEffect(() => {
     try {
       const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
       const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
       const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
       const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
+      const savedLocked = localStorage.getItem(STORAGE_KEY_LOCKED);
+      const savedResetTs = localStorage.getItem(STORAGE_KEY_RESET_TS);
 
       if (savedScores) setScores(JSON.parse(savedScores));
       if (savedNotes) setJudgeNotes(JSON.parse(savedNotes));
@@ -111,6 +131,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActiveJudgeId(savedActiveJuri);
       }
       if (savedAuth) setAuthState(JSON.parse(savedAuth));
+      if (savedLocked) setIsFormLocked(JSON.parse(savedLocked));
+      if (savedResetTs) setLastResetTs(Number(savedResetTs));
     } catch (e) {
       console.error('Failed to load storage', e);
     } finally {
@@ -120,15 +142,18 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Save to /api/scores Endpoint & LocalStorage
   const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
-    // 1. LocalStorage
     try {
-      localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(newScores));
-      localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(newNotes));
+      if (reset) {
+        localStorage.removeItem(STORAGE_KEY_SCORES);
+        localStorage.removeItem(STORAGE_KEY_NOTES);
+      } else {
+        localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(newScores));
+        localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(newNotes));
+      }
     } catch (e) {
       console.error('Failed to save to localStorage', e);
     }
 
-    // 2. Post to /api/scores Endpoint
     try {
       await fetch('/api/scores', {
         method: 'POST',
@@ -143,6 +168,16 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Failed to post to /api/scores', e);
     }
   }, []);
+
+  const toggleFormLock = () => {
+    setIsFormLocked(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY_LOCKED, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
 
   // Save active judge selection
   useEffect(() => {
@@ -199,7 +234,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     criteriaId: string,
     score: number
   ) => {
-    if (authState.role === 'admin') {
+    if (authState.role === 'admin' || isFormLocked) {
       return;
     }
 
@@ -243,7 +278,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     participantId: string,
     notes: string
   ) => {
-    if (authState.role === 'admin') {
+    if (authState.role === 'admin' || isFormLocked) {
       return;
     }
 
@@ -272,7 +307,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateJudgeGeneralNotes = (judgeId: string, notes: string) => {
-    if (authState.role === 'admin') {
+    if (authState.role === 'admin' || isFormLocked) {
       return;
     }
 
@@ -397,10 +432,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetAllData = () => {
+    const ts = Date.now();
+    setLastResetTs(ts);
     setScores({});
     setJudgeNotes({});
     saveAndSync({}, {}, true);
     try {
+      localStorage.setItem(STORAGE_KEY_RESET_TS, String(ts));
       localStorage.removeItem(STORAGE_KEY_SCORES);
       localStorage.removeItem(STORAGE_KEY_NOTES);
     } catch (e) {
@@ -458,7 +496,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         importJSON,
         isLoaded,
         isRealtimeConnected,
-        isGoogleSheetsConnected,
+        isFormLocked,
+        toggleFormLock,
       }}
     >
       {children}

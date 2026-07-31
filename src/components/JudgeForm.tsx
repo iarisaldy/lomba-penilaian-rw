@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useScore } from '../context/ScoreContext';
-import { UserCheck, Lock, AlertCircle, MessageSquareText, Check, Shield, Eye } from 'lucide-react';
+import { UserCheck, Lock, Unlock, AlertCircle, MessageSquareText, Check, Shield, Eye } from 'lucide-react';
 
 export const JudgeForm: React.FC = () => {
   const {
@@ -17,6 +17,8 @@ export const JudgeForm: React.FC = () => {
     updateJudgeGeneralNotes,
     getParticipantSubtotal,
     authState,
+    isFormLocked,
+    toggleFormLock,
   } = useScore();
 
   // If user is logged in as a specific Juri, force activeJudge to their own judgeId
@@ -29,6 +31,7 @@ export const JudgeForm: React.FC = () => {
     judges.find((j) => j.id === effectiveJudgeId) || judges[0];
 
   const isAdmin = authState.role === 'admin';
+  const isInputDisabled = isAdmin || isFormLocked;
 
   return (
     <div className="space-y-6">
@@ -48,6 +51,60 @@ export const JudgeForm: React.FC = () => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lock / Unlock Banner for Juri */}
+      {!isAdmin && (
+        <div
+          className={`border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg transition-all ${
+            isFormLocked
+              ? 'bg-amber-950/40 border-amber-500/40'
+              : 'bg-emerald-950/30 border-emerald-500/30'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold flex-shrink-0 border ${
+                isFormLocked
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+              }`}
+            >
+              {isFormLocked ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                {isFormLocked
+                  ? '🔒 Formulir Penilaian Dikunci (Terkunci Selesai Menilai)'
+                  : '🔓 Formulir Penilaian Aktif (Siap Diisi)'}
+              </h3>
+              <p className="text-xs text-slate-300 mt-0.5">
+                {isFormLocked
+                  ? 'Input nilai telah dikunci agar tidak tersenggol secara tidak sengaja. Klik Buka Kunci jika ingin mengedit kembali.'
+                  : 'Gunakan tombol Kunci Penilaian di sebelah jika Anda sudah selesai mengisi skor seluruh peserta.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={toggleFormLock}
+            className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition-all cursor-pointer flex-shrink-0 ${
+              isFormLocked
+                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
+                : 'bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30'
+            }`}
+          >
+            {isFormLocked ? (
+              <>
+                <Unlock className="w-4 h-4" /> Buka Kunci Penilaian
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4" /> Kunci Penilaian Sekarang
+              </>
+            )}
+          </button>
         </div>
       )}
 
@@ -203,7 +260,7 @@ export const JudgeForm: React.FC = () => {
                             min={0}
                             max={crit.maxScore}
                             value={currentValue}
-                            disabled={isAdmin}
+                            disabled={isInputDisabled}
                             onChange={(e) =>
                               updateCriteriaScore(
                                 activeJudge.id,
@@ -213,7 +270,7 @@ export const JudgeForm: React.FC = () => {
                               )
                             }
                             className={`w-full h-2 rounded-lg appearance-none accent-red-500 ${
-                              isAdmin ? 'bg-slate-800 opacity-50 cursor-not-allowed' : 'bg-slate-800 cursor-pointer'
+                              isInputDisabled ? 'bg-slate-800 opacity-50 cursor-not-allowed' : 'bg-slate-800 cursor-pointer'
                             }`}
                           />
                           <input
@@ -221,7 +278,7 @@ export const JudgeForm: React.FC = () => {
                             min={0}
                             max={crit.maxScore}
                             value={currentValue === 0 ? '' : currentValue}
-                            disabled={isAdmin}
+                            disabled={isInputDisabled}
                             onChange={(e) => {
                               const val = Math.min(
                                 crit.maxScore,
@@ -236,7 +293,7 @@ export const JudgeForm: React.FC = () => {
                             }}
                             placeholder="0"
                             className={`w-14 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-red-500 transition-colors ${
-                              isAdmin ? 'opacity-50 cursor-not-allowed' : ''
+                              isInputDisabled ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           />
                         </div>
@@ -255,16 +312,16 @@ export const JudgeForm: React.FC = () => {
         <div className="flex items-center gap-2 text-sm font-bold text-white">
           <MessageSquareText className="w-4 h-4 text-amber-400" />
           Catatan / Kritik & Saran Juri ({activeJudge.name})
-          <span className="text-xs text-slate-400 font-normal">{isAdmin ? '(Read-Only)' : '(Opsional)'}</span>
+          <span className="text-xs text-slate-400 font-normal">{isInputDisabled ? '(Terkunci)' : '(Opsional)'}</span>
         </div>
         <textarea
           rows={3}
           value={judgeNotes[activeJudge.id] || ''}
-          disabled={isAdmin}
+          disabled={isInputDisabled}
           onChange={(e) => updateJudgeGeneralNotes(activeJudge.id, e.target.value)}
-          placeholder={isAdmin ? `[Read-Only Admin] Catatan dari ${activeJudge.name}` : `Tuliskan catatan, tanggapan, atau kesan untuk seluruh penampilan lomba bagi ${activeJudge.name}...`}
+          placeholder={isInputDisabled ? `[Terkunci] Catatan dari ${activeJudge.name}` : `Tuliskan catatan, tanggapan, atau kesan untuk seluruh penampilan lomba bagi ${activeJudge.name}...`}
           className={`w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-colors ${
-            isAdmin ? 'opacity-50 cursor-not-allowed' : 'focus:border-slate-600'
+            isInputDisabled ? 'opacity-50 cursor-not-allowed' : 'focus:border-slate-600'
           }`}
         />
       </div>
