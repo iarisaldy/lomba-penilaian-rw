@@ -2,10 +2,16 @@ import { NextResponse } from 'next/server';
 
 const getTargetUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL;
-  if (envUrl && envUrl.trim() !== '' && !envUrl.includes('AKfycby9085h9R04WAHmNNwNq8qcugdQDvPN2tKqVOLaNXfisJM5_Vv1GMiEgeAHKoCGVpNiWw')) {
+  if (
+    envUrl && 
+    envUrl.trim() !== '' && 
+    !envUrl.includes('AKfycby9085') && 
+    !envUrl.includes('AKfycbYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg')
+  ) {
     return envUrl.trim();
   }
-  return 'https://script.google.com/macros/s/AKfycbxYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg/exec';
+  // Active Apps Script Web App URL from Deployment screenshot
+  return 'https://script.google.com/macros/s/AKfycbyJc4QfsdBFFGqxKfxIpWZW-LPwh-3DByiacsv5o_r8zacVwW8ol-15CBJ_0vf98s/exec';
 };
 
 // Global in-memory state fallback on Vercel Serverless Function
