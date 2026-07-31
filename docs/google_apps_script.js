@@ -192,6 +192,32 @@ function doPost(e) {
       }
     });
 
+    // Save & Merge Master Payload in Script Properties for Multi-Device Realtime Sync
+    try {
+      var scriptProperties = PropertiesService.getScriptProperties();
+      var existingRaw = scriptProperties.getProperty('MASTER_PAYLOAD');
+      var existingData = existingRaw ? JSON.parse(existingRaw) : { scores: {}, judgeNotes: {}, resetTimestamp: 0 };
+      
+      if (data.reset) {
+        existingData = { scores: {}, judgeNotes: {}, resetTimestamp: data.resetTimestamp || Date.now() };
+      } else {
+        if (data.scores) {
+          for (var jId in data.scores) {
+            existingData.scores[jId] = Object.assign({}, existingData.scores[jId] || {}, data.scores[jId]);
+          }
+        }
+        if (data.judgeNotes) {
+          existingData.judgeNotes = Object.assign({}, existingData.judgeNotes || {}, data.judgeNotes);
+        }
+        if (data.resetTimestamp) {
+          existingData.resetTimestamp = data.resetTimestamp;
+        }
+      }
+      scriptProperties.setProperty('MASTER_PAYLOAD', JSON.stringify(existingData));
+    } catch(err) {
+      Logger.log("Failed to save master payload: " + err.toString());
+    }
+
     return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Data berhasil disinkronkan ke Google Sheets' }))
       .setMimeType(ContentService.MimeType.JSON);
 
@@ -202,6 +228,16 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  return ContentService.createTextOutput("Endpoint Google Apps Script Penilaian Lomba Aktif!")
-    .setMimeType(ContentService.MimeType.TEXT);
+  try {
+    var scriptProperties = PropertiesService.getScriptProperties();
+    var payload = scriptProperties.getProperty('MASTER_PAYLOAD');
+    if (!payload) {
+      payload = JSON.stringify({ scores: {}, judgeNotes: {}, resetTimestamp: 0 });
+    }
+    return ContentService.createTextOutput(payload)
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
