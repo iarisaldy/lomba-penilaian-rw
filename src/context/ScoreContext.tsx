@@ -175,44 +175,61 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           let serverScores = normalizeScores(data.scores || {});
           let serverNotes = data.judgeNotes || {};
 
-          // Synchronize with Central Server Master Scores with Accumulative Merge (prevents dropping to 0)
+          // Synchronize with Central Server Master Scores with Accumulative Non-Zero Merge (prevents 0-100-0 flickering)
           if (Object.keys(serverScores).length > 0) {
             setScores(prev => {
               const now = Date.now();
-              // Fallback protection window for guest/admin: 8 seconds (up from 3.5s)
               const isRecentlyEdited = now - lastLocalInteractionRef.current < 8000;
-              // Read latest values from refs to avoid stale closure
               const currentAuthState = authStateRef.current;
               const currentActiveJudgeId = activeJudgeIdRef.current;
 
               const mergedScores: Record<string, any> = { ...prev };
+
               for (const jId of Object.keys(serverScores)) {
-                // CORE FIX: If logged in as a specific juri, NEVER let server overwrite
-                // their own judge data. This permanently protects active juri input
-                // from any race condition with polling/Vercel cold instance.
-                const isOwnJudgeData =
-                  currentAuthState.role === 'juri' && currentAuthState.judgeId === jId;
+                const isOwnJudgeData = currentAuthState.role === 'juri' && currentAuthState.judgeId === jId;
+                const isRecentlyActiveJudge = isRecentlyEdited && jId === currentActiveJudgeId && prev[jId];
 
-                const localWins =
-                  isOwnJudgeData || (isRecentlyEdited && jId === currentActiveJudgeId && prev[jId]);
+                const prevJudge = prev[jId] || {};
+                const serverJudge = serverScores[jId] || {};
+                const mergedJudge: Record<string, any> = { ...prevJudge };
 
-                if (localWins) {
-                  // Merge at participant-level: server fills in OTHER participants,
-                  // local data always wins for individual participant scores
-                  const merged: Record<string, any> = { ...(serverScores[jId] || {}) };
-                  const localJudge = prev[jId] || {};
-                  for (const pId of Object.keys(localJudge)) {
-                    // Local participant data always beats server (never revert to 0)
-                    merged[pId] = {
-                      ...(serverScores[jId]?.[pId] || {}),
-                      ...localJudge[pId],
-                    };
+                for (const pId of Object.keys(serverJudge)) {
+                  const prevParticipant = prevJudge[pId] || { scores: {} };
+                  const serverParticipant = serverJudge[pId] || { scores: {} };
+
+                  const prevCriteriaScores = prevParticipant.scores || {};
+                  const serverCriteriaScores = serverParticipant.scores || {};
+
+                  // Deep non-zero criteria merge
+                  const mergedCriteria: Record<string, number> = { ...prevCriteriaScores };
+
+                  for (const cId of Object.keys(serverCriteriaScores)) {
+                    const serverVal = serverCriteriaScores[cId];
+                    if (isOwnJudgeData || isRecentlyActiveJudge) {
+                      // Local user interaction wins over server
+                      const localVal = prevCriteriaScores[cId];
+                      if (typeof localVal === 'number' && localVal > 0) {
+                        mergedCriteria[cId] = localVal;
+                      } else if (typeof serverVal === 'number' && serverVal > 0) {
+                        mergedCriteria[cId] = serverVal;
+                      }
+                    } else {
+                      // Non-zero values from server update or accumulate, zero values NEVER overwrite existing positive local scores
+                      if (typeof serverVal === 'number' && serverVal > 0) {
+                        mergedCriteria[cId] = serverVal;
+                      }
+                    }
                   }
-                  mergedScores[jId] = merged;
-                } else {
-                  // Server wins for other judges — accumulative, never drop existing local
-                  mergedScores[jId] = { ...(prev[jId] || {}), ...serverScores[jId] };
+
+                  mergedJudge[pId] = {
+                    ...prevParticipant,
+                    ...serverParticipant,
+                    scores: mergedCriteria,
+                    notes: serverParticipant.notes || prevParticipant.notes || '',
+                  };
                 }
+
+                mergedScores[jId] = mergedJudge;
               }
 
               const nextScores = normalizeScores(mergedScores);
