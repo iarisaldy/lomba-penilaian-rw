@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useScore } from '../context/ScoreContext';
-import { UserCheck, Lock, Unlock, AlertCircle, MessageSquareText, Check, Shield, Eye, Send } from 'lucide-react';
+import { UserCheck, Lock, Unlock, AlertCircle, MessageSquareText, Check, Shield, Eye, Send, Plus, Minus } from 'lucide-react';
 
 export const JudgeForm: React.FC = () => {
   const {
@@ -33,19 +33,19 @@ export const JudgeForm: React.FC = () => {
   const isAdmin = authState.role === 'admin';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Admin Read-Only Notice Banner */}
       {isAdmin && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-lg">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold flex-shrink-0">
               <Eye className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+              <h3 className="font-extrabold text-xs sm:text-sm text-white flex items-center gap-2">
                 👑 Mode Admin — Pratinjau Lembar Penilaian (Read-Only)
               </h3>
-              <p className="text-xs text-amber-200/90 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-amber-200/90 mt-0.5">
                 Admin hanya berhak memantau & memeriksa isian juri. Input nilai dikunci khusus untuk Juri RT bersangkutan.
               </p>
             </div>
@@ -54,35 +54,35 @@ export const JudgeForm: React.FC = () => {
       )}
 
       {/* Judge Header Card */}
-      <div className="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-3.5 sm:p-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-red-400 tracking-wider uppercase mb-1">
-              <UserCheck className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-red-400 tracking-wider uppercase mb-0.5">
+              <UserCheck className="w-3.5 h-3.5" />
               Lembar Penilaian Resmi
             </div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
               Formulir Penilaian — {activeJudge.name}
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
               Sebagai <span className="text-amber-400 font-bold">{activeJudge.name}</span>, Anda memberikan nilai untuk 5 RT peserta lainnya.
             </p>
           </div>
 
           {/* Selector buttons (ONLY FOR ADMIN TO INSPECT). For Juri, display locked badge! */}
           {isAdmin ? (
-            <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-col items-start sm:items-end gap-1 pt-2 sm:pt-0 border-t sm:border-0 border-slate-800">
               <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
                 <Shield className="w-3 h-3" /> Pilih Lembar Juri (Inspeksi Admin)
               </span>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 w-full sm:w-auto">
                 {judges.map((judge) => {
                   const isActive = judge.id === activeJudge.id;
                   return (
                     <button
                       key={judge.id}
                       onClick={() => setActiveJudgeId(judge.id)}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                      className={`py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1 cursor-pointer touch-manipulation ${
                         isActive
                           ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 scale-105'
                           : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
@@ -96,7 +96,7 @@ export const JudgeForm: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] sm:text-xs font-bold text-slate-300 self-start sm:self-auto">
               <Lock className="w-3.5 h-3.5 text-amber-400" />
               <span>Akses Terkunci Khusus <strong className="text-amber-400">{activeJudge.name}</strong></span>
             </div>
@@ -105,15 +105,15 @@ export const JudgeForm: React.FC = () => {
       </div>
 
       {/* Rules Notice */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-        <div className="text-xs text-slate-300 leading-relaxed">
-          <span className="font-bold text-amber-400">Aturan Penilaian:</span> Berikan nilai pada kartu masing-masing RT. Setiap kartu RT memiliki tombol <span className="font-bold text-emerald-400">🔒 Kunci & Submit Nilai</span> sendiri agar skor RT tersebut aman dan tidak tersenggol.
+      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 flex items-start gap-2.5">
+        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+          <span className="font-bold text-amber-400">Aturan HP Penilaian:</span> Gunakan tombol <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">-</span> dan <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">+</span> atau geser slider untuk mengubah nilai. Setelah selesai, tekan <span className="font-bold text-emerald-400">🔒 Kunci & Kirim</span> per RT.
         </div>
       </div>
 
       {/* Participants Scoring Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {participants.map((participant) => {
           const isSelf = activeJudge.code === participant.code;
           const participantScores = scores[activeJudge.id]?.[participant.id]?.scores || {};
@@ -128,13 +128,13 @@ export const JudgeForm: React.FC = () => {
                 isSelf
                   ? 'bg-slate-900/40 border-slate-800/80 opacity-70'
                   : isLocked
-                  ? 'bg-slate-900/90 border-amber-500/40 shadow-amber-500/5'
+                  ? 'bg-slate-900/95 border-amber-500/40 shadow-amber-500/5'
                   : 'bg-slate-900 border-slate-800 hover:border-slate-700 shadow-xl'
               }`}
             >
               {/* Card Header */}
               <div
-                className={`p-4 border-b flex items-center justify-between ${
+                className={`p-3.5 sm:p-4 border-b flex items-center justify-between ${
                   isSelf
                     ? 'bg-slate-950/50 border-slate-800'
                     : isLocked
@@ -155,18 +155,18 @@ export const JudgeForm: React.FC = () => {
                     {participant.code}
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
+                    <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-1.5">
                       {participant.name}
                       {isLocked && <Lock className="w-3.5 h-3.5 text-amber-400 inline" />}
                     </h3>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[10px] sm:text-[11px] text-slate-400">
                       {isSelf ? 'RT Sendiri' : isLocked ? 'Nilai Terkunci Aman' : 'Peserta Lomba'}
                     </span>
                   </div>
                 </div>
 
                 {isSelf ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-800 text-slate-400 px-2.5 py-1 rounded-lg border border-slate-700">
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-slate-800 text-slate-400 px-2.5 py-1 rounded-lg border border-slate-700">
                     <Lock className="w-3 h-3" /> N/A (Terkunci)
                   </span>
                 ) : (
@@ -174,7 +174,7 @@ export const JudgeForm: React.FC = () => {
                     <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                       Total Skor
                     </div>
-                    <div className="text-lg font-black text-amber-400">
+                    <div className="text-lg sm:text-xl font-black text-amber-400 leading-tight">
                       {subtotal} <span className="text-xs text-slate-500 font-normal">/ 100</span>
                     </div>
                   </div>
@@ -182,10 +182,10 @@ export const JudgeForm: React.FC = () => {
               </div>
 
               {/* Card Body - Criteria Inputs */}
-              <div className="p-4 space-y-4 flex-1">
+              <div className="p-3.5 sm:p-4 space-y-3.5 sm:space-y-4 flex-1">
                 {isSelf ? (
-                  <div className="py-8 text-center px-4 space-y-2">
-                    <Lock className="w-8 h-8 text-slate-600 mx-auto" />
+                  <div className="py-6 text-center px-4 space-y-1.5">
+                    <Lock className="w-7 h-7 text-slate-600 mx-auto" />
                     <p className="text-xs font-medium text-slate-400">
                       Juri <span className="text-white font-bold">{activeJudge.code}</span> tidak memberikan nilai untuk <span className="text-white font-bold">{participant.code}</span>.
                     </p>
@@ -200,15 +200,33 @@ export const JudgeForm: React.FC = () => {
                     return (
                       <div key={crit.id} className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium text-slate-300">
+                          <span className="font-semibold text-slate-200">
                             {crit.name}
                           </span>
                           <span className="text-slate-400 text-[11px]">
-                            Maks <strong className="text-slate-200">{crit.maxScore}</strong>
+                            Maks <strong className="text-amber-400">{crit.maxScore}</strong>
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        {/* Touch-Friendly Mobile Slider & Stepper Controls */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={isInputDisabled || currentValue <= 0}
+                            onClick={() =>
+                              updateCriteriaScore(
+                                activeJudge.id,
+                                participant.id,
+                                crit.id,
+                                Math.max(0, currentValue - 1)
+                              )
+                            }
+                            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 font-bold flex items-center justify-center flex-shrink-0 touch-manipulation border border-slate-700"
+                            title="Kurangi 1"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+
                           <input
                             type="range"
                             min={0}
@@ -223,10 +241,28 @@ export const JudgeForm: React.FC = () => {
                                 Number(e.target.value)
                               )
                             }
-                            className={`w-full h-2 rounded-lg appearance-none accent-red-500 ${
+                            className={`w-full h-3 rounded-lg appearance-none accent-red-500 touch-pan-x ${
                               isInputDisabled ? 'bg-slate-800 opacity-50 cursor-not-allowed' : 'bg-slate-800 cursor-pointer'
                             }`}
                           />
+
+                          <button
+                            type="button"
+                            disabled={isInputDisabled || currentValue >= crit.maxScore}
+                            onClick={() =>
+                              updateCriteriaScore(
+                                activeJudge.id,
+                                participant.id,
+                                crit.id,
+                                Math.min(crit.maxScore, currentValue + 1)
+                              )
+                            }
+                            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 font-bold flex items-center justify-center flex-shrink-0 touch-manipulation border border-slate-700"
+                            title="Tambah 1"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+
                           <input
                             type="number"
                             min={0}
@@ -246,7 +282,7 @@ export const JudgeForm: React.FC = () => {
                               );
                             }}
                             placeholder="0"
-                            className={`w-14 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-red-500 transition-colors ${
+                            className={`w-11 sm:w-13 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-red-500 transition-colors flex-shrink-0 ${
                               isInputDisabled ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           />
@@ -259,25 +295,25 @@ export const JudgeForm: React.FC = () => {
 
               {/* Per-RT Card Lock / Submit Button */}
               {!isSelf && !isAdmin && (
-                <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    {isLocked ? '🔒 Nilai RT dikunci' : 'Edit nilai aktif'}
+                <div className="p-3 bg-slate-950/90 border-t border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-400 font-medium text-center sm:text-left">
+                    {isLocked ? '🔒 Nilai RT dikunci aman' : 'Edit nilai aktif'}
                   </span>
                   <button
                     onClick={() => toggleCardLock(activeJudge.id, participant.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm transition-all cursor-pointer touch-manipulation ${
                       isLocked
                         ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
-                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'
                     }`}
                   >
                     {isLocked ? (
                       <>
-                        <Unlock className="w-3.5 h-3.5" /> Edit Nilai
+                        <Unlock className="w-4 h-4" /> Edit Nilai
                       </>
                     ) : (
                       <>
-                        <Send className="w-3.5 h-3.5" /> Kunci & Kirim {participant.code}
+                        <Send className="w-4 h-4" /> Kunci & Kirim {participant.code}
                       </>
                     )}
                   </button>
@@ -290,10 +326,10 @@ export const JudgeForm: React.FC = () => {
 
       {/* General Notes per Judge */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3">
-        <div className="flex items-center gap-2 text-sm font-bold text-white">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white">
           <MessageSquareText className="w-4 h-4 text-amber-400" />
           Catatan / Kritik & Saran Juri ({activeJudge.name})
-          <span className="text-xs text-slate-400 font-normal">{isAdmin ? '(Read-Only Admin)' : '(Opsional)'}</span>
+          <span className="text-[11px] text-slate-400 font-normal">{isAdmin ? '(Read-Only Admin)' : '(Opsional)'}</span>
         </div>
         <textarea
           rows={3}
