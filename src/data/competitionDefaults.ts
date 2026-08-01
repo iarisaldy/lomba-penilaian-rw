@@ -7,7 +7,7 @@ export const EVENT_INFO = {
   subtitle: 'Sistem Penilaian & Rekapitulasi Otomatis',
   organizer: 'Koordinator Sie Acara',
   approver: 'Ketua RW Permata Discovery',
-  adminPin: '9988',
+  adminPin: '0000',
 };
 
 export const DEFAULT_CRITERIA: Criteria[] = [
@@ -27,10 +27,10 @@ export const DEFAULT_PARTICIPANTS: Participant[] = [
 ];
 
 export const DEFAULT_JUDGES: Judge[] = [
-  { id: 'juri_rt01', code: 'RT 01', name: 'Juri RT 01', pin: '1801' },
-  { id: 'juri_rt02', code: 'RT 02', name: 'Juri RT 02', pin: '2802' },
-  { id: 'juri_rt03', code: 'RT 03', name: 'Juri RT 03', pin: '3803' },
-  { id: 'juri_rt04', code: 'RT 04', name: 'Juri RT 04', pin: '4804' },
-  { id: 'juri_rt05', code: 'RT 05', name: 'Juri RT 05', pin: '5805' },
-  { id: 'juri_rt06', code: 'RT 06', name: 'Juri RT 06', pin: '6806' },
+  { id: 'juri_rt01', code: 'RT 01', name: 'Juri RT 01', pin: '1111' },
+  { id: 'juri_rt02', code: 'RT 02', name: 'Juri RT 02', pin: '2222' },
+  { id: 'juri_rt03', code: 'RT 03', name: 'Juri RT 03', pin: '3333' },
+  { id: 'juri_rt04', code: 'RT 04', name: 'Juri RT 04', pin: '4444' },
+  { id: 'juri_rt05', code: 'RT 05', name: 'Juri RT 05', pin: '5555' },
+  { id: 'juri_rt06', code: 'RT 06', name: 'Juri RT 06', pin: '6666' },
 ];

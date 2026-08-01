@@ -143,7 +143,7 @@ story.append(Spacer(1, 15))
 story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceBefore=0, spaceAfter=15))
 
 # Table PIN Juri & Admin
-story.append(Paragraph("🔑 DAFTAR PIN LOGIN JURI & ADMIN (RESMI)", section_heading))
+story.append(Paragraph("🔑 DAFTAR PIN LOGIN JURI & ADMIN", section_heading))
 story.append(Spacer(1, 8))
 
 table_data = [
@@ -153,13 +153,13 @@ table_data = [
         Paragraph("PIN Akses", table_header_style),
         Paragraph("Keterangan", table_header_style)
     ],
-    [Paragraph("Juri RT 01", table_cell_bold), Paragraph("RT 01", table_cell_style), Paragraph("1801", table_cell_bold), Paragraph("Menilai RT 02 s/d RT 06", table_cell_style)],
-    [Paragraph("Juri RT 02", table_cell_bold), Paragraph("RT 02", table_cell_style), Paragraph("2802", table_cell_bold), Paragraph("Menilai RT 01, 03 s/d 06", table_cell_style)],
-    [Paragraph("Juri RT 03", table_cell_bold), Paragraph("RT 03", table_cell_style), Paragraph("3803", table_cell_bold), Paragraph("Menilai RT 01, 02, 04 s/d 06", table_cell_style)],
-    [Paragraph("Juri RT 04", table_cell_bold), Paragraph("RT 04", table_cell_style), Paragraph("4804", table_cell_bold), Paragraph("Menilai RT 01 s/d 03, 05 s/d 06", table_cell_style)],
-    [Paragraph("Juri RT 05", table_cell_bold), Paragraph("RT 05", table_cell_style), Paragraph("5805", table_cell_bold), Paragraph("Menilai RT 01 s/d 04, 06", table_cell_style)],
-    [Paragraph("Juri RT 06", table_cell_bold), Paragraph("RT 06", table_cell_style), Paragraph("6806", table_cell_bold), Paragraph("Menilai RT 01 s/d 05", table_cell_style)],
-    [Paragraph("Admin Rekap", ParagraphStyle('AdminTitle', parent=table_cell_bold, textColor=colors.HexColor('#DC2626'))), Paragraph("Panitia", table_cell_style), Paragraph("9988", ParagraphStyle('AdminPin', parent=table_cell_bold, textColor=colors.HexColor('#DC2626'))), Paragraph("Pantau Rekap & Cetak Pemenang", table_cell_style)],
+    [Paragraph("Juri RT 01", table_cell_bold), Paragraph("RT 01", table_cell_style), Paragraph("1111", table_cell_bold), Paragraph("Menilai RT 02 s/d RT 06", table_cell_style)],
+    [Paragraph("Juri RT 02", table_cell_bold), Paragraph("RT 02", table_cell_style), Paragraph("2222", table_cell_bold), Paragraph("Menilai RT 01, 03 s/d 06", table_cell_style)],
+    [Paragraph("Juri RT 03", table_cell_bold), Paragraph("RT 03", table_cell_style), Paragraph("3333", table_cell_bold), Paragraph("Menilai RT 01, 02, 04 s/d 06", table_cell_style)],
+    [Paragraph("Juri RT 04", table_cell_bold), Paragraph("RT 04", table_cell_style), Paragraph("4444", table_cell_bold), Paragraph("Menilai RT 01 s/d 03, 05 s/d 06", table_cell_style)],
+    [Paragraph("Juri RT 05", table_cell_bold), Paragraph("RT 05", table_cell_style), Paragraph("5555", table_cell_bold), Paragraph("Menilai RT 01 s/d 04, 06", table_cell_style)],
+    [Paragraph("Juri RT 06", table_cell_bold), Paragraph("RT 06", table_cell_style), Paragraph("6666", table_cell_bold), Paragraph("Menilai RT 01 s/d 05", table_cell_style)],
+    [Paragraph("Admin Rekap", ParagraphStyle('AdminTitle', parent=table_cell_bold, textColor=colors.HexColor('#DC2626'))), Paragraph("Panitia", table_cell_style), Paragraph("0000", ParagraphStyle('AdminPin', parent=table_cell_bold, textColor=colors.HexColor('#DC2626'))), Paragraph("Pantau Rekap & Cetak Pemenang", table_cell_style)],
 ]
 
 col_widths = [100, 90, 80, 230]
@@ -184,8 +184,8 @@ story.append(Spacer(1, 6))
 
 instructions_html = """
 <b>1. Scan QR Code</b> di atas menggunakan Kamera HP atau aplikasi WhatsApp.<br/>
-<b>2. Masukkan PIN Login Resmi</b> sesuai Juri RT Anda (Contoh: Juri RT 01 = PIN 1801).<br/>
-<b>3. Geser Slider Nilai</b> untuk setiap kriteria penilaian (Kerapian, Kreativitas, Kesulitan, Kekompakan).<br/>
+<b>2. Masukkan PIN Login</b> sesuai Juri RT Anda (Contoh: Juri RT 01 = PIN 1111).<br/>
+<b>3. Geser Slider Nilai / Tekan (-) (+)</b> untuk setiap kriteria penilaian.<br/>
 <b>4. Klik 'Kunci & Kirim'</b> pada kartu peserta yang sudah selesai dinilai.<br/>
 <b><i>Catatan:</i></b> Setiap Juri secara otomatis dikunci untuk tidak menilai RT-nya sendiri (N/A).
 """
