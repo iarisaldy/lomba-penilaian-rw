@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server';
 
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg/exec';
+
 const getTargetUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL;
   if (
     envUrl && 
     envUrl.trim() !== '' && 
     !envUrl.includes('AKfycby9085') && 
-    !envUrl.includes('AKfycbYpvlq4KaWXkqssPZlpT0KUSLqqTSltnqDMSb9fnl52P0vdXK4LlZBX23IsDX7Dunzhg')
+    !envUrl.includes('AKfycbyJc4QfsdBFFGqxKfxIpWZW-LPwh-3DByiacsv5o_r8zacVwW8ol-15CBJ_0vf98s/exec')
   ) {
     return envUrl.trim();
   }
-  return 'https://script.google.com/macros/s/AKfycbyJc4QfsdBFFGqxKfxIpWZW-LPwh-3DByiacsv5o_r8zacVwW8ol-15CBJ_0vf98s/exec';
+  return DEFAULT_GAS_URL;
 };
 
 // Global in-memory state fallback on Vercel Serverless Function
@@ -29,6 +31,7 @@ export async function GET() {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
+      signal: AbortSignal.timeout(4000), // Prevent Vercel function timeout if GAS is slow
     });
 
     if (res.ok) {
@@ -98,6 +101,7 @@ export async function POST(request: Request) {
         reset: body.reset || false,
         resetTimestamp: globalResetTimestamp,
       }),
+      signal: AbortSignal.timeout(4000),
     }).catch(e => console.error('Background server forward to Google Sheets failed', e));
 
     return NextResponse.json({

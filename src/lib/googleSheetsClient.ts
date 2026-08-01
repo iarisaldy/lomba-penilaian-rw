@@ -71,7 +71,12 @@ export const fetchGoogleSheetsScoresDirectly = async (): Promise<{ scores?: Reco
   const url = getGoogleSheetsUrl();
   if (!url) return null;
   try {
-    const res = await fetch(url, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+    const res = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(4000),
+    });
     if (res.ok) {
       const text = await res.text();
       if (text && text.trim().startsWith('{')) {
