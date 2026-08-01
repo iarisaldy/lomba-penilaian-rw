@@ -31,7 +31,7 @@ export async function GET() {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
-      signal: AbortSignal.timeout(4000), // Prevent Vercel function timeout if GAS is slow
+      signal: AbortSignal.timeout(8000), // Prevent Vercel function timeout while allowing GAS cold-start
     });
 
     if (res.ok) {
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
         reset: body.reset || false,
         resetTimestamp: globalResetTimestamp,
       }),
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(8000),
     }).catch(e => console.error('Background server forward to Google Sheets failed', e));
 
     return NextResponse.json({
