@@ -143,30 +143,17 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   }, []);
 
-  // Poll scores: Admin polls GAS directly (authoritative, bypasses Vercel inter-instance memory gap)
-  //              Juri polls /api/scores (low-latency, own-data protection active)
+  // Poll /api/scores endpoint (1ms response time directly from server memory)
   useEffect(() => {
     const fetchApiScores = async () => {
       try {
+        const res = await fetch('/api/scores', { cache: 'no-store' });
         let data: { scores?: Record<string, any>; judgeNotes?: Record<string, any>; resetTimestamp?: number } | null = null;
-
-        if (authStateRef.current.role === 'admin') {
-          // Admin: fetch directly from GAS — single source of truth, no Vercel instance fragmentation
-          const gasData = await fetchGoogleSheetsScoresDirectly();
-          if (gasData && (gasData.scores || gasData.judgeNotes)) {
-            data = gasData;
-          }
-        }
-
-        // Fallback to /api/scores for juri/guest, or if GAS fetch failed for admin
-        if (!data) {
-          const res = await fetch('/api/scores', { cache: 'no-store' });
-          if (res.ok) {
-            data = await res.json();
-          } else {
-            setIsRealtimeConnected(false);
-            return;
-          }
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          setIsRealtimeConnected(false);
+          return;
         }
 
         if (data) {
