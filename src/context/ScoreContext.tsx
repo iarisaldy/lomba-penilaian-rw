@@ -251,7 +251,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
 
           // 3. If remote reset timestamp is newer, wipe local state!
-          if (data.resetTimestamp && data.resetTimestamp > lastResetTs) {
+          if (data.resetTimestamp && data.resetTimestamp > lastResetTs && lastResetTs > 0) {
             setLastResetTs(data.resetTimestamp);
             setScores({});
             setJudgeNotes({});
@@ -330,6 +330,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               }
               return nextScores;
             });
+          } else if (Object.keys(scoresRef.current).length > 0) {
+            // Server has no scores yet, re-seed server with non-zero local scores!
+            fetch('/api/scores', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ scores: scoresRef.current, judgeNotes }),
+            }).catch(() => {});
           }
 
           if (Object.keys(serverNotes).length > 0) {
@@ -354,9 +361,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const interval = setInterval(fetchApiScores, 3000);
 
     return () => clearInterval(interval);
-  }, [lastResetTs, activeJudgeId]);
+  }, [lastResetTs, activeJudgeId, judgeNotes]);
 
-  // Load initial Auth & Config state
+  // Load initial Auth, Config, and Local Scores state
   useEffect(() => {
     try {
       const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
@@ -364,6 +371,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const savedLockedCards = localStorage.getItem(STORAGE_KEY_LOCKED_CARDS);
       const savedResetTs = localStorage.getItem(STORAGE_KEY_RESET_TS);
       const savedConfig = localStorage.getItem(STORAGE_KEY_CONFIG);
+      const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
+      const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
 
       if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
         setActiveJudgeId(savedActiveJuri);
@@ -377,6 +386,25 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (parsed.criteria) setCriteria(parsed.criteria);
         if (parsed.participants) setParticipants(parsed.participants);
         if (parsed.judges) setJudges(parsed.judges);
+      }
+
+      // Load local scores fallback so judges NEVER lose typed scores if server container restarts
+      if (savedScores) {
+        const parsedScores = normalizeScores(JSON.parse(savedScores));
+        if (Object.keys(parsedScores).length > 0) {
+          setScores(parsedScores);
+          fetch('/api/scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scores: parsedScores }),
+          }).catch(() => {});
+        }
+      }
+      if (savedNotes) {
+        const parsedNotes = JSON.parse(savedNotes);
+        if (Object.keys(parsedNotes).length > 0) {
+          setJudgeNotes(parsedNotes);
+        }
       }
     } catch (e) {
       console.error('Failed to load storage', e);
