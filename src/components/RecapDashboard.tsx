@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Lock, Unlock } from 'lucide-react';
+import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Lock, Unlock, FileCheck2, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const RecapDashboard: React.FC = () => {
-  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData, eventInfo, toggleMasterSystemLock } = useScore();
+  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData, eventInfo, toggleMasterSystemLock, exportJSON } = useScore();
   const [confirmPin, setConfirmPin] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
@@ -34,19 +34,6 @@ export const RecapDashboard: React.FC = () => {
     }
   }, [juara1?.participantId, juara1?.averageScore]);
 
-  const handleAdminResetConfirm = (e: React.FormEvent) => {
-    e.preventDefault();
-    setResetError('');
-    if (confirmPin.trim() === eventInfo.adminPin) {
-      resetAllData();
-      setShowResetModal(false);
-      setConfirmPin('');
-      alert('Seluruh data nilai penilaian berhasil dikosongkan!');
-    } else {
-      setResetError(`PIN Admin Salah! Masukkan PIN yang benar.`);
-    }
-  };
-
   const exportToCSV = () => {
     let csv = "RT Peserta," + judges.map(j => `Nilai ${j.code}`).join(",") + ",Total Nilai,Rata-Rata Nilai,Peringkat / Juara\n";
     
@@ -62,10 +49,32 @@ export const RecapDashboard: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Rekap_Nilai_${eventInfo.competitionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `Backup_Sebelum_Reset_${eventInfo.competitionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
+  };
+
+  const handleAdminResetConfirm = (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    if (confirmPin.trim() === eventInfo.adminPin) {
+      // 1. Auto download Backup CSV
+      exportToCSV();
+
+      // 2. Auto download Backup JSON Snapshot
+      setTimeout(() => {
+        exportJSON();
+      }, 500);
+
+      // 3. Reset all scores & locked cards
+      resetAllData();
+      setShowResetModal(false);
+      setConfirmPin('');
+      alert(`✅ Berhasil! File Backup Data Rekapitulasi (CSV & JSON) telah terunduh otomatis ke komputer Anda sebelum data dikosongkan.`);
+    } else {
+      setResetError(`PIN Admin Salah! Masukkan PIN yang benar.`);
+    }
   };
 
   return (
@@ -173,7 +182,7 @@ export const RecapDashboard: React.FC = () => {
               className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-700"
             >
               <RotateCcw className="w-3.5 h-3.5 text-red-400" />
-              Reset Data
+              Reset Data Nilai
             </button>
           </div>
         </div>
@@ -384,15 +393,26 @@ export const RecapDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Reset Data */}
+      {/* Modal Reset Data dengan Auto Backup Safety */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <RotateCcw className="w-5 h-5 text-red-500" /> Confirm Reset Data
+              <RotateCcw className="w-5 h-5 text-red-500" /> Confirm Reset & Auto-Backup
             </h3>
+            
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-xs text-amber-300">
+                <FileCheck2 className="w-4 h-4 text-amber-400" />
+                <span>Auto-Backup Sebelum Reset Aktif</span>
+              </div>
+              <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                Sebelum data nilai dikosongkan, sistem akan <strong>otomatis mendownload file Backup Excel (CSV) & Snapshot JSON</strong> ke komputer Anda agar data nilai lama tidak hilang.
+              </p>
+            </div>
+
             <p className="text-xs text-slate-300 leading-relaxed">
-              Tindakan ini akan <strong className="text-red-400">menghapus seluruh isian nilai juri</strong> di server dan database Supabase. Masukkan PIN Admin untuk melanjutkan.
+              Tindakan ini akan mengosongkan seluruh isian nilai juri di server & Supabase. Masukkan PIN Admin untuk melanjutkan:
             </p>
 
             <form onSubmit={handleAdminResetConfirm} className="space-y-4">
@@ -411,15 +431,15 @@ export const RecapDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowResetModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl"
+                  className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-red-600/30 cursor-pointer"
                 >
-                  Kosongkan Data Nilai
+                  Backup & Kosongkan Data
                 </button>
               </div>
             </form>
