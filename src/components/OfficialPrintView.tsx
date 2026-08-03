@@ -2,11 +2,36 @@
 
 import React from 'react';
 import { useScore } from '../context/ScoreContext';
-import { EVENT_INFO } from '../data/competitionDefaults';
-import { Printer } from 'lucide-react';
+import { Printer, Hourglass } from 'lucide-react';
 
 export const OfficialPrintView: React.FC = () => {
-  const { judges, participants, recapData } = useScore();
+  const { judges, participants, recapData, eventInfo, authState } = useScore();
+
+  const isJuriLockedOut = authState.role === 'juri' && !eventInfo.isSystemLocked;
+
+  if (isJuriLockedOut) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 shadow-2xl space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
+          <Hourglass className="w-8 h-8 animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            ⏳ Penilaian Sedang Berlangsung
+          </span>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-white">
+            Dokumen Berita Acara Masih Ditutup
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
+            Untuk menjaga <strong>independensi dan kerahasiaan hasil penilaian</strong>, dokumen resmi berita acara pemenang akan otomatis terbuka setelah seluruh penilaian selesai dan dikunci oleh Admin Panitia.
+          </p>
+        </div>
+        <div className="pt-2 text-xs text-slate-500 border-t border-slate-800/80">
+          Silakan lengkapi nilai Anda pada tab <strong className="text-red-400">Formulir Penilaian Juri</strong>.
+        </div>
+      </div>
+    );
+  }
 
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
   const juara1 = sortedRecap[0];
@@ -25,7 +50,7 @@ export const OfficialPrintView: React.FC = () => {
             Pratinjau Dokumen Cetak Resmi (Berita Acara)
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Format telah disesuaikan persis dengan dokumen fisik <span className="text-amber-400 font-semibold">rekap_penilaian_sie_acara_rw_v3.pdf</span> untuk dicetak di kertas A4 atau disimpan ke PDF.
+            Format disesuaikan untuk dicetak di kertas A4 atau disimpan ke PDF bertanda tangan Ketua RW.
           </p>
         </div>
 
@@ -44,99 +69,108 @@ export const OfficialPrintView: React.FC = () => {
         {/* Header Title Block */}
         <div className="text-center border-b-2 border-slate-900 pb-4 mb-6 space-y-1">
           <h1 className="text-lg sm:text-xl font-extrabold tracking-wide uppercase">
-            REKAPITULASI & PENETAPAN PEMENANG {EVENT_INFO.competitionTitle}
+            REKAPITULASI & PENETAPAN PEMENANG {eventInfo.competitionTitle}
           </h1>
           <h2 className="text-sm font-bold tracking-wider text-slate-700 uppercase">
             LEMBAR PENETAPAN HASIL LOMBA
           </h2>
-          <p className="text-xs font-semibold text-slate-600">
-            {EVENT_INFO.eventName} • {EVENT_INFO.location}
+          <p className="text-xs text-slate-500 font-sans mt-1">
+            {eventInfo.eventName} • {eventInfo.location}
           </p>
         </div>
 
-        {/* Petunjuk Pengisian */}
-        <div className="mb-6 space-y-1 text-xs text-slate-800 leading-relaxed bg-slate-50 p-4 border border-slate-300 rounded-md print:bg-transparent">
-          <div className="font-bold text-slate-900 mb-1">
-            Petunjuk Pengisian Rekapitulasi:
-          </div>
-          <ol className="list-decimal list-inside space-y-0.5 font-medium">
-            <li>Salin total nilai dari lembar penilaian 6 juri (Juri RT 01 s/d RT 06) ke dalam tabel rekapitulasi di bawah ini.</li>
-            <li>Hitung Total Nilai Akhir dan Rata-Rata Nilai untuk tiap RT peserta.</li>
-            <li>Tentukan pemenang Juara 1 dan Juara 2 berdasarkan Rata-Rata Nilai tertinggi.</li>
-          </ol>
-        </div>
+        {/* Winner Announcement Section */}
+        {juara1 && juara1.averageScore > 0 ? (
+          <div className="mb-8 bg-slate-50 border border-slate-300 rounded-xl p-5 space-y-3 font-sans">
+            <h3 className="font-extrabold text-sm uppercase tracking-wider text-slate-900 text-center border-b border-slate-200 pb-2">
+              🏆 HASIL KEPUTUSAN PENETAPAN PEMENANG LOMBA
+            </h3>
 
-        {/* Matrix Table */}
-        <div className="mb-8 overflow-x-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-amber-100/60 border border-amber-300 rounded-lg p-3 text-center">
+                <span className="text-[10px] font-black text-amber-900 uppercase tracking-widest block">
+                  JUARA I (PERTAMA)
+                </span>
+                <div className="text-xl font-black text-slate-900 my-1">
+                  PESERTA {juara1.participantCode}
+                </div>
+                <div className="text-xs font-bold text-amber-950">
+                  Rata-Rata Nilai: {juara1.averageScore} <span className="font-normal text-slate-600">(Total: {juara1.totalScore} poin)</span>
+                </div>
+              </div>
+
+              {juara2 && (
+                <div className="bg-slate-200/60 border border-slate-300 rounded-lg p-3 text-center">
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest block">
+                    JUARA II (KEDUAN)
+                  </span>
+                  <div className="text-xl font-black text-slate-900 my-1">
+                    PESERTA {juara2.participantCode}
+                  </div>
+                  <div className="text-xs font-bold text-slate-800">
+                    Rata-Rata Nilai: {juara2.averageScore} <span className="font-normal text-slate-600">(Total: {juara2.totalScore} poin)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center text-xs text-amber-800 font-sans">
+            Penilaian sedang berlangsung. Hasil penetapan juara akan otomatis terisi setelah seluruh juri memasukkan nilai.
+          </div>
+        )}
+
+        {/* Detailed Scores Matrix Table */}
+        <div className="space-y-2 mb-8 font-sans">
+          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800">
+            MATRIKS NILAI DEWAN JURI:
+          </h3>
           <table className="w-full text-left text-xs border-collapse border border-slate-900">
             <thead>
-              <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-900 text-center">
-                <th className="border border-slate-900 p-2.5 font-bold min-w-[90px]">
-                  RT Peserta
-                </th>
+              <tr className="bg-slate-100 border-b border-slate-900 font-bold uppercase text-slate-900 text-center">
+                <th className="border border-slate-900 px-3 py-2">RT Peserta</th>
                 {judges.map((j) => (
-                  <th key={j.id} className="border border-slate-900 p-1.5 font-bold text-[11px] min-w-[70px]">
-                    Nilai dari Juri {j.code}
+                  <th key={j.id} className="border border-slate-900 px-2 py-2">
+                    {j.code}
                   </th>
                 ))}
-                <th className="border border-slate-900 p-2 font-bold min-w-[85px] bg-slate-50">
-                  Total Nilai (Jumlah)
-                </th>
-                <th className="border border-slate-900 p-2 font-bold min-w-[85px] bg-slate-50">
-                  Rata-Rata Nilai
-                </th>
-                <th className="border border-slate-900 p-2 font-bold min-w-[100px]">
-                  Peringkat / Juara
-                </th>
+                <th className="border border-slate-900 px-3 py-2 bg-slate-200">Total Nilai</th>
+                <th className="border border-slate-900 px-3 py-2 bg-amber-100">Rata-Rata</th>
+                <th className="border border-slate-900 px-3 py-2">Peringkat</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-900 font-medium">
               {participants.map((participant) => {
                 const recap = recapData.find((r) => r.participantId === participant.id);
                 if (!recap) return null;
 
-                const isJuara1 = recap.rank === 1 && recap.averageScore > 0;
-                const isJuara2 = recap.rank === 2 && recap.averageScore > 0;
+                const isRank1 = recap.rank === 1 && recap.averageScore > 0;
 
                 return (
-                  <tr key={participant.id} className="border-b border-slate-900 text-center font-medium">
-                    <td className="border border-slate-900 p-2 font-bold text-center bg-slate-50">
+                  <tr key={participant.id} className={`text-center ${isRank1 ? 'bg-amber-50 font-bold' : ''}`}>
+                    <td className="border border-slate-900 px-3 py-2 font-bold bg-slate-50">
                       {participant.code}
                     </td>
-
                     {judges.map((j) => {
                       const scoreVal = recap.scoresByJudge[j.id];
-                      const isSelf = scoreVal === 'N/A';
-
                       return (
-                        <td key={j.id} className="border border-slate-900 p-2 text-[11px]">
-                          {isSelf ? (
-                            <span className="text-slate-500 font-semibold text-[10px]">
-                              N/A (RT Sendiri)
-                            </span>
+                        <td key={j.id} className="border border-slate-900 px-2 py-2">
+                          {scoreVal === 'N/A' ? (
+                            <span className="text-[10px] text-slate-400 italic">N/A</span>
                           ) : (
-                            <span>{typeof scoreVal === 'number' ? scoreVal : 0}</span>
+                            scoreVal || 0
                           )}
                         </td>
                       );
                     })}
-
-                    <td className="border border-slate-900 p-2 font-bold">
+                    <td className="border border-slate-900 px-3 py-2 font-bold bg-slate-100">
                       {recap.totalScore}
                     </td>
-
-                    <td className="border border-slate-900 p-2 font-black text-slate-950 bg-slate-50 text-xs">
+                    <td className="border border-slate-900 px-3 py-2 font-black text-amber-900 bg-amber-100">
                       {recap.averageScore}
                     </td>
-
-                    <td className="border border-slate-900 p-2 font-bold">
-                      {isJuara1 ? (
-                        <span className="font-extrabold text-amber-700">🏆 JUARA 1</span>
-                      ) : isJuara2 ? (
-                        <span className="font-bold text-slate-700">🥈 JUARA 2</span>
-                      ) : (
-                        <span className="text-slate-600 text-[11px]">Peringkat #{recap.rank}</span>
-                      )}
+                    <td className="border border-slate-900 px-3 py-2 font-bold">
+                      {isRank1 ? '🏆 Juara 1' : recap.rank === 2 && recap.averageScore > 0 ? '🥈 Juara 2' : `#${recap.rank}`}
                     </td>
                   </tr>
                 );
@@ -145,60 +179,44 @@ export const OfficialPrintView: React.FC = () => {
           </table>
         </div>
 
-        {/* Juara Decision Box */}
-        <div className="border-2 border-slate-900 p-4 rounded-md mb-12 space-y-3 bg-slate-50 print:bg-transparent">
-          <div className="flex items-center justify-between border-b border-slate-400 pb-2">
-            <div className="font-black text-sm flex items-center gap-2">
-              <span>🏆 JUARA 1</span>
-            </div>
-            <div className="font-bold text-xs text-slate-800">
-              Pemenang: <span className="font-black text-slate-950 text-sm uppercase underline ml-1">{juara1 && juara1.averageScore > 0 ? `Peserta ${juara1.participantCode}` : '....................'}</span>
-            </div>
-            <div className="text-xs font-semibold">
-              Nilai Rata-Rata: <span className="font-bold text-slate-950">{juara1 && juara1.averageScore > 0 ? juara1.averageScore : '....................'}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="font-black text-sm flex items-center gap-2">
-              <span>🥈 JUARA 2</span>
-            </div>
-            <div className="font-bold text-xs text-slate-800">
-              Pemenang: <span className="font-black text-slate-950 text-sm uppercase underline ml-1">{juara2 && juara2.averageScore > 0 ? `Peserta ${juara2.participantCode}` : '....................'}</span>
-            </div>
-            <div className="text-xs font-semibold">
-              Nilai Rata-Rata: <span className="font-bold text-slate-950">{juara2 && juara2.averageScore > 0 ? juara2.averageScore : '....................'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Signatures Block - Clean & Perfectly Aligned */}
-        <div className="grid grid-cols-2 gap-12 text-center text-xs mt-14 mb-8 font-sans">
-          <div className="flex flex-col justify-between items-center h-36">
+        {/* Legal Signatures Section */}
+        <div className="mt-12 pt-6 border-t border-slate-300 font-sans space-y-6 break-inside-avoid">
+          <div className="flex items-center justify-between text-xs text-slate-700">
             <div>
-              <p className="font-semibold text-slate-700">Panitia Pelaksana,</p>
-              <p className="font-extrabold text-slate-900 mt-0.5">{EVENT_INFO.organizer}</p>
+              Ditetapkan di: <strong className="text-slate-900">{eventInfo.location}</strong>
             </div>
-            <div className="border-b-2 border-slate-900 pb-1 w-64 text-center font-bold text-slate-800 whitespace-nowrap">
-              (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between items-center h-36">
             <div>
-              <p className="font-semibold text-slate-700">Mengetahui & Menyetujui,</p>
-              <p className="font-extrabold text-slate-900 mt-0.5">{EVENT_INFO.approver}</p>
-            </div>
-            <div className="border-b-2 border-slate-900 pb-1 w-64 text-center font-bold text-slate-800 whitespace-nowrap">
-              (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
+              Tanggal: <strong className="text-slate-900">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
             </div>
           </div>
-        </div>
 
-        {/* Footer info */}
-        <div className="border-t border-slate-300 pt-3 flex items-center justify-between text-[10px] text-slate-500 font-sans">
-          <span>{EVENT_INFO.eventName} • {EVENT_INFO.location}</span>
-          <span>HUT RI ke-81 • Permata Discovery • Lembar Keputusan Sie Acara & Ketua RW Halaman 1 dari 1</span>
+          <div className="grid grid-cols-2 gap-8 text-center text-xs pt-4">
+            <div className="space-y-16">
+              <div>
+                <p className="font-medium text-slate-600">Mengetahui & Menyetujui,</p>
+                <p className="font-bold text-slate-900 mt-0.5">{eventInfo.approver}</p>
+              </div>
+              <div>
+                <p className="font-extrabold text-slate-900 border-b border-slate-900 inline-block px-8 pb-1">
+                  ( _______________________ )
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">Tanda Tangan & Stempel Resmi</p>
+              </div>
+            </div>
+
+            <div className="space-y-16">
+              <div>
+                <p className="font-medium text-slate-600">Panitia Penyelenggara,</p>
+                <p className="font-bold text-slate-900 mt-0.5">{eventInfo.organizer}</p>
+              </div>
+              <div>
+                <p className="font-extrabold text-slate-900 border-b border-slate-900 inline-block px-8 pb-1">
+                  ( _______________________ )
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">Tanda Tangan Sie Acara</p>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>
