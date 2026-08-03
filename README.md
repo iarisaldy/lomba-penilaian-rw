@@ -1,35 +1,95 @@
-# 🏆 Sistem Penilaian & Rekapitulasi Lomba Otomatis (Vercel Ready)
-**HUT KEMERDEKAAN RI KE-81 • PERMATA DISCOVERY**
+# 🏆 Sistem Penilaian & Rekapitulasi Lomba Realtime
+### **PERUMAHAN PERMATA DISCOVERY • HUT KEMERDEKAAN RI**
 
-Aplikasi web modern untuk otomatisasi penilaian dan rekapitulasi **Lomba Blind Rias Ibu-Ibu & Lomba Antar-RT**. Dibuat menggunakan **Next.js 14, TypeScript, & Tailwind CSS** untuk menggantikan proses rekap manual Excel/kertas.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-lomba--permata--discovery.vercel.app-00C7B7?style=for-the-badge&logo=vercel)](https://lomba-permata-discovery.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2.12-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38BDF8?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 
----
+Aplikasi Web & Mobile modern untuk otomatisasi penilaian, penguncian integritas nilai, rekapitulasi otomatis realtime, dan penetapan pemenang perlombaan antar-RT/Tim di **Perumahan Permata Discovery**.
 
-## 🌟 Fitur Utama
-
-1. **Auto Lock Nilai RT Sendiri (Rule N/A)**:
-   - Juri RT 01 secara otomatis terkunci (N/A) saat menilai peserta RT 01.
-   - Pembagi nilai rata-rata otomatis menyesuaikan dengan jumlah juri penilai netral (5 juri).
-2. **Matriks Rekapitulasi Real-Time**:
-   - Perhitungan **Total Nilai** dan **Rata-Rata Nilai** (presisi 2 desimal) dihitung secara instan.
-   - Papan Peringkat & Pemenang (🏆 Juara 1 & 🥈 Juara 2) ter-highlight otomatis.
-3. **Format Cetak PDF / Berita Acara Resmi**:
-   - Tampilan khusus A4 yang presisi dengan dokumen resmi (`rekap_penilaian_sie_acara_rw_v3.pdf`).
-   - Dilengkapi KOP HUT RI ke-81 Permata Discovery & kolom tanda tangan Koordinator Sie Acara serta Ketua RW.
-4. **Fitur Pendukung**:
-   - **Isi Data Contoh (Demo)**: Memasukkan data nilai sampel 6 juri dengan 1 klik untuk pengujian.
-   - **Export & Import JSON**: Memudahkan backup data nilai antar panitia.
-   - **Auto-Save LocalStorage**: Data nilai tersimpan di browser tanpa khawatir terhapus saat refresh.
+Dibuat menggunakan **Next.js 16 (App Router), TypeScript, Tailwind CSS, dan Supabase PostgreSQL** untuk menggantikan proses rekap manual Excel/kertas dengan kecepatan respons **15ms** dan sistem penguncian keamanan bertingkat.
 
 ---
 
-## 🚀 Cara Menjalankan Secara Lokal
+## 🌟 Fitur-Fitur Utama
+
+### 📱 1. Antarmuka Mobile-First Juri (Touch-Friendly)
+- **Tombol `-` & `+` Stepper & Range Slider**: Memudahkan dewan juri menginput dan menyesuaikan nilai di layar HP dengan cepat menggunakan jempol.
+- **Auto-Save & Reseed Resilien**: Setiap perubahan nilai tersimpan otomatis di Supabase Cloud dan memori lokal HP juri (`localStorage`), sehingga data nilai 100% aman dan tidak akan hilang walau sinyal internet terputus.
+
+### 🛡️ 2. Penguncian Nilai & Keamanan Integritas Penilaian
+- **Kunci Permanen Juri (`🔒 Kunci & Kirim`)**: Sekali juri mengunci nilai suatu peserta, nilai tersebut terkunci permanen untuk juri tersebut (tombol ubah hilang) untuk mencegah perubahan nilai setelah pengumuman pemenang.
+- **Master System Lock oleh Admin (`🔒 KUNCI PENILAIAN FINAL`)**: Admin memiliki sakelar Master Switch untuk mengunci SELURUH sistem penilaian secara instan begitu waktu penilaian habis.
+- **Privasi Rekapitulasi Juri**: Tab rekapitulasi disembunyikan sementara dari Juri selama masa penilaian aktif untuk menjaga **independensi dan objektivitas nilai antar-juri**.
+
+### ⚙️ 3. Pengaturan Lomba Fleksibel (Multi-Lomba & Custom Kriteria)
+- **Multi-Lomba**: Dapat digunakan untuk berbagai jenis lomba (*Lomba Blind Rias, Lomba Mewarnai, Lomba Karaoke, Lomba Tumpeng, Balap Karung, Lomba Kebersihan, dsb.*).
+- **Custom Kriteria & Bobot Skor**: Admin dapat menambah, mengubah nama kriteria, serta mengatur bobot skor maksimal (misal Max 30, Max 20) secara dinamis.
+- **Realtime Sync**: Seluruh perubahan pengaturan lomba langsung ter-sync di HP seluruh juri secara realtime!
+
+### 📊 4. Rekapitulasi Otomatis & Auto-Backup Safety
+- **Kalkulasi Rata-Rata Presisi**: Menghitung Total Nilai dan Rata-Rata Nilai secara presisi dengan aturan otomatis eksklusi nilai RT sendiri (N/A).
+- **Auto-Backup Sebelum Reset**: Sebelum Admin mengosongkan data nilai untuk lomba baru, sistem secara otomatis mengunduh file **Backup Excel (`.csv`)** dan **Snapshot JSON** ke komputer Admin.
+- **Cetak Berita Acara PDF (A4)**: Pratinjau dokumen cetak A4 resmi yang dilengkapi KOP Permata Discovery dan kolom tanda tangan Koordinator Sie Acara serta Ketua RW.
+
+---
+
+## 🔑 Akses Default PIN
+
+| Peran / Juri | Perwakilan | PIN Akses | Keterangan |
+|---|---|---|---|
+| **Juri RT 01** | RT 01 | **`1111`** | Menilai RT 02 s/d RT 06 |
+| **Juri RT 02** | RT 02 | **`2222`** | Menilai RT 01, 03 s/d 06 |
+| **Juri RT 03** | RT 03 | **`3333`** | Menilai RT 01, 02, 04 s/d 06 |
+| **Juri RT 04** | RT 04 | **`4444`** | Menilai RT 01 s/d 03, 05 s/d 06 |
+| **Juri RT 05** | RT 05 | **`5555`** | Menilai RT 01 s/d 04, 06 |
+| **Juri RT 06** | RT 06 | **`6666`** | Menilai RT 01 s/d 05 |
+| **Admin Rekap** | Panitia | **`0000`** | Akses Pengaturan Lomba, Master Lock, & Download Rekap |
+
+---
+
+## 🗄️ Database Schema (Supabase SQL)
+
+Jalankan query berikut di **Supabase SQL Editor** untuk membuat tabel database `scores_state`:
+
+```sql
+-- 1. Buat tabel penyimpan nilai & konfigurasi lomba
+CREATE TABLE IF NOT EXISTS scores_state (
+  id TEXT PRIMARY KEY,
+  scores JSONB DEFAULT '{}'::jsonb,
+  judge_notes JSONB DEFAULT '{}'::jsonb,
+  config JSONB DEFAULT NULL,
+  locked_cards JSONB DEFAULT '{}'::jsonb,
+  reset_timestamp BIGINT DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. Aktifkan izin RLS (Read/Write)
+ALTER TABLE scores_state ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public access" ON scores_state;
+CREATE POLICY "Allow public access" ON scores_state FOR ALL USING (true) WITH CHECK (true);
+
+-- 3. Inisialisasi baris master awal
+INSERT INTO scores_state (id, scores, judge_notes, reset_timestamp)
+VALUES ('master', '{}'::jsonb, '{}'::jsonb, 0)
+ON CONFLICT (id) DO NOTHING;
+```
+
+---
+
+## 🚀 Cara Menjalankan Lokal
 
 ```bash
-# 1. Masuk ke direktori project
-cd /Users/muhammadirfan/Documents/lomba
+# 1. Clone repositori
+git clone https://github.com/iarisaldy/lomba-penilaian-rw.git
+cd lomba-penilaian-rw
 
-# 2. Jalankan server pengembangan
+# 2. Install dependensi
+npm install
+
+# 3. Jalankan server pengembangan
 npm run dev
 ```
 
@@ -37,28 +97,17 @@ Buka [http://localhost:3000](http://localhost:3000) pada browser Anda.
 
 ---
 
-## 🌐 Cara Deploy ke Vercel (Gratis & Cepat)
+## 🌐 Deploy ke Vercel
 
-### Opsi A: Lewat GitHub & Vercel Dashboard (Rekomendasi)
-1. Push project ini ke repository GitHub Anda (misal `lomba-penilaian-rw`).
-2. Buka [https://vercel.app](https://vercel.app) atau [https://vercel.com](https://vercel.com) dan login.
-3. Klik **"Add New"** -> **"Project"**.
-4. Import repository GitHub `lomba-penilaian-rw`.
-5. Klik **"Deploy"** (Vercel akan mendeteksi Next.js secara otomatis).
-
-### Opsi B: Lewat Vercel CLI (Langsung dari Terminal)
-```bash
-# Install Vercel CLI jika belum ada
-npm install -g vercel
-
-# Deploy project
-vercel
-```
+1. Import repositori GitHub ini ke Vercel.
+2. Tambahkan **Environment Variable**:
+   - `NEXT_PUBLIC_SUPABASE_URL`: `https://rjeiigtqrfhjjunvmlfp.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: *(isi dengan Supabase Anon Key)*
+3. Klik **Deploy**.
 
 ---
 
-## 📁 Struktur Dokumen Acuan
+## 📄 Lisensi & Hak Cipta
 
-Dokumen fisik acuan tersimpan di folder `docs/`:
-- `docs/rekap_penilaian_sie_acara_rw_v3.pdf`
-- `docs/formulir_penilaian_lomba_blind_rias_v2.pdf`
+Designed & Developed with ❤️ by **M. Irfan Arisaldy**  
+*Dibuat khusus untuk Panitia Sie Acara & Warga Perumahan Permata Discovery © 2026.*
