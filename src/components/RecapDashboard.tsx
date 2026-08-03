@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, FileSpreadsheet, Download, Settings, Lock, Unlock } from 'lucide-react';
+import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Settings, Lock, Unlock } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { getGoogleSheetsUrl, setGoogleSheetsUrl, testGoogleSheetsSync } from '../lib/googleSheetsClient';
 import { AdminConfigModal } from './AdminConfigModal';
 
 export const RecapDashboard: React.FC = () => {
@@ -13,15 +12,6 @@ export const RecapDashboard: React.FC = () => {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-
-  // Google Sheets settings modal
-  const [showSheetsModal, setShowSheetsModal] = useState(false);
-  const [sheetsUrlInput, setSheetsUrlInput] = useState('');
-  const [sheetsStatus, setSheetsStatus] = useState('');
-
-  useEffect(() => {
-    setSheetsUrlInput(getGoogleSheetsUrl());
-  }, []);
 
   // Find top winners
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
@@ -56,17 +46,6 @@ export const RecapDashboard: React.FC = () => {
       alert('Seluruh data nilai penilaian berhasil dikosongkan!');
     } else {
       setResetError(`PIN Admin Salah! Masukkan PIN yang benar.`);
-    }
-  };
-
-  const handleTestSheets = async () => {
-    setSheetsStatus('Mengirim data uji coba ke Google Sheets...');
-    setGoogleSheetsUrl(sheetsUrlInput);
-    const success = await testGoogleSheetsSync(sheetsUrlInput, scores, judgeNotes);
-    if (success) {
-      setSheetsStatus('✅ Permintaan dikirim ke Google Apps Script!');
-    } else {
-      setSheetsStatus('❌ Gagal terhubung ke Google Sheets.');
     }
   };
 
@@ -158,7 +137,7 @@ export const RecapDashboard: React.FC = () => {
                 Panel Kontrol Admin Panitia
               </h3>
               <p className="text-xs text-slate-400">
-                Kelola kriteria lomba, kunci penilaian, download Excel, atau sync database.
+                Kelola kriteria lomba, kunci penilaian final, download Excel/CSV, atau reset data.
               </p>
             </div>
           </div>
@@ -197,14 +176,6 @@ export const RecapDashboard: React.FC = () => {
             >
               <Download className="w-3.5 h-3.5" />
               Download Excel / CSV
-            </button>
-
-            <button
-              onClick={() => setShowSheetsModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Sync Google Sheets
             </button>
 
             <button
