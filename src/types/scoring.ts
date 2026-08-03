@@ -17,6 +17,17 @@ export interface Judge {
   pin: string;
 }
 
+export interface EventInfo {
+  eventName: string;
+  location: string;
+  competitionTitle: string;
+  subtitle: string;
+  organizer: string;
+  approver: string;
+  adminPin: string;
+  isSystemLocked?: boolean;
+}
+
 export type UserRole = 'guest' | 'juri' | 'admin';
 
 export interface AuthState {

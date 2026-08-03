@@ -17,15 +17,17 @@ export interface MasterPayload {
   scores: Record<string, any>;
   judgeNotes: Record<string, any>;
   resetTimestamp: number;
+  config?: Record<string, any>;
+  lockedCards?: Record<string, boolean>;
 }
 
-// Fetch master scores from Supabase table 'scores_state'
+// Fetch master scores and config from Supabase table 'scores_state'
 export const fetchMasterScoresFromSupabase = async (): Promise<MasterPayload | null> => {
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
       .from('scores_state')
-      .select('scores, judge_notes, reset_timestamp')
+      .select('scores, judge_notes, reset_timestamp, config, locked_cards')
       .eq('id', 'master')
       .single();
 
@@ -39,6 +41,8 @@ export const fetchMasterScoresFromSupabase = async (): Promise<MasterPayload | n
         scores: data.scores || {},
         judgeNotes: data.judge_notes || {},
         resetTimestamp: Number(data.reset_timestamp || 0),
+        config: data.config || undefined,
+        lockedCards: data.locked_cards || undefined,
       };
     }
   } catch (err) {
@@ -47,20 +51,23 @@ export const fetchMasterScoresFromSupabase = async (): Promise<MasterPayload | n
   return null;
 };
 
-// Save / Upsert master scores to Supabase table 'scores_state'
+// Save / Upsert master scores and config to Supabase table 'scores_state'
 export const saveMasterScoresToSupabase = async (
   scores: Record<string, any>,
   judgeNotes: Record<string, any>,
   resetTimestamp: number = 0,
-  isReset: boolean = false
+  isReset: boolean = false,
+  config?: Record<string, any>,
+  lockedCards?: Record<string, boolean>
 ): Promise<boolean> => {
   if (!supabase) return false;
   try {
-    const payload = isReset
+    const payload: Record<string, any> = isReset
       ? {
           id: 'master',
           scores: {},
           judge_notes: {},
+          locked_cards: {},
           reset_timestamp: resetTimestamp || Date.now(),
           updated_at: new Date().toISOString(),
         }
@@ -71,6 +78,9 @@ export const saveMasterScoresToSupabase = async (
           reset_timestamp: resetTimestamp,
           updated_at: new Date().toISOString(),
         };
+
+    if (config) payload.config = config;
+    if (lockedCards) payload.locked_cards = lockedCards;
 
     const { error } = await supabase
       .from('scores_state')

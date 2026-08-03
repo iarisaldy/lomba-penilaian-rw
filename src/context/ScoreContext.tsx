@@ -5,22 +5,24 @@ import {
   AllScores,
   AuthState,
   Criteria,
+  EventInfo,
   Judge,
   JudgeGeneralNotes,
   Participant,
   ParticipantRecap,
 } from '../types/scoring';
-import { DEFAULT_CRITERIA,
+import {
+  DEFAULT_CRITERIA,
   DEFAULT_JUDGES,
   DEFAULT_PARTICIPANTS,
   EVENT_INFO,
 } from '../data/competitionDefaults';
-import { fetchGoogleSheetsScoresDirectly } from '../lib/googleSheetsClient';
 
 interface ScoreContextType {
   judges: Judge[];
   participants: Participant[];
   criteria: Criteria[];
+  eventInfo: EventInfo;
   scores: AllScores;
   judgeNotes: JudgeGeneralNotes;
   activeJudgeId: string;
@@ -51,6 +53,12 @@ interface ScoreContextType {
   lockedCards: Record<string, boolean>;
   toggleCardLock: (judgeId: string, participantId: string) => void;
   isCardLocked: (judgeId: string, participantId: string) => boolean;
+  // Admin Competition Config Methods
+  updateEventInfo: (newInfo: Partial<EventInfo>) => void;
+  updateCriteria: (newCriteria: Criteria[]) => void;
+  updateParticipants: (newParticipants: Participant[]) => void;
+  updateJudges: (newJudges: Judge[]) => void;
+  toggleMasterSystemLock: (locked?: boolean) => void;
 }
 
 const STORAGE_KEY_SCORES = 'lomba_scores_v1';
@@ -59,6 +67,7 @@ const STORAGE_KEY_ACTIVE_JURI = 'lomba_active_juri_v1';
 const STORAGE_KEY_AUTH = 'lomba_auth_v1';
 const STORAGE_KEY_LOCKED_CARDS = 'lomba_locked_cards_v1';
 const STORAGE_KEY_RESET_TS = 'lomba_last_reset_ts_v1';
+const STORAGE_KEY_CONFIG = 'lomba_event_config_v1';
 
 const ScoreContext = createContext<ScoreContextType | undefined>(undefined);
 
@@ -76,13 +85,12 @@ const normalizeScores = (rawScores: Record<string, any>): Record<string, any> =>
       const cleanPKey = rawPKey.replace('p_', '');
       const item = pDict[rawPKey];
       if (item && item.scores) {
+        const criteriaScores: Record<string, number> = {};
+        for (const cKey of Object.keys(item.scores)) {
+          criteriaScores[cKey] = Number(item.scores[cKey] || 0);
+        }
         normalized[jId][cleanPKey] = {
-          scores: {
-            c1: Number(item.scores.c1 || 0),
-            c2: Number(item.scores.c2 || 0),
-            c3: Number(item.scores.c3 || 0),
-            c4: Number(item.scores.c4 || 0),
-          },
+          scores: criteriaScores,
           notes: item.notes || '',
         };
       }
@@ -92,10 +100,11 @@ const normalizeScores = (rawScores: Record<string, any>): Record<string, any> =>
 };
 
 export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [judges] = useState<Judge[]>(DEFAULT_JUDGES);
-  const [participants] = useState<Participant[]>(DEFAULT_PARTICIPANTS);
-  const [criteria] = useState<Criteria[]>(DEFAULT_CRITERIA);
-  
+  const [eventInfo, setEventInfo] = useState<EventInfo>(EVENT_INFO);
+  const [criteria, setCriteria] = useState<Criteria[]>(DEFAULT_CRITERIA);
+  const [participants, setParticipants] = useState<Participant[]>(DEFAULT_PARTICIPANTS);
+  const [judges, setJudges] = useState<Judge[]>(DEFAULT_JUDGES);
+
   const [scores, setScores] = useState<AllScores>({});
   const [judgeNotes, setJudgeNotes] = useState<JudgeGeneralNotes>({});
   const [activeJudgeId, setActiveJudgeId] = useState<string>(DEFAULT_JUDGES[0].id);
@@ -108,47 +117,114 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Timestamp of last local slider interaction to prevent polling race-condition flickering
   const lastLocalInteractionRef = useRef<number>(0);
 
-  // Ref that always holds the latest scores to avoid stale closures in callbacks
   const scoresRef = useRef<AllScores>({});
   useEffect(() => {
     scoresRef.current = scores;
   }, [scores]);
 
-  // Refs for authState and activeJudgeId so polling closure always reads the latest value
-  // (without needing to add them to useEffect deps and restart the interval)
   const authStateRef = useRef<AuthState>({ role: 'guest' });
   useEffect(() => {
     authStateRef.current = authState;
   }, [authState]);
 
-  const activeJudgeIdRef = useRef<string>(DEFAULT_JUDGES[0].id);
+  const activeJudgeIdRef = useRef<string>(activeJudgeId);
   useEffect(() => {
     activeJudgeIdRef.current = activeJudgeId;
   }, [activeJudgeId]);
 
-  // Helper to check if a specific participant card is locked for a judge
   const isCardLocked = useCallback((judgeId: string, participantId: string): boolean => {
+    // If master system is locked by admin, ALL cards are locked!
+    if (eventInfo.isSystemLocked) return true;
     const key = `${judgeId}_${participantId}`;
     return Boolean(lockedCards[key]);
-  }, [lockedCards]);
+  }, [eventInfo.isSystemLocked, lockedCards]);
+
+  const syncConfigToServer = useCallback(async (newConfig: any) => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(newConfig));
+      await fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: newConfig }),
+      });
+    } catch (e) {
+      console.error('Failed to sync config to server', e);
+    }
+  }, []);
+
+  const updateEventInfo = useCallback((newInfo: Partial<EventInfo>) => {
+    setEventInfo(prev => {
+      const next = { ...prev, ...newInfo };
+      syncConfigToServer({ eventInfo: next, criteria, participants, judges });
+      return next;
+    });
+  }, [criteria, participants, judges, syncConfigToServer]);
+
+  const updateCriteria = useCallback((newCriteria: Criteria[]) => {
+    setCriteria(newCriteria);
+    syncConfigToServer({ eventInfo, criteria: newCriteria, participants, judges });
+  }, [eventInfo, participants, judges, syncConfigToServer]);
+
+  const updateParticipants = useCallback((newParticipants: Participant[]) => {
+    setParticipants(newParticipants);
+    syncConfigToServer({ eventInfo, criteria, participants: newParticipants, judges });
+  }, [eventInfo, criteria, judges, syncConfigToServer]);
+
+  const updateJudges = useCallback((newJudges: Judge[]) => {
+    setJudges(newJudges);
+    syncConfigToServer({ eventInfo, criteria, participants, judges: newJudges });
+  }, [eventInfo, criteria, participants, syncConfigToServer]);
+
+  const toggleMasterSystemLock = useCallback((locked?: boolean) => {
+    setEventInfo(prev => {
+      const nextLocked = locked !== undefined ? locked : !prev.isSystemLocked;
+      const next = { ...prev, isSystemLocked: nextLocked };
+      syncConfigToServer({ eventInfo: next, criteria, participants, judges });
+      return next;
+    });
+  }, [criteria, participants, judges, syncConfigToServer]);
 
   const toggleCardLock = useCallback((judgeId: string, participantId: string) => {
     const key = `${judgeId}_${participantId}`;
+    const currentlyLocked = Boolean(lockedCards[key]);
+    const currentRole = authStateRef.current.role;
+
+    // RULE: Juri can LOCK their card, but CANNOT UNLOCK once locked!
+    // Only Admin can unlock individual cards or toggle master system lock.
+    if (currentRole === 'juri' && currentlyLocked) {
+      alert('🔒 Nilai RT ini telah dikunci permanen. Untuk perubahan nilai, silakan hubungi Admin Panitia.');
+      return;
+    }
+
     setLockedCards(prev => {
-      const next = { ...prev, [key]: !prev[key] };
+      const next = { ...prev, [key]: !currentlyLocked };
       try {
         localStorage.setItem(STORAGE_KEY_LOCKED_CARDS, JSON.stringify(next));
       } catch (e) {}
+
+      // Sync lock status to server
+      fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lockedCards: next }),
+      }).catch(() => {});
+
       return next;
     });
-  }, []);
+  }, [lockedCards]);
 
-  // Poll /api/scores endpoint (1ms response time directly from server memory)
+  // Poll /api/scores endpoint (1ms response time directly from server memory / Supabase)
   useEffect(() => {
     const fetchApiScores = async () => {
       try {
         const res = await fetch('/api/scores', { cache: 'no-store' });
-        let data: { scores?: Record<string, any>; judgeNotes?: Record<string, any>; resetTimestamp?: number } | null = null;
+        let data: {
+          scores?: Record<string, any>;
+          judgeNotes?: Record<string, any>;
+          resetTimestamp?: number;
+          config?: any;
+          lockedCards?: Record<string, boolean>;
+        } | null = null;
         if (res.ok) {
           data = await res.json();
         } else {
@@ -157,7 +233,24 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         if (data) {
-          // If remote reset timestamp is newer, wipe local state!
+          // 1. Sync remote config if available
+          if (data.config) {
+            if (data.config.eventInfo) setEventInfo(data.config.eventInfo);
+            if (data.config.criteria) setCriteria(data.config.criteria);
+            if (data.config.participants) setParticipants(data.config.participants);
+            if (data.config.judges) setJudges(data.config.judges);
+          }
+
+          // 2. Sync remote locked cards
+          if (data.lockedCards && Object.keys(data.lockedCards).length > 0) {
+            setLockedCards(prev => {
+              const mergedLocks = { ...prev, ...data.lockedCards };
+              if (JSON.stringify(prev) === JSON.stringify(mergedLocks)) return prev;
+              return mergedLocks;
+            });
+          }
+
+          // 3. If remote reset timestamp is newer, wipe local state!
           if (data.resetTimestamp && data.resetTimestamp > lastResetTs) {
             setLastResetTs(data.resetTimestamp);
             setScores({});
@@ -175,7 +268,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           let serverScores = normalizeScores(data.scores || {});
           let serverNotes = data.judgeNotes || {};
 
-          // Synchronize with Central Server Master Scores with Accumulative Non-Zero Merge (prevents 0-100-0 flickering)
+          // Synchronize with Central Server Master Scores with Accumulative Non-Zero Merge
           if (Object.keys(serverScores).length > 0) {
             setScores(prev => {
               const now = Date.now();
@@ -200,13 +293,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   const prevCriteriaScores = prevParticipant.scores || {};
                   const serverCriteriaScores = serverParticipant.scores || {};
 
-                  // Deep non-zero criteria merge
                   const mergedCriteria: Record<string, number> = { ...prevCriteriaScores };
 
                   for (const cId of Object.keys(serverCriteriaScores)) {
                     const serverVal = serverCriteriaScores[cId];
                     if (isOwnJudgeData || isRecentlyActiveJudge) {
-                      // Local user interaction wins over server
                       const localVal = prevCriteriaScores[cId];
                       if (typeof localVal === 'number' && localVal > 0) {
                         mergedCriteria[cId] = localVal;
@@ -214,7 +305,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                         mergedCriteria[cId] = serverVal;
                       }
                     } else {
-                      // Non-zero values from server update or accumulate, zero values NEVER overwrite existing positive local scores
                       if (typeof serverVal === 'number' && serverVal > 0) {
                         mergedCriteria[cId] = serverVal;
                       }
@@ -236,7 +326,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               const prevNorm = normalizeScores(prev);
 
               if (JSON.stringify(prevNorm) === JSON.stringify(nextScores)) {
-                return prev; // Prevents unnecessary re-renders & flickering!
+                return prev;
               }
               return nextScores;
             });
@@ -256,7 +346,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setIsRealtimeConnected(false);
         }
       } catch (e) {
-        // Network error or server down — mark as disconnected
         setIsRealtimeConnected(false);
       }
     };
@@ -267,13 +356,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => clearInterval(interval);
   }, [lastResetTs, activeJudgeId]);
 
-  // Load initial Auth & Config state (Central server scores are loaded via fetchApiScores)
+  // Load initial Auth & Config state
   useEffect(() => {
     try {
       const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
       const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
       const savedLockedCards = localStorage.getItem(STORAGE_KEY_LOCKED_CARDS);
       const savedResetTs = localStorage.getItem(STORAGE_KEY_RESET_TS);
+      const savedConfig = localStorage.getItem(STORAGE_KEY_CONFIG);
 
       if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
         setActiveJudgeId(savedActiveJuri);
@@ -281,6 +371,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (savedAuth) setAuthState(JSON.parse(savedAuth));
       if (savedLockedCards) setLockedCards(JSON.parse(savedLockedCards));
       if (savedResetTs) setLastResetTs(Number(savedResetTs));
+      if (savedConfig) {
+        const parsed = JSON.parse(savedConfig);
+        if (parsed.eventInfo) setEventInfo(parsed.eventInfo);
+        if (parsed.criteria) setCriteria(parsed.criteria);
+        if (parsed.participants) setParticipants(parsed.participants);
+        if (parsed.judges) setJudges(parsed.judges);
+      }
     } catch (e) {
       console.error('Failed to load storage', e);
     } finally {
@@ -290,9 +387,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Save to /api/scores Endpoint & LocalStorage
-  // NOTE: GAS sync is handled server-side only (via /api/scores POST background fetch)
-  // to avoid double-write race condition that causes duplicate rows in Google Sheets.
   const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
     lastLocalInteractionRef.current = Date.now();
 
@@ -309,11 +403,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Failed to save to localStorage', e);
     }
 
-    // Debounce the POST to /api/scores to avoid flooding on rapid slider drag
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
     if (reset) {
-      // Reset is urgent — send immediately, no debounce
       try {
         await fetch('/api/scores', {
           method: 'POST',
@@ -324,7 +416,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Failed to post reset to /api/scores', e);
       }
     } else {
-      // Normal update — debounce 600ms, then POST once to server (server forwards to GAS)
       syncTimeoutRef.current = setTimeout(async () => {
         try {
           await fetch('/api/scores', {
@@ -339,7 +430,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // Save active judge selection
   useEffect(() => {
     if (!isLoaded) return;
     try {
@@ -349,186 +439,138 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [activeJudgeId, isLoaded]);
 
-  // Save Auth state
-  useEffect(() => {
-    if (!isLoaded) return;
+  const loginWithPin = useCallback(
+    (pin: string) => {
+      const cleanPin = pin.trim();
+
+      if (cleanPin === eventInfo.adminPin) {
+        const nextAuth: AuthState = {
+          role: 'admin',
+          judgeName: 'Admin Panitia',
+        };
+        setAuthState(nextAuth);
+        try {
+          localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(nextAuth));
+        } catch (e) {}
+        return { success: true, role: 'admin' as const, message: 'Berhasil login sebagai Admin Panitia' };
+      }
+
+      const foundJudge = judges.find(j => j.pin === cleanPin);
+
+      if (foundJudge) {
+        const nextAuth: AuthState = {
+          role: 'juri',
+          judgeId: foundJudge.id,
+          judgeName: foundJudge.name,
+        };
+        setAuthState(nextAuth);
+        setActiveJudgeId(foundJudge.id);
+        try {
+          localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(nextAuth));
+          localStorage.setItem(STORAGE_KEY_ACTIVE_JURI, foundJudge.id);
+        } catch (e) {}
+
+        return {
+          success: true,
+          role: 'juri' as const,
+          message: `Berhasil login sebagai ${foundJudge.name}`,
+        };
+      }
+
+      return { success: false, message: 'PIN yang Anda masukkan salah. Periksa kembali!' };
+    },
+    [eventInfo.adminPin, judges]
+  );
+
+  const logout = useCallback(() => {
+    const nextAuth: AuthState = { role: 'guest' };
+    setAuthState(nextAuth);
     try {
-      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(authState));
-    } catch (e) {
-      console.error('Failed to save auth', e);
-    }
-  }, [authState, isLoaded]);
+      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(nextAuth));
+    } catch (e) {}
+  }, []);
 
-  const loginWithPin = (pin: string) => {
-    const cleanPin = pin.trim();
+  const updateCriteriaScore = useCallback(
+    (judgeId: string, participantId: string, criteriaId: string, score: number) => {
+      const targetCriteria = criteria.find(c => c.id === criteriaId);
+      const maxScore = targetCriteria ? targetCriteria.maxScore : 100;
+      const validScore = Math.min(maxScore, Math.max(0, score));
 
-    if (cleanPin === EVENT_INFO.adminPin) {
-      const newAuth: AuthState = { role: 'admin', judgeName: 'Panitia Admin' };
-      setAuthState(newAuth);
-      return { success: true, role: 'admin' as const, message: 'Login sebagai Panitia Admin Berhasil!' };
-    }
+      setScores((prev) => {
+        const next = { ...prev };
+        if (!next[judgeId]) next[judgeId] = {};
+        if (!next[judgeId][participantId]) {
+          next[judgeId][participantId] = { scores: {} };
+        }
+        if (!next[judgeId][participantId].scores) {
+          next[judgeId][participantId].scores = {};
+        }
 
-    const foundJudge = judges.find(j => j.pin === cleanPin);
-    if (foundJudge) {
-      const newAuth: AuthState = { role: 'juri', judgeId: foundJudge.id, judgeName: foundJudge.name };
-      setAuthState(newAuth);
-      setActiveJudgeId(foundJudge.id);
-      return { success: true, role: 'juri' as const, message: `Selamat Datang, ${foundJudge.name}!` };
-    }
+        next[judgeId][participantId].scores[criteriaId] = validScore;
+        saveAndSync(next, judgeNotes);
+        return next;
+      });
+    },
+    [criteria, judgeNotes, saveAndSync]
+  );
 
-    return { success: false, message: 'PIN Salah! Periksa kembali PIN Anda.' };
-  };
+  const updateParticipantNotes = useCallback(
+    (judgeId: string, participantId: string, notes: string) => {
+      setScores((prev) => {
+        const next = { ...prev };
+        if (!next[judgeId]) next[judgeId] = {};
+        if (!next[judgeId][participantId]) {
+          next[judgeId][participantId] = { scores: {} };
+        }
+        next[judgeId][participantId].notes = notes;
+        saveAndSync(next, judgeNotes);
+        return next;
+      });
+    },
+    [judgeNotes, saveAndSync]
+  );
 
-  const logout = () => {
-    setAuthState({ role: 'guest' });
-    try {
-      localStorage.removeItem(STORAGE_KEY_AUTH);
-    } catch (e) {
-      console.error('Failed to clear auth', e);
-    }
-  };
+  const updateJudgeGeneralNotes = useCallback(
+    (judgeId: string, notes: string) => {
+      setJudgeNotes((prev) => {
+        const next = { ...prev, [judgeId]: notes };
+        saveAndSync(scores, next);
+        return next;
+      });
+    },
+    [scores, saveAndSync]
+  );
 
-  const updateCriteriaScore = useCallback((
-    judgeId: string,
-    participantId: string,
-    criteriaId: string,
-    score: number
-  ) => {
-    if (authState.role === 'admin' || isCardLocked(judgeId, participantId)) {
-      return;
-    }
-
-    if (authState.role === 'juri' && authState.judgeId !== judgeId) {
-      return;
-    }
-
-    const judge = judges.find(j => j.id === judgeId);
-    const participant = participants.find(p => p.id === participantId);
-    if (judge && participant && judge.code === participant.code) {
-      return; // Locked (N/A)
-    }
-
-    lastLocalInteractionRef.current = Date.now();
-
-    setScores(prev => {
-      const judgeData = prev[judgeId] || {};
-      const participantData = judgeData[participantId] || { scores: {} };
-      
-      const newParticipantData = {
-        ...participantData,
-        scores: {
-          ...participantData.scores,
-          [criteriaId]: score,
-        },
-      };
-
-      const updatedScores = {
-        ...prev,
-        [judgeId]: {
-          ...judgeData,
-          [participantId]: newParticipantData,
-        },
-      };
-
-      saveAndSync(updatedScores, judgeNotes);
-      return updatedScores;
-    });
-  }, [authState, isCardLocked, judges, participants, judgeNotes, saveAndSync]);
-
-  const updateParticipantNotes = useCallback((
-    judgeId: string,
-    participantId: string,
-    notes: string
-  ) => {
-    if (authState.role === 'admin' || isCardLocked(judgeId, participantId)) {
-      return;
-    }
-
-    if (authState.role === 'juri' && authState.judgeId !== judgeId) {
-      return;
-    }
-
-    lastLocalInteractionRef.current = Date.now();
-
-    setScores(prev => {
-      const judgeData = prev[judgeId] || {};
-      const participantData = judgeData[participantId] || { scores: {} };
-
-      const updatedScores = {
-        ...prev,
-        [judgeId]: {
-          ...judgeData,
-          [participantId]: {
-            ...participantData,
-            notes,
-          },
-        },
-      };
-
-      saveAndSync(updatedScores, judgeNotes);
-      return updatedScores;
-    });
-  }, [authState, isCardLocked, judgeNotes, saveAndSync]);
-
-  const updateJudgeGeneralNotes = useCallback((judgeId: string, notes: string) => {
-    if (authState.role === 'admin') {
-      return;
-    }
-
-    if (authState.role === 'juri' && authState.judgeId !== judgeId) {
-      return;
-    }
-
-    lastLocalInteractionRef.current = Date.now();
-
-    setJudgeNotes(prev => {
-      const updatedNotes = {
-        ...prev,
-        [judgeId]: notes,
-      };
-
-      // Use scoresRef.current to avoid stale closure — always gets the latest scores state
-      saveAndSync(scoresRef.current, updatedNotes);
-      return updatedNotes;
-    });
-  }, [authState, saveAndSync]);
-
-  const getParticipantSubtotal = (judgeId: string, participantId: string): number => {
-    const judge = judges.find(j => j.id === judgeId);
-    const participant = participants.find(p => p.id === participantId);
-    if (judge && participant && judge.code === participant.code) {
-      return 0;
-    }
-
-    const pData = scores[judgeId]?.[participantId] 
-      || scores[judgeId]?.[`p_${participantId}`] 
-      || (participantId.startsWith('p_') ? scores[judgeId]?.[participantId.replace('p_', '')] : undefined);
-    const participantScores = pData?.scores || {};
-    return Object.values(participantScores).reduce((sum, val) => sum + (val || 0), 0);
-  };
+  const getParticipantSubtotal = useCallback(
+    (judgeId: string, participantId: string): number => {
+      const pData = scores[judgeId]?.[participantId];
+      if (!pData || !pData.scores) return 0;
+      return Object.values(pData.scores).reduce((acc, curr) => acc + (curr || 0), 0);
+    },
+    [scores]
+  );
 
   const recapData: ParticipantRecap[] = useMemo(() => {
-    const recaps: ParticipantRecap[] = participants.map(participant => {
+    const rawRecaps = participants.map((participant) => {
       const scoresByJudge: { [judgeId: string]: number | 'N/A' } = {};
       let totalScore = 0;
       let validJudgeCount = 0;
 
-      judges.forEach(judge => {
+      judges.forEach((judge) => {
         if (judge.code === participant.code) {
           scoresByJudge[judge.id] = 'N/A';
         } else {
-          const pData = scores[judge.id]?.[participant.id] 
-            || scores[judge.id]?.[`p_${participant.id}`] 
-            || (participant.id.startsWith('p_') ? scores[judge.id]?.[participant.id.replace('p_', '')] : undefined);
-          const pScores = pData?.scores || {};
-          const sum = Object.values(pScores).reduce((acc, v) => acc + (v || 0), 0);
-          scoresByJudge[judge.id] = sum;
-          totalScore += sum;
+          const subtotal = getParticipantSubtotal(judge.id, participant.id);
+          scoresByJudge[judge.id] = subtotal;
+          totalScore += subtotal;
           validJudgeCount += 1;
         }
       });
 
-      const averageScore = validJudgeCount > 0 ? Number((totalScore / validJudgeCount).toFixed(2)) : 0;
+      const averageScore =
+        validJudgeCount > 0
+          ? Number((totalScore / validJudgeCount).toFixed(1))
+          : 0;
 
       return {
         participantId: participant.id,
@@ -542,111 +584,98 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
     });
 
-    // Deep-clone before sort to prevent mutation of the original recaps objects
-    const sorted = recaps.map(r => ({ ...r })).sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
-    
-    let currentRank = 1;
-    sorted.forEach((item, index) => {
-      if (index > 0 && item.averageScore < sorted[index - 1].averageScore) {
-        currentRank = index + 1;
+    const sorted = [...rawRecaps].sort((a, b) => {
+      if (b.averageScore !== a.averageScore) {
+        return b.averageScore - a.averageScore;
       }
-      item.rank = currentRank;
+      return b.totalScore - a.totalScore;
     });
 
-    // Build a lookup map for O(1) rank retrieval instead of O(n) find
-    const rankMap = new Map(sorted.map(s => [s.participantId, s.rank]));
+    sorted.forEach((item, index) => {
+      item.rank = index + 1;
+    });
 
-    return recaps.map(r => ({
-      ...r,
-      rank: rankMap.get(r.participantId) ?? 0,
-    }));
-  }, [scores, judges, participants]);
+    return sorted;
+  }, [participants, judges, getParticipantSubtotal]);
 
-  const loadDemoData = () => {
+  const loadDemoData = useCallback(() => {
     const demoScores: AllScores = {};
-    const demoNotes: JudgeGeneralNotes = {
-      juri_rt01: 'Penampilan seluruh peserta sangat kreatif dan meriah.',
-      juri_rt02: 'Hasil riasan blind rias unik dan menghibur!',
-      juri_rt03: 'Kekompakan tim luar biasa.',
-      juri_rt04: 'Kreativitas warna sangat berani.',
-      juri_rt05: 'Kerapian dan teknik rias mata sangat baik.',
-      juri_rt06: 'Semua peserta tampil sportif dan seru.',
-    };
+    const demoNotes: JudgeGeneralNotes = {};
 
-    const baseScores: { [pCode: string]: { c1: number; c2: number; c3: number; c4: number } } = {
-      'RT 01': { c1: 27, c2: 28, c3: 18, c4: 19 },
-      'RT 02': { c1: 24, c2: 25, c3: 16, c4: 17 },
-      'RT 03': { c1: 29, c2: 29, c3: 19, c4: 20 },
-      'RT 04': { c1: 25, c2: 26, c3: 17, c4: 18 },
-      'RT 05': { c1: 28, c2: 27, c3: 19, c4: 18 },
-      'RT 06': { c1: 22, c2: 24, c3: 15, c4: 16 },
-    };
-
-    judges.forEach(j => {
+    judges.forEach((j) => {
       demoScores[j.id] = {};
-      participants.forEach(p => {
+      participants.forEach((p) => {
         if (j.code !== p.code) {
-          const base = baseScores[p.code] || { c1: 20, c2: 20, c3: 15, c4: 15 };
-          const variation = (j.id.charCodeAt(j.id.length - 1) % 3) - 1;
-          demoScores[j.id][p.id] = {
-            scores: {
-              c1: Math.min(30, Math.max(1, base.c1 + variation)),
-              c2: Math.min(30, Math.max(1, base.c2 + variation)),
-              c3: Math.min(20, Math.max(1, base.c3 + (variation > 0 ? 1 : 0))),
-              c4: Math.min(20, Math.max(1, base.c4 - (variation < 0 ? 1 : 0))),
-            },
-          };
+          const cScores: { [cId: string]: number } = {};
+          criteria.forEach((c) => {
+            const minRatio = 0.7;
+            const randomRatio = minRatio + Math.random() * (1 - minRatio);
+            cScores[c.id] = Math.round(c.maxScore * randomRatio);
+          });
+          demoScores[j.id][p.id] = { scores: cScores };
         }
       });
+      demoNotes[j.id] = `Penilaian demo otomatis untuk ${j.name}.`;
     });
 
     setScores(demoScores);
     setJudgeNotes(demoNotes);
     saveAndSync(demoScores, demoNotes);
-  };
+  }, [judges, participants, criteria, saveAndSync]);
 
-  const resetAllData = () => {
-    const ts = Date.now();
-    setLastResetTs(ts);
+  const resetAllData = useCallback(() => {
+    const newResetTs = Date.now();
     setScores({});
     setJudgeNotes({});
     setLockedCards({});
-    saveAndSync({}, {}, true);
+    setLastResetTs(newResetTs);
     try {
-      localStorage.setItem(STORAGE_KEY_RESET_TS, String(ts));
-      localStorage.removeItem(STORAGE_KEY_SCORES);
-      localStorage.removeItem(STORAGE_KEY_NOTES);
-      localStorage.removeItem(STORAGE_KEY_LOCKED_CARDS);
-    } catch (e) {
-      console.error('Failed to reset storage', e);
-    }
-  };
+      localStorage.setItem(STORAGE_KEY_RESET_TS, String(newResetTs));
+    } catch (e) {}
+    saveAndSync({}, {}, true);
+  }, [saveAndSync]);
 
-  const exportJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ scores, judgeNotes }));
+  const exportJSON = useCallback(() => {
+    const payload = {
+      eventInfo,
+      criteria,
+      participants,
+      judges,
+      scores,
+      judgeNotes,
+      lockedCards,
+      exportDate: new Date().toISOString(),
+    };
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
     const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `rekap_lomba_${new Date().toISOString().slice(0,10)}.json`);
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `backup_lomba_${eventInfo.competitionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-  };
+  }, [eventInfo, criteria, participants, judges, scores, judgeNotes, lockedCards]);
 
-  const importJSON = (jsonString: string): boolean => {
-    try {
-      const parsed = JSON.parse(jsonString);
-      if (parsed.scores) {
-        setScores(parsed.scores);
+  const importJSON = useCallback(
+    (jsonString: string): boolean => {
+      try {
+        const parsed = JSON.parse(jsonString);
+        if (parsed.scores) setScores(parsed.scores);
         if (parsed.judgeNotes) setJudgeNotes(parsed.judgeNotes);
-        saveAndSync(parsed.scores, parsed.judgeNotes || {});
+        if (parsed.lockedCards) setLockedCards(parsed.lockedCards);
+        if (parsed.eventInfo) setEventInfo(parsed.eventInfo);
+        if (parsed.criteria) setCriteria(parsed.criteria);
+        if (parsed.participants) setParticipants(parsed.participants);
+        if (parsed.judges) setJudges(parsed.judges);
+
+        saveAndSync(parsed.scores || {}, parsed.judgeNotes || {});
         return true;
+      } catch (e) {
+        console.error('Import JSON failed', e);
+        return false;
       }
-      return false;
-    } catch (e) {
-      console.error('Failed to import JSON', e);
-      return false;
-    }
-  };
+    },
+    [saveAndSync]
+  );
 
   return (
     <ScoreContext.Provider
@@ -654,6 +683,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         judges,
         participants,
         criteria,
+        eventInfo,
         scores,
         judgeNotes,
         activeJudgeId,
@@ -675,6 +705,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         lockedCards,
         toggleCardLock,
         isCardLocked,
+        updateEventInfo,
+        updateCriteria,
+        updateParticipants,
+        updateJudges,
+        toggleMasterSystemLock,
       }}
     >
       {children}

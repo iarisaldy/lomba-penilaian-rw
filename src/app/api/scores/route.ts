@@ -24,6 +24,8 @@ const getTargetUrl = () => {
 let globalMasterScores: Record<string, any> = {};
 let globalMasterNotes: Record<string, any> = {};
 let globalResetTimestamp: number = 0;
+let globalMasterConfig: Record<string, any> | undefined = undefined;
+let globalLockedCards: Record<string, boolean> = {};
 
 export async function GET() {
   // 1. Primary: If Supabase is configured, fetch authoritative state from Supabase PostgreSQL
@@ -34,6 +36,7 @@ export async function GET() {
         globalResetTimestamp = supabaseData.resetTimestamp;
         globalMasterScores = supabaseData.scores || {};
         globalMasterNotes = supabaseData.judgeNotes || {};
+        globalLockedCards = supabaseData.lockedCards || {};
       } else {
         if (Object.keys(supabaseData.scores).length > 0) {
           globalMasterScores = { ...globalMasterScores, ...supabaseData.scores };
@@ -41,9 +44,15 @@ export async function GET() {
         if (Object.keys(supabaseData.judgeNotes).length > 0) {
           globalMasterNotes = { ...globalMasterNotes, ...supabaseData.judgeNotes };
         }
+        if (supabaseData.lockedCards && Object.keys(supabaseData.lockedCards).length > 0) {
+          globalLockedCards = { ...globalLockedCards, ...supabaseData.lockedCards };
+        }
         if (typeof supabaseData.resetTimestamp === 'number') {
           globalResetTimestamp = supabaseData.resetTimestamp;
         }
+      }
+      if (supabaseData.config) {
+        globalMasterConfig = supabaseData.config;
       }
     }
   } else {
@@ -88,6 +97,8 @@ export async function GET() {
       scores: globalMasterScores,
       judgeNotes: globalMasterNotes,
       resetTimestamp: globalResetTimestamp,
+      config: globalMasterConfig,
+      lockedCards: globalLockedCards,
       updatedAt: new Date().toISOString(),
       source: isSupabaseConfigured ? 'supabase' : 'server-memory',
     },
@@ -108,6 +119,7 @@ export async function POST(request: Request) {
     if (body.reset) {
       globalMasterScores = {};
       globalMasterNotes = {};
+      globalLockedCards = {};
       globalResetTimestamp = Date.now();
     } else {
       if (body.scores) {
@@ -115,6 +127,12 @@ export async function POST(request: Request) {
       }
       if (body.judgeNotes) {
         globalMasterNotes = { ...globalMasterNotes, ...body.judgeNotes };
+      }
+      if (body.lockedCards) {
+        globalLockedCards = { ...globalLockedCards, ...body.lockedCards };
+      }
+      if (body.config) {
+        globalMasterConfig = body.config;
       }
     }
 
@@ -124,7 +142,9 @@ export async function POST(request: Request) {
         globalMasterScores,
         globalMasterNotes,
         globalResetTimestamp,
-        Boolean(body.reset)
+        Boolean(body.reset),
+        globalMasterConfig,
+        globalLockedCards
       ).catch((err) => console.error('Background Supabase save error:', err));
     }
 
@@ -148,6 +168,8 @@ export async function POST(request: Request) {
       scores: globalMasterScores,
       judgeNotes: globalMasterNotes,
       resetTimestamp: globalResetTimestamp,
+      config: globalMasterConfig,
+      lockedCards: globalLockedCards,
       source: isSupabaseConfigured ? 'supabase' : 'server-memory',
     });
   } catch (error) {

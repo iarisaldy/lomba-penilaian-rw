@@ -2,16 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, FileSpreadsheet, Send, Download } from 'lucide-react';
+import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, FileSpreadsheet, Download, Settings, Lock, Unlock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getGoogleSheetsUrl, setGoogleSheetsUrl, testGoogleSheetsSync } from '../lib/googleSheetsClient';
-import { EVENT_INFO } from '../data/competitionDefaults';
+import { AdminConfigModal } from './AdminConfigModal';
 
 export const RecapDashboard: React.FC = () => {
-  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData } = useScore();
+  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData, eventInfo, toggleMasterSystemLock } = useScore();
   const [confirmPin, setConfirmPin] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   // Google Sheets settings modal
   const [showSheetsModal, setShowSheetsModal] = useState(false);
@@ -48,7 +49,7 @@ export const RecapDashboard: React.FC = () => {
   const handleAdminResetConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
-    if (confirmPin.trim() === EVENT_INFO.adminPin) {
+    if (confirmPin.trim() === eventInfo.adminPin) {
       resetAllData();
       setShowResetModal(false);
       setConfirmPin('');
@@ -63,9 +64,9 @@ export const RecapDashboard: React.FC = () => {
     setGoogleSheetsUrl(sheetsUrlInput);
     const success = await testGoogleSheetsSync(sheetsUrlInput, scores, judgeNotes);
     if (success) {
-      setSheetsStatus('✅ Permintaan dikirim ke Google Apps Script! Jika belum terisi, pastikan di Apps Script setting "Jalankan Sebagai" diubah ke "Saya (email anda)".');
+      setSheetsStatus('✅ Permintaan dikirim ke Google Apps Script!');
     } else {
-      setSheetsStatus('❌ Gagal terhubung ke Google Sheets. Periksa kembali URL Web App.');
+      setSheetsStatus('❌ Gagal terhubung ke Google Sheets.');
     }
   };
 
@@ -84,7 +85,7 @@ export const RecapDashboard: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Rekap_Nilai_Lomba_Permata_Discovery_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `Rekap_Nilai_${eventInfo.competitionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -131,12 +132,12 @@ export const RecapDashboard: React.FC = () => {
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xl flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center font-bold text-xl flex-shrink-0">
             <Users className="w-6 h-6" />
           </div>
           <div>
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Status Juri Aktif
+              Progres Juri Active
             </div>
             <div className="text-lg font-black text-white">
               {judgesSubmittedCount} / {judges.length} <span className="text-slate-400 text-xs font-normal">Juri Memasukkan Nilai</span>
@@ -157,12 +158,39 @@ export const RecapDashboard: React.FC = () => {
                 Panel Kontrol Admin Panitia
               </h3>
               <p className="text-xs text-slate-400">
-                Kelola data penilaian, download spreadsheet Excel, integrasi Google Sheets, atau reset data.
+                Kelola kriteria lomba, kunci penilaian, download Excel, atau sync database.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setIsConfigOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <Settings className="w-4 h-4" />
+              Pengaturan Lomba & Kriteria
+            </button>
+
+            <button
+              onClick={() => toggleMasterSystemLock()}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer ${
+                eventInfo.isSystemLocked
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                  : 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/30'
+              }`}
+            >
+              {eventInfo.isSystemLocked ? (
+                <>
+                  <Unlock className="w-3.5 h-3.5" /> Buka Kunci Penilaian
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5" /> Kunci Semua (Final)
+                </>
+              )}
+            </button>
+
             <button
               onClick={exportToCSV}
               className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
@@ -181,10 +209,10 @@ export const RecapDashboard: React.FC = () => {
 
             <button
               onClick={() => setShowResetModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-600/30 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-700"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset Data Penilaian
+              <RotateCcw className="w-3.5 h-3.5 text-red-400" />
+              Reset Data
             </button>
           </div>
         </div>
@@ -195,7 +223,7 @@ export const RecapDashboard: React.FC = () => {
         <div className="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden relative">
           <div className="text-center max-w-xl mx-auto mb-6 space-y-1">
             <h2 className="text-2xl font-black text-white">
-              Penetapan Hasil Pemenang
+              Penetapan Hasil Pemenang — {eventInfo.competitionTitle}
             </h2>
           </div>
 
@@ -221,11 +249,11 @@ export const RecapDashboard: React.FC = () => {
 
             {/* Juara 2 */}
             {juara2 && (
-              <div className="bg-gradient-to-b from-slate-700/30 via-slate-900 to-slate-900 border border-slate-500/50 rounded-2xl p-5 text-center shadow-xl flex flex-col items-center justify-center relative order-2 md:order-1">
+              <div className="bg-gradient-to-b from-slate-800/40 via-slate-900 to-slate-900 border border-slate-700 rounded-2xl p-5 text-center shadow-lg flex flex-col items-center justify-center relative overflow-hidden order-2 md:order-1">
                 <div className="absolute top-3 right-3 bg-slate-300 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
                   Juara 2
                 </div>
-                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-slate-300 to-slate-100 text-slate-950 font-black text-xl flex items-center justify-center shadow-md my-2">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-slate-300 to-slate-400 text-slate-950 font-black text-xl flex items-center justify-center shadow-md my-2">
                   🥈
                 </div>
                 <h3 className="font-extrabold text-lg text-white">
@@ -243,16 +271,16 @@ export const RecapDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Main Rekap Matrix Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* Main Recap Table */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-400" />
-              Matriks Rekapitulasi Penilaian Lomba
+              Matriks Rekapitulasi Penilaian Lomba ({eventInfo.competitionTitle})
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Otomatis menghitung Total dan Rata-Rata Nilai dari 5 juri penilai (Eksklusi RT Sendiri).
+              Otomatis menghitung Total dan Rata-Rata Nilai dari juri penilai (Eksklusi RT Sendiri).
             </p>
           </div>
         </div>
@@ -307,7 +335,7 @@ export const RecapDashboard: React.FC = () => {
                       </span>
                     </td>
 
-                    {/* Nilai dari Juri RT 01 s/d 06 */}
+                    {/* Nilai dari Juri */}
                     {judges.map((j) => {
                       const scoreVal = recap.scoresByJudge[j.id];
                       const isSelf = scoreVal === 'N/A';
@@ -350,13 +378,11 @@ export const RecapDashboard: React.FC = () => {
                           🏆 JUARA 1
                         </span>
                       ) : isRank2 ? (
-                        <span className="inline-flex items-center gap-1 bg-slate-300 text-slate-950 font-black text-xs px-2.5 py-1 rounded-full shadow-sm">
+                        <span className="inline-flex items-center gap-1 bg-slate-300 text-slate-950 font-extrabold text-xs px-2.5 py-1 rounded-full shadow-sm">
                           🥈 JUARA 2
                         </span>
                       ) : (
-                        <span className="text-slate-400 font-medium">
-                          Peringkat #{recap.rank}
-                        </span>
+                        <span className="text-slate-400 text-xs">Peringkat #{recap.rank}</span>
                       )}
                     </td>
                   </tr>
@@ -367,26 +393,29 @@ export const RecapDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Catatan Juri Summary */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-amber-400" />
-          Kompilasi Catatan & Saran Seluruh Juri
-        </h3>
+      {/* Judge Notes Section */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center gap-2 text-base font-bold text-white">
+          <MessageSquare className="w-5 h-5 text-amber-400" />
+          Kumpulan Catatan / Masukan dari Dewan Juri
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {judges.map((j) => {
-            const notesText = judgeNotes[j.id];
+            const noteText = judgeNotes[j.id];
+
             return (
-              <div key={j.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1">
-                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                  <span>{j.name}</span>
-                  <span className="text-[10px] text-slate-500 font-normal">{j.code}</span>
+              <div key={j.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-amber-400 flex items-center gap-1">
+                    👤 {j.name}
+                  </span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                    Catatan Juri
+                  </span>
                 </div>
-                <p className="text-xs text-slate-400 italic">
-                  {notesText && notesText.trim() !== ''
-                    ? `"${notesText}"`
-                    : 'Tidak ada catatan.'}
+                <p className="text-xs text-slate-300 italic leading-relaxed">
+                  {noteText && noteText.trim() !== '' ? `"${noteText}"` : <span className="text-slate-600 not-italic">Belum ada catatan khusus dari {j.code}.</span>}
                 </p>
               </div>
             );
@@ -394,120 +423,54 @@ export const RecapDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Google Sheets Config Modal */}
-      {showSheetsModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 no-print">
-          <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-emerald-400">
-              <FileSpreadsheet className="w-7 h-7 flex-shrink-0" />
-              <div>
-                <h3 className="font-extrabold text-lg text-white">Pengaturan Integrasi Google Sheets</h3>
-                <p className="text-xs text-slate-400">Masukkan Web App URL dari Google Apps Script untuk sync otomatis ke spreadsheet.</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Google Apps Script Web App URL:
-                </label>
-                <input
-                  type="url"
-                  value={sheetsUrlInput}
-                  onChange={(e) => setSheetsUrlInput(e.target.value)}
-                  placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                  className="w-full bg-slate-950 border border-slate-700 text-xs font-mono text-white rounded-xl p-3 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {sheetsStatus && (
-                <div className="text-xs bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-300 leading-relaxed font-medium">
-                  {sheetsStatus}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSheetsModal(false);
-                  setSheetsStatus('');
-                }}
-                className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700 cursor-pointer"
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                onClick={handleTestSheets}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-500 cursor-pointer shadow-lg shadow-emerald-600/30"
-              >
-                <Send className="w-3.5 h-3.5" />
-                Simpan & Tes Kirim ke Google Sheets
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Admin Reset Confirmation Modal */}
+      {/* Modal Reset Data */}
       {showResetModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 no-print">
-          <div className="bg-slate-900 border border-red-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-red-400">
-              <ShieldAlert className="w-8 h-8 flex-shrink-0" />
-              <div>
-                <h3 className="font-extrabold text-lg text-white">Konfirmasi Reset Data</h3>
-                <p className="text-xs text-slate-400">Tindakan ini akan mengosongkan seluruh nilai dari 6 juri.</p>
-              </div>
-            </div>
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-red-500" /> Confirm Reset Data
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Tindakan ini akan <strong className="text-red-400">menghapus seluruh isian nilai juri</strong> di server dan database Supabase. Masukkan PIN Admin untuk melanjutkan.
+            </p>
 
-            <form onSubmit={handleAdminResetConfirm} className="space-y-4 pt-2">
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Masukkan PIN Admin untuk melanjutkan:
-                </label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  value={confirmPin}
-                  onChange={(e) => setConfirmPin(e.target.value)}
-                  placeholder="0000"
-                  className="w-full bg-slate-950 border border-slate-700 text-center font-mono font-bold text-xl text-white rounded-xl py-2.5 focus:outline-none focus:border-red-500"
-                  autoFocus
-                />
-              </div>
+            <form onSubmit={handleAdminResetConfirm} className="space-y-4">
+              <input
+                type="password"
+                maxLength={6}
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value)}
+                placeholder="PIN Admin"
+                className="w-full bg-slate-950 border border-slate-700 text-center font-mono text-xl text-white rounded-xl py-2.5 focus:outline-none focus:border-red-500"
+              />
 
-              {resetError && (
-                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2 text-center font-medium">
-                  {resetError}
-                </div>
-              )}
+              {resetError && <div className="text-xs text-red-400 font-semibold text-center">{resetError}</div>}
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowResetModal(false);
-                    setConfirmPin('');
-                    setResetError('');
-                  }}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700 cursor-pointer"
+                  onClick={() => setShowResetModal(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 text-white font-bold text-xs rounded-xl hover:bg-red-500 cursor-pointer shadow-lg shadow-red-600/30"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl"
                 >
-                  Ya, Kosongkan Semua Data
+                  Kosongkan Data Nilai
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Admin Config Modal */}
+      <AdminConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+      />
     </div>
   );
 };
