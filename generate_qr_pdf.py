@@ -17,9 +17,11 @@ qr = qrcode.QRCode(
 qr.add_data(qr_url)
 qr.make(fit=True)
 
-qr_img = qr.make_image(fill_color="#1E3A8A", back_color="white")
+qr_img = qr.make_image(fill_color="#0F172A", back_color="white")
 qr_img_path = "/tmp/lomba_qr_code.png"
 qr_img.save(qr_img_path)
+
+logo_path = "/Users/muhammadirfan/Documents/lomba/public/permata_logo.png"
 
 # 2. Setup PDF Document
 pdf_path = "/Users/muhammadirfan/Documents/lomba/Kartu_Akses_Juri_Lomba.pdf"
@@ -39,18 +41,18 @@ header_title_style = ParagraphStyle(
     'HeaderTitle',
     parent=styles['Heading1'],
     fontName='Helvetica-Bold',
-    fontSize=22,
-    leading=26,
+    fontSize=20,
+    leading=24,
     alignment=TA_CENTER,
-    textColor=colors.HexColor('#1E3A8A')
+    textColor=colors.HexColor('#0F172A')
 )
 
 subtitle_style = ParagraphStyle(
     'SubTitle',
     parent=styles['Normal'],
     fontName='Helvetica-Bold',
-    fontSize=13,
-    leading=16,
+    fontSize=12,
+    leading=15,
     alignment=TA_CENTER,
     textColor=colors.HexColor('#DC2626')
 )
@@ -69,8 +71,8 @@ section_heading = ParagraphStyle(
     'SectionHeading',
     parent=styles['Heading2'],
     fontName='Helvetica-Bold',
-    fontSize=13,
-    leading=16,
+    fontSize=12,
+    leading=15,
     alignment=TA_LEFT,
     textColor=colors.HexColor('#0F172A')
 )
@@ -79,8 +81,8 @@ body_style = ParagraphStyle(
     'BodyStyle',
     parent=styles['Normal'],
     fontName='Helvetica',
-    fontSize=10,
-    leading=14,
+    fontSize=9.5,
+    leading=13.5,
     textColor=colors.HexColor('#334155')
 )
 
@@ -111,40 +113,47 @@ table_cell_bold = ParagraphStyle(
     fontSize=11,
     leading=13,
     alignment=TA_CENTER,
-    textColor=colors.HexColor('#1E3A8A')
+    textColor=colors.HexColor('#0F172A')
 )
 
 story = []
 
-# Title & Subtitle
-story.append(Paragraph("SISTEM PENILAIAN LOMBA PERMATA DISCOVERY", header_title_style))
-story.append(Spacer(1, 4))
-story.append(Paragraph("HUT KEMERDEKAAN RI • PERMATA DISCOVERY", subtitle_style))
-story.append(Spacer(1, 10))
+# Logo
+if os.path.exists(logo_path):
+    logo_img = Image(logo_path, width=180, height=48)
+    logo_img.hAlign = 'CENTER'
+    story.append(logo_img)
+    story.append(Spacer(1, 6))
 
-story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#1E3A8A'), spaceBefore=0, spaceAfter=15))
+# Title & Subtitle
+story.append(Paragraph("SISTEM PENILAIAN LOMBA RESMI", header_title_style))
+story.append(Spacer(1, 3))
+story.append(Paragraph("HUT KEMERDEKAAN RI • PERUMAHAN PERMATA DISCOVERY", subtitle_style))
+story.append(Spacer(1, 8))
+
+story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#0F172A'), spaceBefore=0, spaceAfter=12))
 
 # Scan QR Section Header
 story.append(Paragraph("📱 SCAN QR CODE UNTUK MEMBUKA APLIKASI PENILAIAN", ParagraphStyle('CenteredHead', parent=section_heading, alignment=TA_CENTER)))
-story.append(Spacer(1, 10))
+story.append(Spacer(1, 8))
 
 # QR Code Image
-img = Image(qr_img_path, width=170, height=170)
+img = Image(qr_img_path, width=160, height=160)
 img.hAlign = 'CENTER'
 story.append(img)
-story.append(Spacer(1, 8))
+story.append(Spacer(1, 6))
 
 # Link URL
-story.append(Paragraph("Atau buka melalui Browser (HP / Laptop):", ParagraphStyle('SubText', parent=body_style, alignment=TA_CENTER)))
-story.append(Spacer(1, 4))
+story.append(Paragraph("Atau buka melalui Browser HP / Laptop:", ParagraphStyle('SubText', parent=body_style, alignment=TA_CENTER)))
+story.append(Spacer(1, 3))
 story.append(Paragraph("<u>https://lomba-permata-discovery.vercel.app/</u>", link_style))
-story.append(Spacer(1, 15))
+story.append(Spacer(1, 12))
 
-story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceBefore=0, spaceAfter=15))
+story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceBefore=0, spaceAfter=12))
 
 # Table PIN Juri & Admin
-story.append(Paragraph("🔑 DAFTAR PIN LOGIN JURI & ADMIN", section_heading))
-story.append(Spacer(1, 8))
+story.append(Paragraph("🔑 DAFTAR PIN LOGIN JURI & ADMIN PANITIA", section_heading))
+story.append(Spacer(1, 6))
 
 table_data = [
     [
@@ -165,31 +174,30 @@ table_data = [
 col_widths = [100, 90, 80, 230]
 t = Table(table_data, colWidths=col_widths)
 t.setStyle(TableStyle([
-    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F172A')),
     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
     ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#F8FAFC')]),
     ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FEF2F2')),
-    ('TOPPADDING', (0, 0), (-1, -1), 6),
-    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ('TOPPADDING', (0, 0), (-1, -1), 5),
+    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
 ]))
 
 story.append(t)
-story.append(Spacer(1, 15))
+story.append(Spacer(1, 10))
 
 # Instructions Box
 story.append(Paragraph("📌 PANDUAN RINGKAS PENILAIAN JURI:", section_heading))
-story.append(Spacer(1, 6))
+story.append(Spacer(1, 4))
 
 instructions_html = """
-<b>1. Scan QR Code</b> di atas menggunakan Kamera HP atau aplikasi WhatsApp.<br/>
+<b>1. Scan QR Code</b> di atas menggunakan Kamera HP atau WhatsApp.<br/>
 <b>2. Masukkan PIN Login</b> sesuai Juri RT Anda (Contoh: Juri RT 01 = PIN 1111).<br/>
-<b>3. Geser Slider Nilai / Tekan (-) (+)</b> untuk setiap kriteria penilaian.<br/>
-<b>4. Klik 'Kunci & Kirim'</b> pada kartu peserta yang sudah selesai dinilai.<br/>
-<b><i>Catatan:</i></b> Setiap Juri secara otomatis dikunci untuk tidak menilai RT-nya sendiri (N/A).
+<b>3. Tekan (-) / (+) / Geser Slider</b> untuk memasukkan nilai per kriteria.<br/>
+<b>4. Tekan '🔒 Kunci & Kirim'</b> jika sudah selesai menilai peserta tersebut.
 """
-story.append(Paragraph(instructions_html, ParagraphStyle('InstructStyle', parent=body_style, leading=16)))
+story.append(Paragraph(instructions_html, ParagraphStyle('InstructStyle', parent=body_style, leading=14)))
 
 doc.build(story)
 print("PDF successfully updated at:", pdf_path)
