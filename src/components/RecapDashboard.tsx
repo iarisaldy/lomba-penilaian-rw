@@ -2,16 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Settings, Lock, Unlock } from 'lucide-react';
+import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Lock, Unlock } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { AdminConfigModal } from './AdminConfigModal';
 
 export const RecapDashboard: React.FC = () => {
   const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData, eventInfo, toggleMasterSystemLock } = useScore();
   const [confirmPin, setConfirmPin] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   // Find top winners
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
@@ -137,20 +135,12 @@ export const RecapDashboard: React.FC = () => {
                 Panel Kontrol Admin Panitia
               </h3>
               <p className="text-xs text-slate-400">
-                Kelola kriteria lomba, kunci penilaian final, download Excel/CSV, atau reset data.
+                Kelola penguncian nilai final, download Excel/CSV, atau reset data.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setIsConfigOpen(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
-            >
-              <Settings className="w-4 h-4" />
-              Pengaturan Lomba & Kriteria
-            </button>
-
             <button
               onClick={() => toggleMasterSystemLock()}
               className={`inline-flex items-center gap-2 px-3.5 py-2 font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer ${
@@ -436,12 +426,6 @@ export const RecapDashboard: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Admin Config Modal */}
-      <AdminConfigModal
-        isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
-      />
     </div>
   );
 };
