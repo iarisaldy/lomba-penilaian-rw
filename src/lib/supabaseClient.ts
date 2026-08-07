@@ -50,47 +50,31 @@ export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'):
   if (!supabase) return null;
   const rowId = getRowId(eventId);
   try {
-    let data: any = null;
-    let error: any = null;
-
-    const res = await supabase
+    const { data, error } = await supabase
       .from('scores_state')
-      .select('scores, judge_notes, reset_timestamp, config, locked_cards')
+      .select('scores, judge_notes, reset_timestamp')
       .eq('id', rowId)
       .single();
 
-    data = res.data;
-    error = res.error;
-
-    const errMsg = getErrMsg(error);
-
-    // Fallback if locked_cards column does not exist in schema
-    if (errMsg.includes('locked_cards')) {
-      const fallbackRes = await supabase
-        .from('scores_state')
-        .select('scores, judge_notes, reset_timestamp, config')
-        .eq('id', rowId)
-        .single();
-      data = fallbackRes.data;
-      error = fallbackRes.error;
-    }
-
     if (error) {
-      console.error(`Supabase fetch notice for event ${rowId}:`, getErrMsg(error));
+      console.warn(`Supabase fetch notice for event ${rowId}:`, getErrMsg(error));
       return null;
     }
 
     if (data) {
+      const rawNotes = data.judge_notes || {};
+      const { _config, _lockedCards, ...cleanNotes } = rawNotes;
+
       return {
         scores: data.scores || {},
-        judgeNotes: data.judge_notes || {},
+        judgeNotes: cleanNotes || {},
         resetTimestamp: Number(data.reset_timestamp || 0),
-        config: data.config || undefined,
-        lockedCards: data.locked_cards || data.config?.lockedCards || undefined,
+        config: _config || undefined,
+        lockedCards: _lockedCards || undefined,
       };
     }
   } catch (err) {
-    console.error(`Failed to fetch event ${rowId} from Supabase:`, getErrMsg(err));
+    console.warn(`Failed to fetch event ${rowId} from Supabase:`, getErrMsg(err));
   }
   return null;
 };
@@ -108,31 +92,25 @@ export const saveMasterScoresToSupabase = async (
   if (!supabase) return false;
   const rowId = getRowId(eventId);
   try {
+    const notesPayload: Record<string, any> = { ...judgeNotes };
+    if (config) notesPayload._config = config;
+    if (lockedCards) notesPayload._lockedCards = lockedCards;
+
     const payload: Record<string, any> = isReset
       ? {
           id: rowId,
           scores: {},
-          judge_notes: {},
-          locked_cards: {},
+          judge_notes: notesPayload,
           reset_timestamp: resetTimestamp || Date.now(),
           updated_at: new Date().toISOString(),
         }
       : {
           id: rowId,
           scores,
-          judge_notes: judgeNotes,
+          judge_notes: notesPayload,
           reset_timestamp: resetTimestamp,
           updated_at: new Date().toISOString(),
         };
-
-    const finalConfig = config ? { ...config } : {};
-    if (lockedCards) {
-      payload.locked_cards = lockedCards;
-      finalConfig.lockedCards = lockedCards;
-    }
-    if (Object.keys(finalConfig).length > 0) {
-      payload.config = finalConfig;
-    }
 
     let { error } = await supabase
       .from('scores_state')
@@ -140,17 +118,7 @@ export const saveMasterScoresToSupabase = async (
 
     let errMsg = getErrMsg(error);
 
-    // Fallback if locked_cards column does not exist in Supabase table
-    if (errMsg.includes('locked_cards')) {
-      delete payload.locked_cards;
-      const retryRes = await supabase
-        .from('scores_state')
-        .upsert(payload, { onConflict: 'id' });
-      error = retryRes.error;
-      errMsg = getErrMsg(error);
-    }
-
-    // Auto-retry once if 522 / network timeout error occurred
+    // Auto-retry once if transient network error occurred
     if (error && (errMsg.includes('522') || errMsg.includes('timeout') || errMsg.includes('FetchError') || errMsg.includes('Unhealthy'))) {
       await new Promise(r => setTimeout(r, 1000));
       const retryRes = await supabase
