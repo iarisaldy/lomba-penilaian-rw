@@ -34,6 +34,17 @@ const getRowId = (eventId?: string) => {
   return eventId.replace(/-/g, '_');
 };
 
+const getErrMsg = (err: any): string => {
+  if (!err) return '';
+  if (typeof err === 'string') return err;
+  if (typeof err.message === 'string') return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch (e) {
+    return String(err);
+  }
+};
+
 // Fetch master scores and config from Supabase table 'scores_state'
 export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'): Promise<MasterPayload | null> => {
   if (!supabase) return null;
@@ -51,8 +62,10 @@ export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'):
     data = res.data;
     error = res.error;
 
+    const errMsg = getErrMsg(error);
+
     // Fallback if locked_cards column does not exist in schema
-    if (error && error.message.includes('locked_cards')) {
+    if (errMsg.includes('locked_cards')) {
       const fallbackRes = await supabase
         .from('scores_state')
         .select('scores, judge_notes, reset_timestamp, config')
@@ -63,7 +76,7 @@ export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'):
     }
 
     if (error) {
-      console.error(`Supabase fetch error for event ${rowId}:`, error.message);
+      console.error(`Supabase fetch notice for event ${rowId}:`, getErrMsg(error));
       return null;
     }
 
@@ -77,7 +90,7 @@ export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'):
       };
     }
   } catch (err) {
-    console.error(`Failed to fetch event ${rowId} from Supabase:`, err);
+    console.error(`Failed to fetch event ${rowId} from Supabase:`, getErrMsg(err));
   }
   return null;
 };
@@ -125,31 +138,35 @@ export const saveMasterScoresToSupabase = async (
       .from('scores_state')
       .upsert(payload, { onConflict: 'id' });
 
+    let errMsg = getErrMsg(error);
+
     // Fallback if locked_cards column does not exist in Supabase table
-    if (error && error.message.includes('locked_cards')) {
+    if (errMsg.includes('locked_cards')) {
       delete payload.locked_cards;
       const retryRes = await supabase
         .from('scores_state')
         .upsert(payload, { onConflict: 'id' });
       error = retryRes.error;
+      errMsg = getErrMsg(error);
     }
 
     // Auto-retry once if 522 / network timeout error occurred
-    if (error && (error.message.includes('522') || error.message.includes('timeout') || error.message.includes('FetchError'))) {
+    if (error && (errMsg.includes('522') || errMsg.includes('timeout') || errMsg.includes('FetchError') || errMsg.includes('Unhealthy'))) {
       await new Promise(r => setTimeout(r, 1000));
       const retryRes = await supabase
         .from('scores_state')
         .upsert(payload, { onConflict: 'id' });
       error = retryRes.error;
+      errMsg = getErrMsg(error);
     }
 
     if (error) {
-      console.warn(`Supabase save notice for event ${rowId}: ${error.message} (App fallback to memory active)`);
+      console.warn(`Supabase save notice for event ${rowId}: ${errMsg} (App fallback to memory active)`);
       return false;
     }
     return true;
   } catch (err) {
-    console.warn(`Transient Supabase save warning for event ${rowId} (App fallback to memory active):`, err);
+    console.warn(`Transient Supabase save warning for event ${rowId} (App fallback to memory active):`, getErrMsg(err));
     return false;
   }
 };
