@@ -10,7 +10,12 @@ export const isSupabaseConfigured = Boolean(
 );
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
   : null;
 
 export interface MasterPayload {
@@ -129,13 +134,22 @@ export const saveMasterScoresToSupabase = async (
       error = retryRes.error;
     }
 
+    // Auto-retry once if 522 / network timeout error occurred
+    if (error && (error.message.includes('522') || error.message.includes('timeout') || error.message.includes('FetchError'))) {
+      await new Promise(r => setTimeout(r, 1000));
+      const retryRes = await supabase
+        .from('scores_state')
+        .upsert(payload, { onConflict: 'id' });
+      error = retryRes.error;
+    }
+
     if (error) {
-      console.error(`Supabase save error for event ${rowId}:`, error.message);
+      console.warn(`Supabase save notice for event ${rowId}: ${error.message} (App fallback to memory active)`);
       return false;
     }
     return true;
   } catch (err) {
-    console.error(`Failed to save event ${rowId} to Supabase:`, err);
+    console.warn(`Transient Supabase save warning for event ${rowId} (App fallback to memory active):`, err);
     return false;
   }
 };
