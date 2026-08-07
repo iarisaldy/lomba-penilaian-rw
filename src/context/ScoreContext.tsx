@@ -678,17 +678,24 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const validScore = Math.min(maxScore, Math.max(0, score));
 
       setScores((prev) => {
-        const next = { ...prev };
-        if (!next[judgeId]) next[judgeId] = {};
-        if (!next[judgeId][participantId]) {
-          next[judgeId][participantId] = { scores: {} };
-        }
-        if (!next[judgeId][participantId].scores) {
-          next[judgeId][participantId].scores = {};
-        }
+        const judgeData = prev[judgeId] || {};
+        const participantData = judgeData[participantId] || { scores: {} };
+        const criteriaScores = participantData.scores || {};
 
-        next[judgeId][participantId].scores[criteriaId] = validScore;
-        // Simpan ke localStorage SAJA (0 HTTP traffic ke Supabase saat slider/stepper digeser)
+        const next: AllScores = {
+          ...prev,
+          [judgeId]: {
+            ...judgeData,
+            [participantId]: {
+              ...participantData,
+              scores: {
+                ...criteriaScores,
+                [criteriaId]: validScore,
+              },
+            },
+          },
+        };
+
         saveToLocalStorageOnly(next, judgeNotesRef.current);
         return next;
       });
@@ -699,12 +706,20 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateParticipantNotes = useCallback(
     (judgeId: string, participantId: string, notes: string) => {
       setScores((prev) => {
-        const next = { ...prev };
-        if (!next[judgeId]) next[judgeId] = {};
-        if (!next[judgeId][participantId]) {
-          next[judgeId][participantId] = { scores: {} };
-        }
-        next[judgeId][participantId].notes = notes;
+        const judgeData = prev[judgeId] || {};
+        const participantData = judgeData[participantId] || { scores: {} };
+
+        const next: AllScores = {
+          ...prev,
+          [judgeId]: {
+            ...judgeData,
+            [participantId]: {
+              ...participantData,
+              notes,
+            },
+          },
+        };
+
         saveToLocalStorageOnly(next, judgeNotesRef.current);
         return next;
       });
