@@ -459,7 +459,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     fetchApiScores();
-    const interval = setInterval(fetchApiScores, 4000);
+    const interval = setInterval(fetchApiScores, 8000); // 8 detik — cukup responsif, tidak spam Supabase
 
     return () => clearInterval(interval);
   }, [lastResetTs, activeJudgeId, judgeNotes, activeEventId]);
@@ -557,7 +557,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } catch (e) {
           console.error('Failed to post sync to /api/scores', e);
         }
-      }, 300);
+      }, 1500); // 1.5 detik debounce — pangkas writes ke Supabase saat juri input cepat
     }
   }, [lockedCards]);
 

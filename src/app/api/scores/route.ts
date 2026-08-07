@@ -5,12 +5,20 @@ import {
   saveMasterScoresToSupabase,
 } from '@/lib/supabaseClient';
 
+// Cache TTL: only re-fetch from Supabase if dirty (new POST) or > 30s elapsed.
+// This prevents hammering Supabase on every browser poll (was ~120 req/min → now ~4-8 req/min).
+const SUPABASE_CACHE_TTL_MS = 30_000;
+
 interface EventCache {
   scores: Record<string, any>;
   judgeNotes: Record<string, any>;
   resetTimestamp: number;
   config: Record<string, any> | undefined;
   lockedCards: Record<string, boolean>;
+  /** True when a POST was received and the cache has unseen changes for Supabase to confirm */
+  isDirty: boolean;
+  /** Timestamp of last successful Supabase sync */
+  lastSyncedAt: number;
 }
 
 const eventCaches: Record<string, EventCache> = {};
@@ -31,6 +39,8 @@ function getEventCache(eventId: string): EventCache {
       resetTimestamp: 0,
       config: undefined,
       lockedCards: {},
+      isDirty: true,  // force first-ever fetch from Supabase on startup
+      lastSyncedAt: 0,
     };
   }
   return eventCaches[normId];
@@ -53,8 +63,11 @@ export async function GET(request: NextRequest) {
   const eventId = getNormalizedEventId(rawEvent);
   const cache = getEventCache(eventId);
 
-  // Primary: If Supabase is configured, fetch authoritative state from Supabase PostgreSQL for this event
-  if (isSupabaseConfigured) {
+  // Primary: Fetch from Supabase ONLY when cache is dirty (new write since last sync)
+  // OR when TTL has elapsed (30s safety net). This prevents ~120 reads/min → ~4-8 reads/min.
+  const now = Date.now();
+  const cacheIsStale = now - cache.lastSyncedAt > SUPABASE_CACHE_TTL_MS;
+  if (isSupabaseConfigured && (cache.isDirty || cacheIsStale)) {
     const supabaseData = await fetchMasterScoresFromSupabase(eventId);
     if (supabaseData) {
       if (typeof supabaseData.resetTimestamp === 'number' && supabaseData.resetTimestamp > cache.resetTimestamp) {
@@ -79,6 +92,9 @@ export async function GET(request: NextRequest) {
       if (supabaseData.config) {
         cache.config = supabaseData.config;
       }
+      // Mark cache as fresh after successful Supabase sync
+      cache.isDirty = false;
+      cache.lastSyncedAt = Date.now();
     }
   }
 
@@ -130,6 +146,8 @@ export async function POST(request: NextRequest) {
         cache.config = body.config;
       }
     }
+    // Mark dirty so the next GET will re-confirm state with Supabase
+    cache.isDirty = true;
 
     // Persist to Supabase PostgreSQL instantly
     if (isSupabaseConfigured) {

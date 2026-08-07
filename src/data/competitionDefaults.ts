@@ -50,7 +50,9 @@ export const SEPEDA_HIAS_CRITERIA: Criteria[] = [
   { id: 'c_sepeda_1', name: 'Nilai Sepeda Hias (Kreativitas, Kerapian, Keindahan)', maxScore: 100 },
 ];
 
-export const SEPEDA_HIAS_PARTICIPANTS: Participant[] = Array.from({ length: 100 }, (_, i) => {
+// Default 30 peserta — admin bisa generate jumlah custom di panel Admin
+// (100 default terlalu berat: 6 juri × 100 peserta = 600 score entries per upsert)
+export const SEPEDA_HIAS_PARTICIPANTS: Participant[] = Array.from({ length: 30 }, (_, i) => {
   const num = i + 1;
   const formattedNum = num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
   return {
