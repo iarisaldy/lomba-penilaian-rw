@@ -555,6 +555,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Failed to post reset to /api/scores', e);
       }
     } else {
+      // Jitter 0-500ms di atas debounce 1500ms: mencegah banyak juri save
+      // ke row 'master' yang sama di momen yang persis sama (row lock conflict)
+      const jitter = Math.floor(Math.random() * 500);
       syncTimeoutRef.current = setTimeout(async () => {
         try {
           await fetch(`/api/scores?event=${curEventId}`, {
@@ -565,7 +568,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } catch (e) {
           console.error('Failed to post sync to /api/scores', e);
         }
-      }, 1500); // 1.5 detik debounce — pangkas writes ke Supabase saat juri input cepat
+      }, 1500 + jitter); // 1.5 detik debounce + jitter acak 0-500ms
     }
   }, [lockedCards]);
 

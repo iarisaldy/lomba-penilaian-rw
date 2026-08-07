@@ -180,9 +180,30 @@ export const saveMasterScoresToSupabase = async (
           updated_at: new Date().toISOString(),
         };
 
-    const { error } = await supabase
+    const { error: firstError } = await supabase
       .from('scores_state')
       .upsert(payload, { onConflict: 'id' });
+
+    // ─── Retry untuk row-lock conflict (SQL 57014 = statement timeout saat locking row) ───
+    // Terjadi saat banyak juri save bersamaan ke row 'master' yang sama.
+    // Solusi: retry 2x dengan jeda eksponensial + random jitter.
+    let error = firstError;
+    if (error) {
+      const errMsg = getErrMsg(error);
+      const isLockConflict = errMsg.includes('57014') || errMsg.includes('statement timeout') || errMsg.includes('locking');
+      if (isLockConflict) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          // Jitter: 200ms * attempt + random 0-300ms agar tidak bertabrakan lagi
+          const jitterMs = 200 * attempt + Math.floor(Math.random() * 300);
+          await new Promise(r => setTimeout(r, jitterMs));
+          const { error: retryError } = await supabase
+            .from('scores_state')
+            .upsert(payload, { onConflict: 'id' });
+          error = retryError;
+          if (!error) break; // sukses, keluar loop
+        }
+      }
+    }
 
     if (error) {
       recordFailure(`save[${rowId}]`, getErrMsg(error));
