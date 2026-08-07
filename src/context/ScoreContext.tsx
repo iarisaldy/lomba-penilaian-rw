@@ -438,13 +438,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               }
               return nextScores;
             });
-          } else if (Object.keys(scoresRef.current).length > 0) {
-            // Server has no scores yet, re-seed server with non-zero local scores!
-            fetch(`/api/scores?event=${curEventId}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ scores: scoresRef.current, judgeNotes, eventId: curEventId }),
-            }).catch(() => {});
           }
 
           if (Object.keys(serverNotes).length > 0) {
@@ -466,7 +459,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     fetchApiScores();
-    const interval = setInterval(fetchApiScores, 3000);
+    const interval = setInterval(fetchApiScores, 4000);
 
     return () => clearInterval(interval);
   }, [lastResetTs, activeJudgeId, judgeNotes, activeEventId]);
