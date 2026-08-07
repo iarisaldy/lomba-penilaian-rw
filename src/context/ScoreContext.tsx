@@ -55,11 +55,13 @@ interface ScoreContextType {
   isRealtimeConnected: boolean;
   lockedCards: Record<string, boolean>;
   toggleCardLock: (judgeId: string, participantId: string) => void;
+  lockAllCardsForJudge: (judgeId: string) => void;
   isCardLocked: (judgeId: string, participantId: string) => boolean;
   // Admin Competition Config Methods
   updateEventInfo: (newInfo: Partial<EventInfo>) => void;
   updateCriteria: (newCriteria: Criteria[]) => void;
   updateParticipants: (newParticipants: Participant[]) => void;
+  generateParticipantsCount: (count: number) => void;
   updateJudges: (newJudges: Judge[]) => void;
   toggleMasterSystemLock: (locked?: boolean) => void;
 }
@@ -216,10 +218,46 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     syncConfigToServer({ eventInfo, criteria, participants: newParticipants, judges });
   }, [eventInfo, criteria, judges, syncConfigToServer]);
 
+  const generateParticipantsCount = useCallback((count: number) => {
+    const validCount = Math.max(1, Math.min(500, count));
+    const newParticipants: Participant[] = Array.from({ length: validCount }, (_, i) => {
+      const num = i + 1;
+      const formattedNum = num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
+      return {
+        id: `p_${formattedNum}`,
+        code: `Peserta ${formattedNum}`,
+        name: `Peserta ${formattedNum}`,
+      };
+    });
+    updateParticipants(newParticipants);
+  }, [updateParticipants]);
+
   const updateJudges = useCallback((newJudges: Judge[]) => {
     setJudges(newJudges);
     syncConfigToServer({ eventInfo, criteria, participants, judges: newJudges });
   }, [eventInfo, criteria, participants, syncConfigToServer]);
+
+  const lockAllCardsForJudge = useCallback((judgeId: string) => {
+    setLockedCards(prev => {
+      const next = { ...prev };
+      participants.forEach((p) => {
+        const key = `${judgeId}_${p.id}`;
+        next[key] = true;
+      });
+      try {
+        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', activeEventIdRef.current), JSON.stringify(next));
+      } catch (e) {}
+
+      // Sync lock status to server
+      fetch(`/api/scores?event=${activeEventIdRef.current}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lockedCards: next, eventId: activeEventIdRef.current }),
+      }).catch(() => {});
+
+      return next;
+    });
+  }, [participants]);
 
   const toggleMasterSystemLock = useCallback((locked?: boolean) => {
     setEventInfo(prev => {
@@ -787,10 +825,12 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isRealtimeConnected,
         lockedCards,
         toggleCardLock,
+        lockAllCardsForJudge,
         isCardLocked,
         updateEventInfo,
         updateCriteria,
         updateParticipants,
+        generateParticipantsCount,
         updateJudges,
         toggleMasterSystemLock,
       }}

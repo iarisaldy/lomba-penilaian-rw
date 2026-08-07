@@ -74,8 +74,11 @@ export const PinLoginModal: React.FC = () => {
               <KeyRound className="w-5 h-5 text-amber-400" />
               Sistem Penilaian Lomba
             </h2>
-            <p className="text-xs text-slate-400">
-              Masukkan PIN Juri RT atau PIN Admin Panitia ({eventInfo.competitionTitle}).
+            <p className="text-xs text-amber-300 font-semibold bg-amber-500/10 border border-amber-500/20 py-1 px-3 rounded-full inline-block mt-1">
+              {eventInfo.competitionTitle}
+            </p>
+            <p className="text-[11px] text-slate-400 pt-1">
+              Masukkan PIN Akses Juri / Ketua RT 1-6 atau PIN Admin Panitia.
             </p>
           </div>
 

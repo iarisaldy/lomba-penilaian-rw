@@ -17,6 +17,7 @@ export const JudgeForm: React.FC = () => {
     getParticipantSubtotal,
     authState,
     toggleCardLock,
+    lockAllCardsForJudge,
     isCardLocked,
   } = useScore();
 
@@ -209,8 +210,43 @@ export const JudgeForm: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Lock Action Bar (1-Click Lock All Participants for Judge) */}
+      {!isAdmin && !isSystemLocked && (
+        <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border border-emerald-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 font-bold">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-white">
+                🔒 Selesai Mengisi Nilai? Kunci Seluruh Peserta dalam 1-Klik
+              </h3>
+              <p className="text-xs text-emerald-200/90 mt-0.5">
+                Kunci seluruh {participants.length} peserta sekaligus sebagai formulir final juri ({activeJudge.name}).
+              </p>
+            </div>
+          </div>
 
-      {/* Participants Scoring Cards Grid */}
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `🔒 Apakah Anda yakin ingin mengunci SELURUH nilai ${participants.length} peserta untuk ${activeJudge.name}?\n\nNilai yang sudah dikunci tidak dapat diubah kembali!`
+                )
+              ) {
+                lockAllCardsForJudge(activeJudge.id);
+                alert(`✅ Berhasil! Seluruh ${participants.length} peserta untuk ${activeJudge.name} telah dikunci permanen.`);
+              }
+            }}
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation"
+          >
+            <Send className="w-4 h-4" />
+            Kunci & Kirim Seluruh Nilai Juri ({participants.length} Peserta)
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {filteredParticipants.map((participant) => {
           const isSelf = activeJudge.code === participant.code;

@@ -35,6 +35,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
     updateEventInfo,
     updateCriteria,
     updateParticipants,
+    generateParticipantsCount,
     updateJudges,
     toggleMasterSystemLock,
   } = useScore();
@@ -498,19 +499,58 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
           {/* TAB 3: KELOLA PESERTA */}
           {activeSubTab === 'participants' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Quick Participant Generator Panel */}
+              <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Users className="w-4 h-4" /> Format Otomatis Jumlah Peserta ({participants.length} Orang)
+                  </h4>
+                  <span className="text-[10px] text-slate-400">Generasi cepat Peserta 001 - N</span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Ubah jumlah total peserta individu secara otomatis (misal: 50, 75, 100, 150 peserta):
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {[25, 50, 75, 100, 150].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => {
+                        generateParticipantsCount(num);
+                        setParticipantForm(
+                          Array.from({ length: num }, (_, i) => {
+                            const n = i + 1;
+                            const formatted = n < 10 ? `00${n}` : n < 100 ? `0${n}` : `${n}`;
+                            return { id: `p_${formatted}`, code: `Peserta ${formatted}`, name: `Peserta ${formatted}` };
+                          })
+                        );
+                        showToast(`✅ Berhasil menyesuaikan jumlah peserta menjadi ${num} orang!`);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                        participants.length === num
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md scale-105'
+                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                      }`}
+                    >
+                      Set {num} Peserta
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-white">Daftar Peserta Lomba</h3>
+                  <h3 className="font-extrabold text-sm text-white">Daftar Rincian Peserta Lomba</h3>
                   <p className="text-xs text-slate-400">
-                    Atur kode RT atau nama tim peserta yang mengikuti perlombaan.
+                    Atur kode RT atau nama tim/individu peserta yang mengikuti perlombaan.
                   </p>
                 </div>
                 <button
                   onClick={handleAddParticipant}
                   className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Peserta
+                  <Plus className="w-3.5 h-3.5" /> Tambah Manual
                 </button>
               </div>
 

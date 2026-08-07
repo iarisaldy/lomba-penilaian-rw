@@ -80,18 +80,25 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             {/* User Auth Badge & Controls */}
             <div className="flex flex-wrap items-center gap-2">
               
-              {/* Competition Event Switcher Dropdown */}
-              <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-700/80 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-200">
-                <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider hidden sm:inline">Event:</span>
-                <select
-                  value={activeEventId}
-                  onChange={(e) => switchEvent(e.target.value)}
-                  className="bg-transparent text-amber-300 font-bold text-xs focus:outline-none cursor-pointer pr-1"
-                >
-                  <option value="blind-rias" className="bg-slate-900 text-white">🌸 Lomba Blind Rias Ibu-Ibu</option>
-                  <option value="sepeda-hias" className="bg-slate-900 text-white">🚲 Lomba Sepeda Hias (100 Peserta)</option>
-                </select>
-              </div>
+              {/* Competition Event Switcher Dropdown (ADMIN ONLY) */}
+              {authState.role === 'admin' ? (
+                <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/40 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-200 shadow-sm">
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider hidden sm:inline">👑 Switch Event:</span>
+                  <select
+                    value={activeEventId}
+                    onChange={(e) => switchEvent(e.target.value)}
+                    className="bg-transparent text-amber-300 font-bold text-xs focus:outline-none cursor-pointer pr-1"
+                  >
+                    <option value="blind-rias" className="bg-slate-900 text-white">🌸 Lomba Blind Rias Ibu-Ibu</option>
+                    <option value="sepeda-hias" className="bg-slate-900 text-white">🚲 Lomba Sepeda Hias (100 Peserta)</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 bg-slate-950/80 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Event Active:</span>
+                  <span className="text-amber-400 font-extrabold">{eventInfo.competitionTitle}</span>
+                </div>
+              )}
 
               {/* Admin Config Button */}
               {authState.role === 'admin' && (
