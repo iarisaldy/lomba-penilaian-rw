@@ -34,11 +34,28 @@ export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'):
   if (!supabase) return null;
   const rowId = getRowId(eventId);
   try {
-    const { data, error } = await supabase
+    let data: any = null;
+    let error: any = null;
+
+    const res = await supabase
       .from('scores_state')
       .select('scores, judge_notes, reset_timestamp, config, locked_cards')
       .eq('id', rowId)
       .single();
+
+    data = res.data;
+    error = res.error;
+
+    // Fallback if locked_cards column does not exist in schema
+    if (error && error.message.includes('locked_cards')) {
+      const fallbackRes = await supabase
+        .from('scores_state')
+        .select('scores, judge_notes, reset_timestamp, config')
+        .eq('id', rowId)
+        .single();
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (error) {
       console.error(`Supabase fetch error for event ${rowId}:`, error.message);
@@ -51,7 +68,7 @@ export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'):
         judgeNotes: data.judge_notes || {},
         resetTimestamp: Number(data.reset_timestamp || 0),
         config: data.config || undefined,
-        lockedCards: data.locked_cards || undefined,
+        lockedCards: data.locked_cards || data.config?.lockedCards || undefined,
       };
     }
   } catch (err) {
@@ -90,12 +107,27 @@ export const saveMasterScoresToSupabase = async (
           updated_at: new Date().toISOString(),
         };
 
-    if (config) payload.config = config;
-    if (lockedCards) payload.locked_cards = lockedCards;
+    const finalConfig = config ? { ...config } : {};
+    if (lockedCards) {
+      payload.locked_cards = lockedCards;
+      finalConfig.lockedCards = lockedCards;
+    }
+    if (Object.keys(finalConfig).length > 0) {
+      payload.config = finalConfig;
+    }
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('scores_state')
       .upsert(payload, { onConflict: 'id' });
+
+    // Fallback if locked_cards column does not exist in Supabase table
+    if (error && error.message.includes('locked_cards')) {
+      delete payload.locked_cards;
+      const retryRes = await supabase
+        .from('scores_state')
+        .upsert(payload, { onConflict: 'id' });
+      error = retryRes.error;
+    }
 
     if (error) {
       console.error(`Supabase save error for event ${rowId}:`, error.message);
