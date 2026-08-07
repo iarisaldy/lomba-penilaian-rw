@@ -22,11 +22,15 @@ export const RecapDashboard: React.FC = () => {
   const juara1 = sortedRecap[0];
   const juara2 = sortedRecap[1];
 
-  // Check how many judges have submitted scores
+  // Check how many judges have actually submitted non-zero scores
   const judgesSubmittedCount = judges.filter((j) => {
     const jScores = scores[j.id];
     if (!jScores) return false;
-    return Object.keys(jScores).length > 0;
+    return Object.values(jScores).some((pData: any) => {
+      if (!pData || !pData.scores) return false;
+      const total = Object.values(pData.scores).reduce((acc: number, curr: any) => acc + (Number(curr) || 0), 0);
+      return total > 0;
+    });
   }).length;
 
   // Track which participantId last got confetti — prevents confetti re-firing on every score update
