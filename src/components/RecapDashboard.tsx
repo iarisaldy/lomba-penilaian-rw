@@ -4,7 +4,7 @@ import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, 
 import confetti from 'canvas-confetti';
 
 export const RecapDashboard: React.FC = () => {
-  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData, eventInfo, toggleMasterSystemLock, exportJSON } = useScore();
+  const { judges, participants, recapData, judgeNotes, scores, authState, resetAllData, eventInfo, toggleMasterSystemLock, exportJSON, isCardLocked } = useScore();
   const [confirmPin, setConfirmPin] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
@@ -22,15 +22,24 @@ export const RecapDashboard: React.FC = () => {
   const juara1 = sortedRecap[0];
   const juara2 = sortedRecap[1];
 
-  // Check how many judges have actually submitted non-zero scores
+  // Check how many judges have actually submitted non-zero scores or locked cards
   const judgesSubmittedCount = judges.filter((j) => {
+    // 1. Check if any card is locked for this judge
+    const hasLockedCard = participants.some((p) => isCardLocked(j.id, p.id));
+    if (hasLockedCard) return true;
+
+    // 2. Check if total score entered across all participants > 0
     const jScores = scores[j.id];
     if (!jScores) return false;
-    return Object.values(jScores).some((pData: any) => {
-      if (!pData || !pData.scores) return false;
-      const total = Object.values(pData.scores).reduce((acc: number, curr: any) => acc + (Number(curr) || 0), 0);
-      return total > 0;
+    let totalScoreByJudge = 0;
+    Object.values(jScores).forEach((pData: any) => {
+      if (pData && pData.scores) {
+        Object.values(pData.scores).forEach((val: any) => {
+          totalScoreByJudge += Number(val) || 0;
+        });
+      }
     });
+    return totalScoreByJudge > 0;
   }).length;
 
   // Track which participantId last got confetti — prevents confetti re-firing on every score update
