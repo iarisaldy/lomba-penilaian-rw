@@ -80,22 +80,27 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             {/* User Auth Badge & Controls */}
             <div className="flex flex-wrap items-center gap-2">
               
-              {/* Cloud Connection Status Badge */}
-              <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border shadow-inner ${
-                  isRealtimeConnected
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                    : 'bg-amber-500/15 border-amber-500/40 text-amber-300 animate-pulse'
-                }`}
-                title={
-                  isRealtimeConnected
-                    ? 'Terhubung ke Database Cloud Supabase (Live Sync 15ms)'
-                    : 'Database Cloud sedang pemeliharaan. Nilai tersimpan aman di HP (Local Storage)!'
-                }
-              >
-                <span className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
-                <span className="text-[11px]">{isRealtimeConnected ? 'Cloud Live' : 'Cloud Maintenance (Safe)'}</span>
-              </div>
+              {/* Combined Cloud Realtime Connection Status Badge */}
+              {isLoaded && (
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border shadow-inner ${
+                    isRealtimeConnected
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                      : 'bg-amber-500/15 border-amber-500/40 text-amber-300 animate-pulse'
+                  }`}
+                  title={
+                    isRealtimeConnected
+                      ? 'Terhubung ke Database Cloud Supabase (Live Sync 15ms)'
+                      : 'Database Cloud sedang pemeliharaan. Nilai tersimpan aman di HP (Local Storage)!'
+                  }
+                >
+                  <span className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[11px] font-bold">
+                    {isRealtimeConnected ? 'Cloud Realtime Live' : 'Cloud Maintenance (Safe)'}
+                  </span>
+                </div>
+              )}
 
               {/* Admin Config Button */}
               {authState.role === 'admin' && (
@@ -124,19 +129,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              )}
-
-              {/* Connection status indicator */}
-              {isLoaded && (
-                isRealtimeConnected ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 font-semibold">
-                    <Wifi className="w-3 h-3 animate-pulse text-emerald-400" /> Realtime Live
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 font-semibold">
-                    <CheckCircle2 className="w-3 h-3" /> Auto-Saved (Lokal)
-                  </span>
-                )
               )}
             </div>
 

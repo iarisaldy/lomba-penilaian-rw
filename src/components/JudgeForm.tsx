@@ -466,8 +466,6 @@ export const JudgeForm: React.FC = () => {
                       ? '🔒 Penilaian Final Terkunci'
                       : isLocked
                       ? '🔒 Nilai dikunci permanen'
-                      : isSepedaHias
-                      ? '📝 Draft Tersimpan di HP'
                       : 'Edit nilai aktif'}
                   </span>
 
@@ -496,13 +494,8 @@ export const JudgeForm: React.FC = () => {
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       <span>Nilai Terkunci Permanen</span>
                     </div>
-                  ) : isSepedaHias ? (
-                    /* Untuk Sepeda Hias: Tombol kunci per peserta DIHAPUS. Cukup tampilkan indikator tersimpan lokal */
-                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-slate-900 border border-slate-800 text-emerald-400">
-                      <Check className="w-3.5 h-3.5 text-emerald-400" /> Draft Tersimpan di HP
-                    </div>
                   ) : (
-                    /* Untuk Blind Rias: Tetap ada tombol Kunci & Kirim per-RT */
+                    /* Tombol Kunci & Kirim Per-Peserta (Klik ini mengunci & menyetor nilai ke DB) */
                     <button
                       onClick={() => toggleCardLock(activeJudge.id, participant.id)}
                       disabled={isSystemLocked}
