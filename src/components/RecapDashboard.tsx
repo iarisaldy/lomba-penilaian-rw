@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useScore } from '../context/ScoreContext';
 import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Lock, Unlock, FileCheck2, AlertTriangle, Search } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -29,16 +29,20 @@ export const RecapDashboard: React.FC = () => {
     return Object.keys(jScores).length > 0;
   }).length;
 
-  // Fire confetti if winners have non-zero average score
+  // Track which participantId last got confetti — prevents confetti re-firing on every score update
+  const confettiShownForRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (juara1 && juara1.averageScore > 0) {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.6 },
-      });
+    if (
+      juara1 &&
+      juara1.averageScore > 0 &&
+      confettiShownForRef.current !== juara1.participantId
+    ) {
+      confettiShownForRef.current = juara1.participantId;
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     }
-  }, [juara1?.participantId, juara1?.averageScore]);
+  // Hanya re-check saat pemenang berganti, bukan saat nilai berubah
+  }, [juara1?.participantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const exportToCSV = () => {
     let csv = "RT Peserta," + judges.map(j => `Nilai ${j.code}`).join(",") + ",Total Nilai,Rata-Rata Nilai,Peringkat / Juara\n";

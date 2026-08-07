@@ -234,7 +234,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Building2 className="w-4 h-4" /> Informas Lomba
+            <Building2 className="w-4 h-4" /> Informasi Lomba
           </button>
 
           <button
@@ -320,7 +320,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                     }`}
                   >
                     <div className="text-xs font-bold text-amber-300">🚲 Lomba Sepeda Hias</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">100 Peserta Individu • Ketua RT 1-6 • Skala 1-100</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">30 Peserta Individu (default) • Ketua RT 1-6 • Skala 1-100</div>
                   </button>
                 </div>
               </div>

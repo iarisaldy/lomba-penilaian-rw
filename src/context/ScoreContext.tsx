@@ -156,6 +156,12 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     scoresRef.current = scores;
   }, [scores]);
 
+  // Always-fresh judgeNotes ref — prevents stale closure inside setScores updaters
+  const judgeNotesRef = useRef<JudgeGeneralNotes>({});
+  useEffect(() => {
+    judgeNotesRef.current = judgeNotes;
+  }, [judgeNotes]);
+
   const authStateRef = useRef<AuthState>({ role: 'guest' });
   useEffect(() => {
     authStateRef.current = authState;
@@ -462,7 +468,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const interval = setInterval(fetchApiScores, 8000); // 8 detik — cukup responsif, tidak spam Supabase
 
     return () => clearInterval(interval);
-  }, [lastResetTs, activeJudgeId, judgeNotes, activeEventId]);
+  // PENTING: judgeNotes dihapus dari deps — setiap ketikan juri me-restart interval polling!
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastResetTs, activeJudgeId, activeEventId]);
 
   // Load initial Auth, Config, and Local Scores state
   useEffect(() => {
@@ -638,11 +646,12 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         next[judgeId][participantId].scores[criteriaId] = validScore;
-        saveAndSync(next, judgeNotes);
+        // Gunakan ref agar judgeNotes selalu fresh di dalam setter async
+        saveAndSync(next, judgeNotesRef.current);
         return next;
       });
     },
-    [criteria, judgeNotes, saveAndSync]
+    [criteria, saveAndSync]
   );
 
   const updateParticipantNotes = useCallback(
@@ -654,22 +663,24 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           next[judgeId][participantId] = { scores: {} };
         }
         next[judgeId][participantId].notes = notes;
-        saveAndSync(next, judgeNotes);
+        // Gunakan ref agar judgeNotes selalu fresh di dalam setter async
+        saveAndSync(next, judgeNotesRef.current);
         return next;
       });
     },
-    [judgeNotes, saveAndSync]
+    [saveAndSync]
   );
 
   const updateJudgeGeneralNotes = useCallback(
     (judgeId: string, notes: string) => {
       setJudgeNotes((prev) => {
         const next = { ...prev, [judgeId]: notes };
-        saveAndSync(scores, next);
+        // Gunakan scoresRef.current agar scores selalu fresh di dalam setter async
+        saveAndSync(scoresRef.current, next);
         return next;
       });
     },
-    [scores, saveAndSync]
+    [saveAndSync]
   );
 
   const getParticipantSubtotal = useCallback(
