@@ -151,6 +151,14 @@ export async function POST(request: NextRequest) {
       cache.judgeNotes = {};
       cache.lockedCards = {};
       cache.resetTimestamp = Date.now();
+      // Juga hapus system lock dari config saat reset — tanpa ini isSystemLocked
+      // tetap true di cache dan semua input juri tetap disabled setelah reset.
+      if (cache.config?.eventInfo) {
+        cache.config = {
+          ...cache.config,
+          eventInfo: { ...cache.config.eventInfo, isSystemLocked: false },
+        };
+      }
     } else {
       if (body.scores) {
         cache.scores = { ...cache.scores, ...body.scores };

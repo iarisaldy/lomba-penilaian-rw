@@ -758,10 +758,17 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setScores({});
     setJudgeNotes({});
     setLockedCards({});
+
+    // Buka system lock saat reset — tanpa ini isSystemLocked tetap true
+    // dan semua input juri disabled meski data sudah di-reset
+    setEventInfo(prev => ({ ...prev, isSystemLocked: false }));
+
     const newTs = Date.now();
     setLastResetTs(newTs);
     try {
       localStorage.setItem(getStorageKey('lomba_last_reset_ts_v1', activeEventIdRef.current), String(newTs));
+      // Hapus config lama dari localStorage agar isSystemLocked tidak kembali saat reload
+      localStorage.removeItem(getStorageKey('lomba_event_config_v1', activeEventIdRef.current));
     } catch (e) {}
     saveAndSync({}, {}, true);
   }, [saveAndSync]);
