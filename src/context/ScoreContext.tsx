@@ -277,12 +277,18 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         localStorage.setItem(getStorageKey('lomba_locked_cards_v1', activeEventIdRef.current), JSON.stringify(next));
       } catch (e) {}
 
-      // Sync lock status to server
+      // Kirim SELURUH nilai juri ini + lock status ke server dalam 1 POST request sekaligus!
       fetch(`/api/scores?event=${activeEventIdRef.current}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lockedCards: next, eventId: activeEventIdRef.current }),
-      }).catch(() => {});
+        body: JSON.stringify({
+          scores: scoresRef.current,
+          judgeNotes: judgeNotesRef.current,
+          lockedCards: next,
+          eventId: activeEventIdRef.current,
+          judgeId,
+        }),
+      }).catch((e) => console.error('Failed to post lock all scores', e));
 
       return next;
     });
@@ -310,17 +316,24 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setLockedCards(prev => {
-      const next = { ...prev, [key]: !currentlyLocked };
+      const nextLocked = !currentlyLocked;
+      const next = { ...prev, [key]: nextLocked };
       try {
         localStorage.setItem(getStorageKey('lomba_locked_cards_v1', activeEventIdRef.current), JSON.stringify(next));
       } catch (e) {}
 
-      // Sync lock status to server
+      // Sync lock status & current scores of this judge to server
       fetch(`/api/scores?event=${activeEventIdRef.current}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lockedCards: next, eventId: activeEventIdRef.current }),
-      }).catch(() => {});
+        body: JSON.stringify({
+          scores: scoresRef.current,
+          judgeNotes: judgeNotesRef.current,
+          lockedCards: next,
+          eventId: activeEventIdRef.current,
+          judgeId,
+        }),
+      }).catch((e) => console.error('Failed to post card lock score', e));
 
       return next;
     });
@@ -644,6 +657,20 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e) {}
   }, []);
 
+  const saveToLocalStorageOnly = useCallback((
+    newScores: AllScores,
+    newNotes: JudgeGeneralNotes
+  ) => {
+    lastLocalInteractionRef.current = Date.now();
+    const curEventId = activeEventIdRef.current;
+    try {
+      localStorage.setItem(getStorageKey('lomba_scores_v1', curEventId), JSON.stringify(newScores));
+      localStorage.setItem(getStorageKey('lomba_notes_v1', curEventId), JSON.stringify(newNotes));
+    } catch (e) {
+      console.error('Failed to save to localStorage', e);
+    }
+  }, []);
+
   const updateCriteriaScore = useCallback(
     (judgeId: string, participantId: string, criteriaId: string, score: number) => {
       const targetCriteria = criteria.find(c => c.id === criteriaId);
@@ -661,13 +688,12 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         next[judgeId][participantId].scores[criteriaId] = validScore;
-        // Gunakan ref agar judgeNotes selalu fresh di dalam setter async
-        // Pass judgeId → server tulis ke baris master_j_{judgeId} (zero lock conflict!)
-        saveAndSync(next, judgeNotesRef.current, false, judgeId);
+        // Simpan ke localStorage SAJA (0 HTTP traffic ke Supabase saat slider/stepper digeser)
+        saveToLocalStorageOnly(next, judgeNotesRef.current);
         return next;
       });
     },
-    [criteria, saveAndSync]
+    [criteria, saveToLocalStorageOnly]
   );
 
   const updateParticipantNotes = useCallback(
@@ -679,24 +705,22 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           next[judgeId][participantId] = { scores: {} };
         }
         next[judgeId][participantId].notes = notes;
-        // Gunakan ref agar judgeNotes selalu fresh di dalam setter async
-        saveAndSync(next, judgeNotesRef.current, false, judgeId);
+        saveToLocalStorageOnly(next, judgeNotesRef.current);
         return next;
       });
     },
-    [saveAndSync]
+    [saveToLocalStorageOnly]
   );
 
   const updateJudgeGeneralNotes = useCallback(
     (judgeId: string, notes: string) => {
       setJudgeNotes((prev) => {
         const next = { ...prev, [judgeId]: notes };
-        // Gunakan scoresRef.current agar scores selalu fresh di dalam setter async
-        saveAndSync(scoresRef.current, next, false, judgeId);
+        saveToLocalStorageOnly(scoresRef.current, next);
         return next;
       });
     },
-    [saveAndSync]
+    [saveToLocalStorageOnly]
   );
 
   const getParticipantSubtotal = useCallback(

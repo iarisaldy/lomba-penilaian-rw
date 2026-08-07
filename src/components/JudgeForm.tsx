@@ -20,7 +20,11 @@ export const JudgeForm: React.FC = () => {
     lockAllCardsForJudge,
     isCardLocked,
     isRealtimeConnected,
+    activeEventId,
   } = useScore();
+
+  const isSepedaHias = activeEventId === 'sepeda-hias';
+  const isBlindRias = activeEventId === 'blind-rias';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [batchFilter, setBatchFilter] = useState<'all' | '1-20' | '21-40' | '41-60' | '61-80' | '81-100'>('all');
@@ -224,11 +228,20 @@ export const JudgeForm: React.FC = () => {
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 flex items-start gap-2.5">
         <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 flex-shrink-0 mt-0.5" />
         <div className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
-          <span className="font-bold text-amber-400">Aturan Keamanan Penilaian:</span> Gunakan tombol <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">-</span> dan <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">+</span> atau slider. Setelah selesai, tekan <span className="font-bold text-emerald-400">🔒 Kunci & Kirim</span>. <span className="text-red-400 font-bold">Sekali dikunci oleh Juri, nilai tidak dapat diubah kembali.</span>
+          <span className="font-bold text-amber-400">Aturan Keamanan Penilaian:</span>{' '}
+          {isSepedaHias ? (
+            <>
+              Nilai yang Anda input/geser <strong className="text-emerald-400">otomatis tersimpan aman di HP</strong> (0 beban server). Setelah selesai menilai SELURUH {participants.length} peserta, tekan tombol hijau <strong className="text-emerald-400">🔒 Kunci & Kirim Seluruh Nilai Juri</strong> untuk menyetorkan nilai sekaligus ke Server Database.
+            </>
+          ) : (
+            <>
+              Gunakan tombol <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">-</span> dan <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">+</span> atau slider. Nilai tersimpan di HP. Setelah selesai, tekan <span className="font-bold text-emerald-400">🔒 Kunci & Kirim</span> untuk menyetorkan nilai ke Server Database.
+            </>
+          )}
         </div>
       </div>
 
-      {/* Bulk Lock Action Bar (1-Click Lock All Participants for Judge) */}
+      {/* Bulk Lock Action Bar (Top) */}
       {!isAdmin && !isSystemLocked && (
         <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border border-emerald-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
           <div className="flex items-center gap-3">
@@ -237,10 +250,10 @@ export const JudgeForm: React.FC = () => {
             </div>
             <div>
               <h3 className="font-extrabold text-sm text-white">
-                🔒 Selesai Mengisi Nilai? Kunci Seluruh Peserta dalam 1-Klik
+                🔒 {isSepedaHias ? `Kunci & Kirim Seluruh Nilai Sepeda Hias (${participants.length} Peserta)` : 'Selesai Mengisi Nilai? Kunci Seluruh Peserta dalam 1-Klik'}
               </h3>
               <p className="text-xs text-emerald-200/90 mt-0.5">
-                Kunci seluruh {participants.length} peserta sekaligus sebagai formulir final juri ({activeJudge.name}).
+                Kunci seluruh {participants.length} peserta sekaligus dan setor formulir final juri ({activeJudge.name}) ke Server Database.
               </p>
             </div>
           </div>
@@ -250,14 +263,14 @@ export const JudgeForm: React.FC = () => {
             onClick={() => {
               if (
                 window.confirm(
-                  `🔒 Apakah Anda yakin ingin mengunci SELURUH nilai ${participants.length} peserta untuk ${activeJudge.name}?\n\nNilai yang sudah dikunci tidak dapat diubah kembali!`
+                  `🔒 Apakah Anda yakin ingin mengunci SELURUH nilai ${participants.length} peserta untuk ${activeJudge.name}?\n\nNilai yang sudah dikunci akan dikirim ke Server & Database dan tidak dapat diubah kembali oleh juri!`
                 )
               ) {
                 lockAllCardsForJudge(activeJudge.id);
-                alert(`✅ Berhasil! Seluruh ${participants.length} peserta untuk ${activeJudge.name} telah dikunci permanen.`);
+                alert(`✅ Berhasil! Seluruh ${participants.length} peserta untuk ${activeJudge.name} telah dikunci permanen & tersimpan di Database Cloud.`);
               }
             }}
-            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation"
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation hover:scale-102"
           >
             <Send className="w-4 h-4" />
             Kunci & Kirim Seluruh Nilai Juri ({participants.length} Peserta)
@@ -445,14 +458,16 @@ export const JudgeForm: React.FC = () => {
                 )}
               </div>
 
-              {/* Per-RT Card Lock / Submit Button */}
+              {/* Card Footer: Action area per participant */}
               {!isSelf && (
                 <div className="p-3 bg-slate-950/90 border-t border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
                   <span className="text-[11px] text-slate-400 font-medium text-center sm:text-left">
                     {isSystemLocked
                       ? '🔒 Penilaian Final Terkunci'
                       : isLocked
-                      ? '🔒 Nilai RT dikunci permanen'
+                      ? '🔒 Nilai dikunci permanen'
+                      : isSepedaHias
+                      ? '📝 Draft Tersimpan di HP'
                       : 'Edit nilai aktif'}
                   </span>
 
@@ -476,21 +491,25 @@ export const JudgeForm: React.FC = () => {
                         </>
                       )}
                     </button>
+                  ) : isLocked ? (
+                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs bg-slate-900 border border-amber-500/30 text-amber-400 select-none">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span>Nilai Terkunci Permanen</span>
+                    </div>
+                  ) : isSepedaHias ? (
+                    /* Untuk Sepeda Hias: Tombol kunci per peserta DIHAPUS. Cukup tampilkan indikator tersimpan lokal */
+                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-slate-900 border border-slate-800 text-emerald-400">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" /> Draft Tersimpan di HP
+                    </div>
                   ) : (
-                    isLocked ? (
-                      <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs bg-slate-900 border border-amber-500/30 text-amber-400 select-none">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>Nilai Terkunci Permanen</span>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => toggleCardLock(activeJudge.id, participant.id)}
-                        disabled={isSystemLocked}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Send className="w-4 h-4" /> Kunci & Kirim {participant.code}
-                      </button>
-                    )
+                    /* Untuk Blind Rias: Tetap ada tombol Kunci & Kirim per-RT */
+                    <button
+                      onClick={() => toggleCardLock(activeJudge.id, participant.id)}
+                      disabled={isSystemLocked}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Send className="w-4 h-4" /> Kunci & Kirim {participant.code}
+                    </button>
                   )}
                 </div>
               )}
@@ -498,6 +517,43 @@ export const JudgeForm: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Bulk Lock Action Bar (Bottom - Sangat membantu untuk Lomba Sepeda Hias 30-100 Peserta) */}
+      {!isAdmin && !isSystemLocked && (
+        <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900 to-emerald-950/90 border border-emerald-500/50 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 font-bold">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-2">
+                🔒 Selesai Menilai? Kunci & Kirim Seluruh Nilai Juri ({activeJudge.name})
+              </h3>
+              <p className="text-xs text-emerald-200/90 mt-0.5">
+                Kirim seluruh nilai {participants.length} peserta sekaligus ke Database Server & Kunci permanen.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `🔒 Apakah Anda yakin ingin mengunci & menyetorkan SELURUH nilai ${participants.length} peserta untuk ${activeJudge.name} ke Server Database?\n\nNilai yang sudah dikunci tidak dapat diubah kembali oleh juri!`
+                )
+              ) {
+                lockAllCardsForJudge(activeJudge.id);
+                alert(`✅ Berhasil! Seluruh ${participants.length} peserta untuk ${activeJudge.name} telah berhasil dikunci permanen & tersimpan di Database Cloud.`);
+              }
+            }}
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-xl shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation hover:scale-102"
+          >
+            <Send className="w-5 h-5" />
+            Kunci & Kirim Seluruh Nilai ({participants.length} Peserta)
+          </button>
+        </div>
+      )}
 
       {/* General Notes per Judge */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3">
