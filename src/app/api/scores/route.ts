@@ -70,12 +70,33 @@ export async function GET(request: NextRequest) {
   if (isSupabaseConfigured && (cache.isDirty || cacheIsStale)) {
     const supabaseData = await fetchMasterScoresFromSupabase(eventId);
     if (supabaseData) {
-      if (typeof supabaseData.resetTimestamp === 'number' && supabaseData.resetTimestamp > cache.resetTimestamp) {
-        cache.resetTimestamp = supabaseData.resetTimestamp;
+      const supabaseTs = typeof supabaseData.resetTimestamp === 'number' ? supabaseData.resetTimestamp : 0;
+
+      if (supabaseTs > cache.resetTimestamp) {
+        // ─── Supabase has a NEWER reset (e.g. another admin reset remotely) ───
+        // Accept Supabase as source of truth
+        cache.resetTimestamp = supabaseTs;
         cache.scores = supabaseData.scores || {};
         cache.judgeNotes = supabaseData.judgeNotes || {};
         cache.lockedCards = supabaseData.lockedCards || {};
+
+      } else if (cache.resetTimestamp > supabaseTs) {
+        // ─── Local cache has a NEWER reset (reset happened while Supabase was down) ───
+        // DO NOT merge stale Supabase scores — local reset is authoritative.
+        // Push the reset to Supabase so it catches up.
+        console.info(`[cache] Local reset (${cache.resetTimestamp}) > Supabase (${supabaseTs}) — pushing reset to Supabase`);
+        saveMasterScoresToSupabase(
+          cache.scores,
+          cache.judgeNotes,
+          cache.resetTimestamp,
+          true, // isReset = true → wipes Supabase scores
+          cache.config,
+          cache.lockedCards,
+          eventId
+        ).catch(() => {});
+
       } else {
+        // ─── Same timestamp → normal score merge (regular operating state) ───
         if (Object.keys(supabaseData.scores).length > 0) {
           cache.scores = { ...cache.scores, ...supabaseData.scores };
         }
@@ -85,10 +106,8 @@ export async function GET(request: NextRequest) {
         if (supabaseData.lockedCards && Object.keys(supabaseData.lockedCards).length > 0) {
           cache.lockedCards = { ...cache.lockedCards, ...supabaseData.lockedCards };
         }
-        if (typeof supabaseData.resetTimestamp === 'number') {
-          cache.resetTimestamp = supabaseData.resetTimestamp;
-        }
       }
+
       if (supabaseData.config) {
         cache.config = supabaseData.config;
       }
