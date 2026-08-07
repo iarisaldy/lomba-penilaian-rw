@@ -26,6 +26,8 @@ interface AdminConfigModalProps {
 
 export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onClose }) => {
   const {
+    activeEventId,
+    switchEvent,
     eventInfo,
     criteria,
     participants,
@@ -263,7 +265,57 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
           {/* TAB 1: INFORMASI LOMBA */}
           {activeSubTab === 'info' && (
-            <form onSubmit={handleSaveInfo} className="space-y-4 max-w-2xl">
+            <div className="space-y-6 max-w-2xl">
+              {/* Preset Template Switcher Card */}
+              <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="w-4 h-4" /> Beralih Template Event Lomba (Preset)
+                  </h4>
+                  <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-full border border-slate-700">
+                    Active: {activeEventId === 'sepeda-hias' ? '🚲 Sepeda Hias' : '🌸 Blind Rias'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Pilih preset di bawah untuk memuat konfigurasi lomba secara instan tanpa menghapus data event lain:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchEvent('blind-rias');
+                      showToast('🌸 Berhasil berpindah ke Lomba Blind Rias Ibu-Ibu!');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      activeEventId === 'blind-rias'
+                        ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-amber-300">🌸 Lomba Blind Rias Ibu-Ibu</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">6 Peserta RT • 6 Juri RT • 4 Kriteria</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchEvent('sepeda-hias');
+                      showToast('🚲 Berhasil berpindah ke Lomba Sepeda Hias!');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      activeEventId === 'sepeda-hias'
+                        ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-amber-300">🚲 Lomba Sepeda Hias</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">100 Peserta Individu • Ketua RT 1-6 • Skala 1-100</div>
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveInfo} className="space-y-4">
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-300">Nama Acara / Kegiatan</label>
@@ -355,7 +407,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                 </button>
               </div>
             </form>
-          )}
+          </div>
+        )}
 
           {/* TAB 2: KRITERIA PENILAIAN & BOBOT */}
           {activeSubTab === 'criteria' && (

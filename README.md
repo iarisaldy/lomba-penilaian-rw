@@ -13,10 +13,20 @@ Dibuat menggunakan **Next.js 16 (App Router), TypeScript, Tailwind CSS, dan Supa
 
 ---
 
+### 🌐 URL Akses Direct Link Per Event
+
+| Event Perlombaan | URL Akses Langsung | Peserta & Penilai | Skema Skor |
+|---|---|---|---|
+| 🚲 **Lomba Sepeda Hias** | `/?event=sepeda-hias` | 100 Peserta Individu (Penilai Ketua RT 01-06) | Skala 1 - 100 |
+| 🌸 **Lomba Blind Rias Ibu-Ibu** | `/?event=blind-rias` (atau `/`) | 6 Peserta RT (RT 01 s/d RT 06) | 4 Kriteria (Max 30, 30, 20, 20) |
+
+---
+
 ## 🌟 Fitur-Fitur Utama
 
 ### 📱 1. Antarmuka Mobile-First Juri (Touch-Friendly)
 - **Tombol `-` & `+` Stepper & Range Slider**: Memudahkan dewan juri menginput dan menyesuaikan nilai di layar HP dengan cepat menggunakan jempol.
+- **Search Bar & Batch Range Filter**: Fitur pencarian instan peserta (misal ketik `045`) dan quick filter (`001-020`, `021-040`, dll.) untuk penilaian 100 peserta individu.
 - **Auto-Save & Reseed Resilien**: Setiap perubahan nilai tersimpan otomatis di Supabase Cloud dan memori lokal HP juri (`localStorage`), sehingga data nilai 100% aman dan tidak akan hilang walau sinyal internet terputus.
 
 ### 🛡️ 2. Penguncian Nilai & Keamanan Integritas Penilaian
@@ -25,12 +35,12 @@ Dibuat menggunakan **Next.js 16 (App Router), TypeScript, Tailwind CSS, dan Supa
 - **Privasi Rekapitulasi Juri**: Tab rekapitulasi disembunyikan sementara dari Juri selama masa penilaian aktif untuk menjaga **independensi dan objektivitas nilai antar-juri**.
 
 ### ⚙️ 3. Pengaturan Lomba Fleksibel (Multi-Lomba & Custom Kriteria)
-- **Multi-Lomba**: Dapat digunakan untuk berbagai jenis lomba (*Lomba Blind Rias, Lomba Mewarnai, Lomba Karaoke, Lomba Tumpeng, Balap Karung, Lomba Kebersihan, dsb.*).
-- **Custom Kriteria & Bobot Skor**: Admin dapat menambah, mengubah nama kriteria, serta mengatur bobot skor maksimal (misal Max 30, Max 20) secara dinamis.
-- **Realtime Sync**: Seluruh perubahan pengaturan lomba langsung ter-sync di HP seluruh juri secara realtime!
+- **Multi-Lomba Preset & Direct URL Routing**: Memiliki preset siap pakai untuk **Lomba Sepeda Hias** (100 Peserta Individu) dan **Lomba Blind Rias Ibu-Ibu** (6 Peserta RT).
+- **Custom Kriteria & Bobot Skor**: Admin dapat menambah, mengubah nama kriteria, serta mengatur bobot skor maksimal (misal Max 100, Max 30) secara dinamis.
+- **Single-Table Database Isolation**: Menggunakan 1 tabel Supabase (`scores_state`) dengan isolasi data per event row secara penuh.
 
 ### 📊 4. Rekapitulasi Otomatis & Auto-Backup Safety
-- **Kalkulasi Rata-Rata Presisi**: Menghitung Total Nilai dan Rata-Rata Nilai secara presisi dengan aturan otomatis eksklusi nilai RT sendiri (N/A).
+- **Kalkulasi Rata-Rata Presisi**: Menghitung Total Nilai dan Rata-Rata Nilai secara presisi dengan aturan otomatis eksklusi nilai RT sendiri jika peserta RT.
 - **Auto-Backup Sebelum Reset**: Sebelum Admin mengosongkan data nilai untuk lomba baru, sistem secara otomatis mengunduh file **Backup Excel (`.csv`)** dan **Snapshot JSON** ke komputer Admin.
 - **Cetak Berita Acara PDF (A4)**: Pratinjau dokumen cetak A4 resmi yang dilengkapi KOP Permata Discovery dan kolom tanda tangan Koordinator Sie Acara serta Ketua RW.
 
@@ -40,12 +50,12 @@ Dibuat menggunakan **Next.js 16 (App Router), TypeScript, Tailwind CSS, dan Supa
 
 | Peran / Juri | Perwakilan | PIN Akses | Keterangan |
 |---|---|---|---|
-| **Juri RT 01** | RT 01 | **`1111`** | Menilai RT 02 s/d RT 06 |
-| **Juri RT 02** | RT 02 | **`2222`** | Menilai RT 01, 03 s/d 06 |
-| **Juri RT 03** | RT 03 | **`3333`** | Menilai RT 01, 02, 04 s/d 06 |
-| **Juri RT 04** | RT 04 | **`4444`** | Menilai RT 01 s/d 03, 05 s/d 06 |
-| **Juri RT 05** | RT 05 | **`5555`** | Menilai RT 01 s/d 04, 06 |
-| **Juri RT 06** | RT 06 | **`6666`** | Menilai RT 01 s/d 05 |
+| **Ketua RT 01** | RT 01 | **`1111`** | Penilai Lomba Sepeda Hias & Blind Rias |
+| **Ketua RT 02** | RT 02 | **`2222`** | Penilai Lomba Sepeda Hias & Blind Rias |
+| **Ketua RT 03** | RT 03 | **`3333`** | Penilai Lomba Sepeda Hias & Blind Rias |
+| **Ketua RT 04** | RT 04 | **`4444`** | Penilai Lomba Sepeda Hias & Blind Rias |
+| **Ketua RT 05** | RT 05 | **`5555`** | Penilai Lomba Sepeda Hias & Blind Rias |
+| **Ketua RT 06** | RT 06 | **`6666`** | Penilai Lomba Sepeda Hias & Blind Rias |
 | **Admin Rekap** | Panitia | **`0000`** | Akses Pengaturan Lomba, Master Lock, & Download Rekap |
 
 ---

@@ -1,8 +1,6 @@
-'use client';
-
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { UserCheck, Lock, Unlock, AlertCircle, MessageSquareText, Check, Shield, Eye, Send, Plus, Minus, CheckCircle2 } from 'lucide-react';
+import { UserCheck, Lock, Unlock, AlertCircle, MessageSquareText, Check, Shield, Eye, Send, Plus, Minus, CheckCircle2, Search, Filter } from 'lucide-react';
 
 export const JudgeForm: React.FC = () => {
   const {
@@ -22,6 +20,9 @@ export const JudgeForm: React.FC = () => {
     isCardLocked,
   } = useScore();
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [batchFilter, setBatchFilter] = useState<'all' | '1-20' | '21-40' | '41-60' | '61-80' | '81-100'>('all');
+
   const effectiveJudgeId =
     authState.role === 'juri' && authState.judgeId
       ? authState.judgeId
@@ -32,6 +33,31 @@ export const JudgeForm: React.FC = () => {
 
   const isAdmin = authState.role === 'admin';
   const isSystemLocked = Boolean(eventInfo.isSystemLocked);
+
+  // Filter participants by search query and batch range
+  const filteredParticipants = useMemo(() => {
+    return participants.filter((p, index) => {
+      // 1. Search Query Filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const matchesCode = p.code.toLowerCase().includes(query);
+        const matchesName = p.name.toLowerCase().includes(query);
+        if (!matchesCode && !matchesName) return false;
+      }
+
+      // 2. Batch Range Filter (only applies if length > 10 and no active search query)
+      if (!searchQuery.trim() && participants.length > 10 && batchFilter !== 'all') {
+        const num = index + 1;
+        if (batchFilter === '1-20' && (num < 1 || num > 20)) return false;
+        if (batchFilter === '21-40' && (num < 21 || num > 40)) return false;
+        if (batchFilter === '41-60' && (num < 41 || num > 60)) return false;
+        if (batchFilter === '61-80' && (num < 61 || num > 80)) return false;
+        if (batchFilter === '81-100' && (num < 81 || num > 100)) return false;
+      }
+
+      return true;
+    });
+  }, [participants, searchQuery, batchFilter]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -84,7 +110,7 @@ export const JudgeForm: React.FC = () => {
               Formulir Penilaian — {activeJudge.name}
             </h2>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Sebagai <span className="text-amber-400 font-bold">{activeJudge.name}</span>, Anda memberikan nilai untuk {participants.length - 1} peserta lainnya.
+              Sebagai <span className="text-amber-400 font-bold">{activeJudge.name}</span>, Anda memberikan nilai untuk {participants.length} peserta.
             </p>
           </div>
 
@@ -123,6 +149,58 @@ export const JudgeForm: React.FC = () => {
         </div>
       </div>
 
+      {/* Search & Batch Filter Toolbar (Especially useful for 100 participants) */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Search Bar */}
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari nomor / nama peserta (cth: 025)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 text-slate-100 text-xs rounded-xl pl-9 pr-8 py-2.5 outline-none transition-all placeholder:text-slate-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold bg-slate-800 rounded-full w-4 h-4 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Result Count Indicator */}
+          <div className="text-xs text-slate-400 flex items-center gap-2 self-start sm:self-auto">
+            <span>Menampilkan <strong className="text-amber-400">{filteredParticipants.length}</strong> dari {participants.length} peserta</span>
+          </div>
+        </div>
+
+        {/* Batch Range Filter Tabs (Only shown if participants > 10) */}
+        {participants.length > 10 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mr-1 flex-shrink-0">
+              <Filter className="w-3 h-3 text-amber-400" /> Filter:
+            </span>
+            {(['all', '1-20', '21-40', '41-60', '61-80', '81-100'] as const).map((b) => (
+              <button
+                key={b}
+                onClick={() => setBatchFilter(b)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer touch-manipulation ${
+                  batchFilter === b && !searchQuery
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
+                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                {b === 'all' ? 'Semua (100)' : `Peserta ${b}`}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Rules Notice */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 flex items-start gap-2.5">
         <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -131,9 +209,10 @@ export const JudgeForm: React.FC = () => {
         </div>
       </div>
 
+
       {/* Participants Scoring Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {participants.map((participant) => {
+        {filteredParticipants.map((participant) => {
           const isSelf = activeJudge.code === participant.code;
           const participantScores = scores[activeJudge.id]?.[participant.id]?.scores || {};
           const subtotal = getParticipantSubtotal(activeJudge.id, participant.id);

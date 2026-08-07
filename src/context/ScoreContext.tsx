@@ -12,6 +12,7 @@ import {
   ParticipantRecap,
 } from '../types/scoring';
 import {
+  COMPETITION_PRESETS,
   DEFAULT_CRITERIA,
   DEFAULT_JUDGES,
   DEFAULT_PARTICIPANTS,
@@ -19,6 +20,8 @@ import {
 } from '../data/competitionDefaults';
 
 interface ScoreContextType {
+  activeEventId: string;
+  switchEvent: (presetKey: string) => void;
   judges: Judge[];
   participants: Participant[];
   criteria: Criteria[];
@@ -61,13 +64,10 @@ interface ScoreContextType {
   toggleMasterSystemLock: (locked?: boolean) => void;
 }
 
-const STORAGE_KEY_SCORES = 'lomba_scores_v1';
-const STORAGE_KEY_NOTES = 'lomba_notes_v1';
 const STORAGE_KEY_ACTIVE_JURI = 'lomba_active_juri_v1';
 const STORAGE_KEY_AUTH = 'lomba_auth_v1';
-const STORAGE_KEY_LOCKED_CARDS = 'lomba_locked_cards_v1';
-const STORAGE_KEY_RESET_TS = 'lomba_last_reset_ts_v1';
-const STORAGE_KEY_CONFIG = 'lomba_event_config_v1';
+
+const getStorageKey = (base: string, eventId: string) => `${base}_${eventId}`;
 
 const ScoreContext = createContext<ScoreContextType | undefined>(undefined);
 
@@ -100,19 +100,28 @@ const normalizeScores = (rawScores: Record<string, any>): Record<string, any> =>
 };
 
 export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [eventInfo, setEventInfo] = useState<EventInfo>(EVENT_INFO);
-  const [criteria, setCriteria] = useState<Criteria[]>(DEFAULT_CRITERIA);
-  const [participants, setParticipants] = useState<Participant[]>(DEFAULT_PARTICIPANTS);
-  const [judges, setJudges] = useState<Judge[]>(DEFAULT_JUDGES);
+  const [activeEventId, setActiveEventId] = useState<string>('blind-rias');
+
+  const activePreset = COMPETITION_PRESETS[activeEventId] || COMPETITION_PRESETS['blind-rias'];
+
+  const [eventInfo, setEventInfo] = useState<EventInfo>(activePreset.eventInfo);
+  const [criteria, setCriteria] = useState<Criteria[]>(activePreset.criteria);
+  const [participants, setParticipants] = useState<Participant[]>(activePreset.participants);
+  const [judges, setJudges] = useState<Judge[]>(activePreset.judges);
 
   const [scores, setScores] = useState<AllScores>({});
   const [judgeNotes, setJudgeNotes] = useState<JudgeGeneralNotes>({});
-  const [activeJudgeId, setActiveJudgeId] = useState<string>(DEFAULT_JUDGES[0].id);
+  const [activeJudgeId, setActiveJudgeId] = useState<string>(activePreset.judges[0]?.id || 'juri_rt01');
   const [authState, setAuthState] = useState<AuthState>({ role: 'guest' });
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(true);
   const [lockedCards, setLockedCards] = useState<Record<string, boolean>>({});
   const [lastResetTs, setLastResetTs] = useState<number>(0);
+
+  const activeEventIdRef = useRef<string>(activeEventId);
+  useEffect(() => {
+    activeEventIdRef.current = activeEventId;
+  }, [activeEventId]);
 
   // Timestamp of last local slider interaction to prevent polling race-condition flickering
   const lastLocalInteractionRef = useRef<number>(0);
@@ -132,6 +141,43 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     activeJudgeIdRef.current = activeJudgeId;
   }, [activeJudgeId]);
 
+  // Detect URL parameter on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlEvent = params.get('event');
+      if (urlEvent && COMPETITION_PRESETS[urlEvent]) {
+        setActiveEventId(urlEvent);
+        const p = COMPETITION_PRESETS[urlEvent];
+        setEventInfo(p.eventInfo);
+        setCriteria(p.criteria);
+        setParticipants(p.participants);
+        setJudges(p.judges);
+        if (p.judges.length > 0) setActiveJudgeId(p.judges[0].id);
+      }
+    }
+  }, []);
+
+  const switchEvent = useCallback((presetKey: string) => {
+    const targetPreset = COMPETITION_PRESETS[presetKey] || COMPETITION_PRESETS['blind-rias'];
+    setActiveEventId(presetKey);
+    setEventInfo(targetPreset.eventInfo);
+    setCriteria(targetPreset.criteria);
+    setParticipants(targetPreset.participants);
+    setJudges(targetPreset.judges);
+    if (targetPreset.judges.length > 0) {
+      setActiveJudgeId(targetPreset.judges[0].id);
+    }
+    setScores({});
+    setJudgeNotes({});
+    setLockedCards({});
+
+    if (typeof window !== 'undefined') {
+      const newUrl = `${window.location.pathname}?event=${presetKey}`;
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+  }, []);
+
   const isCardLocked = useCallback((judgeId: string, participantId: string): boolean => {
     // If master system is locked by admin, ALL cards are locked!
     if (eventInfo.isSystemLocked) return true;
@@ -141,11 +187,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const syncConfigToServer = useCallback(async (newConfig: any) => {
     try {
-      localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(newConfig));
-      await fetch('/api/scores', {
+      localStorage.setItem(getStorageKey('lomba_event_config_v1', activeEventIdRef.current), JSON.stringify(newConfig));
+      await fetch(`/api/scores?event=${activeEventIdRef.current}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: newConfig }),
+        body: JSON.stringify({ config: newConfig, eventId: activeEventIdRef.current }),
       });
     } catch (e) {
       console.error('Failed to sync config to server', e);
@@ -192,21 +238,21 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // RULE: Juri can LOCK their card, but CANNOT UNLOCK once locked!
     // Only Admin can unlock individual cards or toggle master system lock.
     if (currentRole === 'juri' && currentlyLocked) {
-      alert('🔒 Nilai RT ini telah dikunci permanen. Untuk perubahan nilai, silakan hubungi Admin Panitia.');
+      alert('🔒 Nilai peserta ini telah dikunci permanen. Untuk perubahan nilai, silakan hubungi Admin Panitia.');
       return;
     }
 
     setLockedCards(prev => {
       const next = { ...prev, [key]: !currentlyLocked };
       try {
-        localStorage.setItem(STORAGE_KEY_LOCKED_CARDS, JSON.stringify(next));
+        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', activeEventIdRef.current), JSON.stringify(next));
       } catch (e) {}
 
       // Sync lock status to server
-      fetch('/api/scores', {
+      fetch(`/api/scores?event=${activeEventIdRef.current}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lockedCards: next }),
+        body: JSON.stringify({ lockedCards: next, eventId: activeEventIdRef.current }),
       }).catch(() => {});
 
       return next;
@@ -217,7 +263,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const fetchApiScores = async () => {
       try {
-        const res = await fetch('/api/scores', { cache: 'no-store' });
+        const curEventId = activeEventIdRef.current;
+        const res = await fetch(`/api/scores?event=${curEventId}`, { cache: 'no-store' });
         let data: {
           scores?: Record<string, any>;
           judgeNotes?: Record<string, any>;
@@ -257,10 +304,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setJudgeNotes({});
             setLockedCards({});
             try {
-              localStorage.setItem(STORAGE_KEY_RESET_TS, String(data.resetTimestamp));
-              localStorage.removeItem(STORAGE_KEY_SCORES);
-              localStorage.removeItem(STORAGE_KEY_NOTES);
-              localStorage.removeItem(STORAGE_KEY_LOCKED_CARDS);
+              localStorage.setItem(getStorageKey('lomba_last_reset_ts_v1', curEventId), String(data.resetTimestamp));
+              localStorage.removeItem(getStorageKey('lomba_scores_v1', curEventId));
+              localStorage.removeItem(getStorageKey('lomba_notes_v1', curEventId));
+              localStorage.removeItem(getStorageKey('lomba_locked_cards_v1', curEventId));
             } catch (e) {}
             return;
           }
@@ -332,10 +379,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             });
           } else if (Object.keys(scoresRef.current).length > 0) {
             // Server has no scores yet, re-seed server with non-zero local scores!
-            fetch('/api/scores', {
+            fetch(`/api/scores?event=${curEventId}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ scores: scoresRef.current, judgeNotes }),
+              body: JSON.stringify({ scores: scoresRef.current, judgeNotes, eventId: curEventId }),
             }).catch(() => {});
           }
 
@@ -361,20 +408,21 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const interval = setInterval(fetchApiScores, 3000);
 
     return () => clearInterval(interval);
-  }, [lastResetTs, activeJudgeId, judgeNotes]);
+  }, [lastResetTs, activeJudgeId, judgeNotes, activeEventId]);
 
   // Load initial Auth, Config, and Local Scores state
   useEffect(() => {
     try {
+      const curEventId = activeEventIdRef.current;
       const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
       const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
-      const savedLockedCards = localStorage.getItem(STORAGE_KEY_LOCKED_CARDS);
-      const savedResetTs = localStorage.getItem(STORAGE_KEY_RESET_TS);
-      const savedConfig = localStorage.getItem(STORAGE_KEY_CONFIG);
-      const savedScores = localStorage.getItem(STORAGE_KEY_SCORES);
-      const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
+      const savedLockedCards = localStorage.getItem(getStorageKey('lomba_locked_cards_v1', curEventId));
+      const savedResetTs = localStorage.getItem(getStorageKey('lomba_last_reset_ts_v1', curEventId));
+      const savedConfig = localStorage.getItem(getStorageKey('lomba_event_config_v1', curEventId));
+      const savedScores = localStorage.getItem(getStorageKey('lomba_scores_v1', curEventId));
+      const savedNotes = localStorage.getItem(getStorageKey('lomba_notes_v1', curEventId));
 
-      if (savedActiveJuri && DEFAULT_JUDGES.some(j => j.id === savedActiveJuri)) {
+      if (savedActiveJuri && judges.some(j => j.id === savedActiveJuri)) {
         setActiveJudgeId(savedActiveJuri);
       }
       if (savedAuth) setAuthState(JSON.parse(savedAuth));
@@ -393,10 +441,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const parsedScores = normalizeScores(JSON.parse(savedScores));
         if (Object.keys(parsedScores).length > 0) {
           setScores(parsedScores);
-          fetch('/api/scores', {
+          fetch(`/api/scores?event=${curEventId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ scores: parsedScores }),
+            body: JSON.stringify({ scores: parsedScores, eventId: curEventId }),
           }).catch(() => {});
         }
       }
@@ -411,21 +459,22 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoaded(true);
     }
-  }, []);
+  }, [activeEventId, judges]);
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
     lastLocalInteractionRef.current = Date.now();
+    const curEventId = activeEventIdRef.current;
 
     try {
       if (reset) {
-        localStorage.removeItem(STORAGE_KEY_SCORES);
-        localStorage.removeItem(STORAGE_KEY_NOTES);
-        localStorage.removeItem(STORAGE_KEY_LOCKED_CARDS);
+        localStorage.removeItem(getStorageKey('lomba_scores_v1', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_notes_v1', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_locked_cards_v1', curEventId));
       } else {
-        localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(newScores));
-        localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(newNotes));
+        localStorage.setItem(getStorageKey('lomba_scores_v1', curEventId), JSON.stringify(newScores));
+        localStorage.setItem(getStorageKey('lomba_notes_v1', curEventId), JSON.stringify(newNotes));
       }
     } catch (e) {
       console.error('Failed to save to localStorage', e);
@@ -435,10 +484,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (reset) {
       try {
-        await fetch('/api/scores', {
+        await fetch(`/api/scores?event=${curEventId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, reset: true }),
+          body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, reset: true, eventId: curEventId }),
         });
       } catch (e) {
         console.error('Failed to post reset to /api/scores', e);
@@ -446,17 +495,17 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       syncTimeoutRef.current = setTimeout(async () => {
         try {
-          await fetch('/api/scores', {
+          await fetch(`/api/scores?event=${curEventId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, reset: false }),
+            body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, lockedCards, eventId: curEventId }),
           });
         } catch (e) {
-          console.error('Failed to post to /api/scores', e);
+          console.error('Failed to post sync to /api/scores', e);
         }
-      }, 600);
+      }, 300);
     }
-  }, []);
+  }, [lockedCards]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -474,7 +523,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (cleanPin === eventInfo.adminPin) {
         const nextAuth: AuthState = {
           role: 'admin',
-          judgeName: 'Admin Panitia',
+          judgeName: 'Panitia (Admin Master)',
         };
         setAuthState(nextAuth);
         try {
@@ -652,19 +701,21 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [judges, participants, criteria, saveAndSync]);
 
   const resetAllData = useCallback(() => {
-    const newResetTs = Date.now();
     setScores({});
     setJudgeNotes({});
     setLockedCards({});
-    setLastResetTs(newResetTs);
+    const newTs = Date.now();
+    setLastResetTs(newTs);
     try {
-      localStorage.setItem(STORAGE_KEY_RESET_TS, String(newResetTs));
+      localStorage.setItem(getStorageKey('lomba_last_reset_ts_v1', activeEventIdRef.current), String(newTs));
     } catch (e) {}
     saveAndSync({}, {}, true);
   }, [saveAndSync]);
 
   const exportJSON = useCallback(() => {
-    const payload = {
+    const backupObj = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
       eventInfo,
       criteria,
       participants,
@@ -672,42 +723,46 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       scores,
       judgeNotes,
       lockedCards,
-      exportDate: new Date().toISOString(),
     };
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `backup_lomba_${eventInfo.competitionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    const jsonStr = JSON.stringify(backupObj, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Backup_${eventInfo.competitionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }, [eventInfo, criteria, participants, judges, scores, judgeNotes, lockedCards]);
 
-  const importJSON = useCallback(
-    (jsonString: string): boolean => {
-      try {
-        const parsed = JSON.parse(jsonString);
-        if (parsed.scores) setScores(parsed.scores);
-        if (parsed.judgeNotes) setJudgeNotes(parsed.judgeNotes);
-        if (parsed.lockedCards) setLockedCards(parsed.lockedCards);
-        if (parsed.eventInfo) setEventInfo(parsed.eventInfo);
-        if (parsed.criteria) setCriteria(parsed.criteria);
-        if (parsed.participants) setParticipants(parsed.participants);
-        if (parsed.judges) setJudges(parsed.judges);
+  const importJSON = useCallback((jsonString: string): boolean => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (parsed.eventInfo) setEventInfo(parsed.eventInfo);
+      if (parsed.criteria) setCriteria(parsed.criteria);
+      if (parsed.participants) setParticipants(parsed.participants);
+      if (parsed.judges) setJudges(parsed.judges);
 
-        saveAndSync(parsed.scores || {}, parsed.judgeNotes || {});
-        return true;
-      } catch (e) {
-        console.error('Import JSON failed', e);
-        return false;
+      if (parsed.scores) {
+        const normScores = normalizeScores(parsed.scores);
+        setScores(normScores);
       }
-    },
-    [saveAndSync]
-  );
+      if (parsed.judgeNotes) setJudgeNotes(parsed.judgeNotes);
+      if (parsed.lockedCards) setLockedCards(parsed.lockedCards);
+
+      saveAndSync(parsed.scores || {}, parsed.judgeNotes || {});
+      return true;
+    } catch (e) {
+      console.error('Import failed', e);
+      return false;
+    }
+  }, [saveAndSync]);
 
   return (
     <ScoreContext.Provider
       value={{
+        activeEventId,
+        switchEvent,
         judges,
         participants,
         criteria,

@@ -23,6 +23,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   const {
+    activeEventId,
+    switchEvent,
     eventInfo,
     isLoaded,
     authState,
@@ -78,6 +80,19 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             {/* User Auth Badge & Controls */}
             <div className="flex flex-wrap items-center gap-2">
               
+              {/* Competition Event Switcher Dropdown */}
+              <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-700/80 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-200">
+                <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider hidden sm:inline">Event:</span>
+                <select
+                  value={activeEventId}
+                  onChange={(e) => switchEvent(e.target.value)}
+                  className="bg-transparent text-amber-300 font-bold text-xs focus:outline-none cursor-pointer pr-1"
+                >
+                  <option value="blind-rias" className="bg-slate-900 text-white">🌸 Lomba Blind Rias Ibu-Ibu</option>
+                  <option value="sepeda-hias" className="bg-slate-900 text-white">🚲 Lomba Sepeda Hias (100 Peserta)</option>
+                </select>
+              </div>
+
               {/* Admin Config Button */}
               {authState.role === 'admin' && (
                 <button
@@ -120,6 +135,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                 )
               )}
             </div>
+
           </div>
 
           {/* Navigation Tabs */}

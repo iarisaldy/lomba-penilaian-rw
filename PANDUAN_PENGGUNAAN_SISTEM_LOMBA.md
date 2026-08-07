@@ -4,25 +4,29 @@ Sistem Penilaian Lomba berbasis Web & Mobile ini didesain khusus untuk memudahka
 
 ---
 
-## 📱 APLIKASI WEB & AKSES
-- **URL Website**: [https://lomba-permata-discovery.vercel.app/](https://lomba-permata-discovery.vercel.app/)
-- **Database Engine**: Supabase PostgreSQL Cloud (Realtime Live Sync 15ms)
+## 📱 APLIKASI WEB & AKSES DIRECT LINK PER EVENT
+- **URL Lomba Sepeda Hias (100 Peserta)**: [https://lomba-permata-discovery.vercel.app/?event=sepeda-hias](https://lomba-permata-discovery.vercel.app/?event=sepeda-hias)
+- **URL Lomba Blind Rias Ibu-Ibu**: [https://lomba-permata-discovery.vercel.app/?event=blind-rias](https://lomba-permata-discovery.vercel.app/?event=blind-rias) *(atau URL Utama `/`)*
+- **Database Engine**: Supabase PostgreSQL Cloud (Single Table `scores_state` with Per-Event Row Isolation)
 - **Kompatibilitas**: HP Android, iPhone, Tablet, Laptop, dan PC.
 
 ---
 
-## 👤 BAGIAN 1: PANDUAN UNTUK DEWAN JURI
+## 👤 BAGIAN 1: PANDUAN UNTUK DEWAN JURI (KETUA RT 01 - RT 06)
 
 ### 1. Login Juri
-1. Scan **QR Code** lomba menggunakan kamera HP / WhatsApp atau buka URL aplikasi di atas.
-2. Pada layar utama, masukkan **4 Digit PIN Akses Juri** (Contoh: Juri RT 01 = `1111`, Juri RT 02 = `2222`, dst.).
+1. Scan **QR Code** lomba atau buka Direct Link URL Lomba di atas.
+2. Pada layar utama, masukkan **4 Digit PIN Akses Juri** (Ketua RT 01 = `1111`, Ketua RT 02 = `2222`, Ketua RT 03 = `3333`, Ketua RT 04 = `4444`, Ketua RT 05 = `5555`, Ketua RT 06 = `6666`).
 3. Tekan **Masuk Aplikasi**.
 
-### 2. Mengisi Nilai di HP
-1. Di layar HP, Anda akan melihat kartu penilaian untuk setiap peserta/RT.
+### 2. Beralih Lomba / Event Switcher
+- Anda dapat berpindah lomba kapan saja dengan memilih menu **Event Switcher** di bagian kanan atas Header (Pilih *🚲 Lomba Sepeda Hias* atau *🌸 Lomba Blind Rias*).
+
+### 3. Pencarian & Mengisi Nilai di HP
+1. Di layar HP, gunakan **Search Bar** (contoh: ketik `045` atau `Peserta 45`) atau **Filter Kelompok Peserta** (`001-020`, `021-040`, dll.) untuk melompat langsung ke nomor peserta.
 2. **Cara Mengisi Nilai**:
    - Tekan tombol **`+`** (tambah 1) atau **`-`** (kurangi 1) dengan jempol untuk penyesuaian nilai yang cepat dan akurat.
-   - Atau geser batang **Slider** kriteria nilai.
+   - Atau geser batang **Slider** kriteria nilai (1-100).
    - Atau ketik angka langsung pada kotak nilai.
 3. Nilai yang Anda input tersimpan secara **otomatis (*Auto-Saved*)** ke database pusat Supabase dan memori HP.
 4. *Catatan*: Kartu untuk RT Anda sendiri secara otomatis **dikecualikan (N/A)** dari perhitungan.

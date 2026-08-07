@@ -1,43 +1,72 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   isSupabaseConfigured,
   fetchMasterScoresFromSupabase,
   saveMasterScoresToSupabase,
 } from '@/lib/supabaseClient';
 
-// Global in-memory state cache on Vercel Serverless Function
-let globalMasterScores: Record<string, any> = {};
-let globalMasterNotes: Record<string, any> = {};
-let globalResetTimestamp: number = 0;
-let globalMasterConfig: Record<string, any> | undefined = undefined;
-let globalLockedCards: Record<string, boolean> = {};
+interface EventCache {
+  scores: Record<string, any>;
+  judgeNotes: Record<string, any>;
+  resetTimestamp: number;
+  config: Record<string, any> | undefined;
+  lockedCards: Record<string, boolean>;
+}
 
-export async function GET() {
-  // Primary: If Supabase is configured, fetch authoritative state from Supabase PostgreSQL
+const eventCaches: Record<string, EventCache> = {};
+
+function getNormalizedEventId(raw?: string | null): string {
+  if (!raw || raw === 'master' || raw === 'blind-rias' || raw === 'blind_rias') {
+    return 'master';
+  }
+  return raw.replace(/-/g, '_');
+}
+
+function getEventCache(eventId: string): EventCache {
+  const normId = getNormalizedEventId(eventId);
+  if (!eventCaches[normId]) {
+    eventCaches[normId] = {
+      scores: {},
+      judgeNotes: {},
+      resetTimestamp: 0,
+      config: undefined,
+      lockedCards: {},
+    };
+  }
+  return eventCaches[normId];
+}
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const rawEvent = searchParams.get('event');
+  const eventId = getNormalizedEventId(rawEvent);
+  const cache = getEventCache(eventId);
+
+  // Primary: If Supabase is configured, fetch authoritative state from Supabase PostgreSQL for this event
   if (isSupabaseConfigured) {
-    const supabaseData = await fetchMasterScoresFromSupabase();
+    const supabaseData = await fetchMasterScoresFromSupabase(eventId);
     if (supabaseData) {
-      if (typeof supabaseData.resetTimestamp === 'number' && supabaseData.resetTimestamp > globalResetTimestamp) {
-        globalResetTimestamp = supabaseData.resetTimestamp;
-        globalMasterScores = supabaseData.scores || {};
-        globalMasterNotes = supabaseData.judgeNotes || {};
-        globalLockedCards = supabaseData.lockedCards || {};
+      if (typeof supabaseData.resetTimestamp === 'number' && supabaseData.resetTimestamp > cache.resetTimestamp) {
+        cache.resetTimestamp = supabaseData.resetTimestamp;
+        cache.scores = supabaseData.scores || {};
+        cache.judgeNotes = supabaseData.judgeNotes || {};
+        cache.lockedCards = supabaseData.lockedCards || {};
       } else {
         if (Object.keys(supabaseData.scores).length > 0) {
-          globalMasterScores = { ...globalMasterScores, ...supabaseData.scores };
+          cache.scores = { ...cache.scores, ...supabaseData.scores };
         }
         if (Object.keys(supabaseData.judgeNotes).length > 0) {
-          globalMasterNotes = { ...globalMasterNotes, ...supabaseData.judgeNotes };
+          cache.judgeNotes = { ...cache.judgeNotes, ...supabaseData.judgeNotes };
         }
         if (supabaseData.lockedCards && Object.keys(supabaseData.lockedCards).length > 0) {
-          globalLockedCards = { ...globalLockedCards, ...supabaseData.lockedCards };
+          cache.lockedCards = { ...cache.lockedCards, ...supabaseData.lockedCards };
         }
         if (typeof supabaseData.resetTimestamp === 'number') {
-          globalResetTimestamp = supabaseData.resetTimestamp;
+          cache.resetTimestamp = supabaseData.resetTimestamp;
         }
       }
       if (supabaseData.config) {
-        globalMasterConfig = supabaseData.config;
+        cache.config = supabaseData.config;
       }
     }
   }
@@ -45,11 +74,12 @@ export async function GET() {
   // Instant response (10-15ms) directly from database / server memory
   return NextResponse.json(
     {
-      scores: globalMasterScores,
-      judgeNotes: globalMasterNotes,
-      resetTimestamp: globalResetTimestamp,
-      config: globalMasterConfig,
-      lockedCards: globalLockedCards,
+      eventId,
+      scores: cache.scores,
+      judgeNotes: cache.judgeNotes,
+      resetTimestamp: cache.resetTimestamp,
+      config: cache.config,
+      lockedCards: cache.lockedCards,
       updatedAt: new Date().toISOString(),
       source: isSupabaseConfigured ? 'supabase' : 'server-memory',
     },
@@ -61,49 +91,55 @@ export async function GET() {
   );
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
     const body = await request.json();
+    const rawEvent = body.eventId || searchParams.get('event');
+    const eventId = getNormalizedEventId(rawEvent);
+    const cache = getEventCache(eventId);
 
     if (body.reset) {
-      globalMasterScores = {};
-      globalMasterNotes = {};
-      globalLockedCards = {};
-      globalResetTimestamp = Date.now();
+      cache.scores = {};
+      cache.judgeNotes = {};
+      cache.lockedCards = {};
+      cache.resetTimestamp = Date.now();
     } else {
       if (body.scores) {
-        globalMasterScores = { ...globalMasterScores, ...body.scores };
+        cache.scores = { ...cache.scores, ...body.scores };
       }
       if (body.judgeNotes) {
-        globalMasterNotes = { ...globalMasterNotes, ...body.judgeNotes };
+        cache.judgeNotes = { ...cache.judgeNotes, ...body.judgeNotes };
       }
       if (body.lockedCards) {
-        globalLockedCards = { ...globalLockedCards, ...body.lockedCards };
+        cache.lockedCards = { ...cache.lockedCards, ...body.lockedCards };
       }
       if (body.config) {
-        globalMasterConfig = body.config;
+        cache.config = body.config;
       }
     }
 
     // Persist to Supabase PostgreSQL instantly
     if (isSupabaseConfigured) {
       saveMasterScoresToSupabase(
-        globalMasterScores,
-        globalMasterNotes,
-        globalResetTimestamp,
+        cache.scores,
+        cache.judgeNotes,
+        cache.resetTimestamp,
         Boolean(body.reset),
-        globalMasterConfig,
-        globalLockedCards
-      ).catch((err) => console.error('Background Supabase save error:', err));
+        cache.config,
+        cache.lockedCards,
+        eventId
+      ).catch((err) => console.error(`Background Supabase save error for ${eventId}:`, err));
     }
 
     return NextResponse.json({
       success: true,
-      scores: globalMasterScores,
-      judgeNotes: globalMasterNotes,
-      resetTimestamp: globalResetTimestamp,
-      config: globalMasterConfig,
-      lockedCards: globalLockedCards,
+      eventId,
+      scores: cache.scores,
+      judgeNotes: cache.judgeNotes,
+      resetTimestamp: cache.resetTimestamp,
+      config: cache.config,
+      lockedCards: cache.lockedCards,
       source: isSupabaseConfigured ? 'supabase' : 'server-memory',
     });
   } catch (error) {
@@ -113,3 +149,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

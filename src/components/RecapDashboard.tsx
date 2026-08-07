@@ -1,8 +1,6 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useScore } from '../context/ScoreContext';
-import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Lock, Unlock, FileCheck2, AlertTriangle } from 'lucide-react';
+import { Trophy, Medal, Users, MessageSquare, RotateCcw, ShieldAlert, Download, Lock, Unlock, FileCheck2, AlertTriangle, Search } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const RecapDashboard: React.FC = () => {
@@ -10,6 +8,14 @@ export const RecapDashboard: React.FC = () => {
   const [confirmPin, setConfirmPin] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetError, setResetError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredRecapParticipants = useMemo(() => {
+    if (!searchQuery.trim()) return participants;
+    const q = searchQuery.toLowerCase().trim();
+    return participants.filter(p => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q));
+  }, [participants, searchQuery]);
+
 
   // Find top winners
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
@@ -250,9 +256,30 @@ export const RecapDashboard: React.FC = () => {
               Matriks Rekapitulasi Penilaian Lomba ({eventInfo.competitionTitle})
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Otomatis menghitung Total dan Rata-Rata Nilai dari juri penilai (Eksklusi RT Sendiri).
+              Otomatis menghitung Total dan Rata-Rata Nilai dari juri penilai.
             </p>
           </div>
+
+          {participants.length > 10 && (
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari peserta (cth: 025)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 text-slate-100 text-xs rounded-xl pl-9 pr-8 py-2 outline-none transition-all placeholder:text-slate-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold bg-slate-800 rounded-full w-4 h-4 flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -260,7 +287,7 @@ export const RecapDashboard: React.FC = () => {
             <thead className="bg-slate-950 text-slate-300 font-bold uppercase tracking-wider border-b border-slate-800">
               <tr>
                 <th scope="col" className="px-4 py-3.5 sticky left-0 bg-slate-950 z-10 border-r border-slate-800 min-w-[120px]">
-                  RT Peserta
+                  Peserta
                 </th>
                 {judges.map((j) => (
                   <th key={j.id} scope="col" className="px-3 py-3.5 text-center min-w-[100px]">
@@ -280,7 +307,7 @@ export const RecapDashboard: React.FC = () => {
             </thead>
 
             <tbody className="divide-y divide-slate-800/60 font-medium">
-              {participants.map((participant) => {
+              {filteredRecapParticipants.map((participant) => {
                 const recap = recapData.find((r) => r.participantId === participant.id);
                 if (!recap) return null;
 

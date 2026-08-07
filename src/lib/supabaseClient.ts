@@ -21,18 +21,27 @@ export interface MasterPayload {
   lockedCards?: Record<string, boolean>;
 }
 
+// Helper to normalize event ID to database row key
+const getRowId = (eventId?: string) => {
+  if (!eventId || eventId === 'master' || eventId === 'blind-rias' || eventId === 'blind_rias') {
+    return 'master';
+  }
+  return eventId.replace(/-/g, '_');
+};
+
 // Fetch master scores and config from Supabase table 'scores_state'
-export const fetchMasterScoresFromSupabase = async (): Promise<MasterPayload | null> => {
+export const fetchMasterScoresFromSupabase = async (eventId: string = 'master'): Promise<MasterPayload | null> => {
   if (!supabase) return null;
+  const rowId = getRowId(eventId);
   try {
     const { data, error } = await supabase
       .from('scores_state')
       .select('scores, judge_notes, reset_timestamp, config, locked_cards')
-      .eq('id', 'master')
+      .eq('id', rowId)
       .single();
 
     if (error) {
-      console.error('Supabase fetch error:', error.message);
+      console.error(`Supabase fetch error for event ${rowId}:`, error.message);
       return null;
     }
 
@@ -46,7 +55,7 @@ export const fetchMasterScoresFromSupabase = async (): Promise<MasterPayload | n
       };
     }
   } catch (err) {
-    console.error('Failed to fetch from Supabase:', err);
+    console.error(`Failed to fetch event ${rowId} from Supabase:`, err);
   }
   return null;
 };
@@ -58,13 +67,15 @@ export const saveMasterScoresToSupabase = async (
   resetTimestamp: number = 0,
   isReset: boolean = false,
   config?: Record<string, any>,
-  lockedCards?: Record<string, boolean>
+  lockedCards?: Record<string, boolean>,
+  eventId: string = 'master'
 ): Promise<boolean> => {
   if (!supabase) return false;
+  const rowId = getRowId(eventId);
   try {
     const payload: Record<string, any> = isReset
       ? {
-          id: 'master',
+          id: rowId,
           scores: {},
           judge_notes: {},
           locked_cards: {},
@@ -72,7 +83,7 @@ export const saveMasterScoresToSupabase = async (
           updated_at: new Date().toISOString(),
         }
       : {
-          id: 'master',
+          id: rowId,
           scores,
           judge_notes: judgeNotes,
           reset_timestamp: resetTimestamp,
@@ -87,12 +98,13 @@ export const saveMasterScoresToSupabase = async (
       .upsert(payload, { onConflict: 'id' });
 
     if (error) {
-      console.error('Supabase save error:', error.message);
+      console.error(`Supabase save error for event ${rowId}:`, error.message);
       return false;
     }
     return true;
   } catch (err) {
-    console.error('Failed to save to Supabase:', err);
+    console.error(`Failed to save event ${rowId} to Supabase:`, err);
     return false;
   }
 };
+
