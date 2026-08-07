@@ -197,10 +197,10 @@ export const OfficialPrintView: React.FC = () => {
           <table className="w-full text-left text-xs border-collapse border border-slate-900">
             <thead>
               <tr className="bg-slate-100 border-b border-slate-900 font-bold uppercase text-slate-900 text-center">
-                <th className="border border-slate-900 px-3 py-2">RT Peserta</th>
+                <th className="border border-slate-900 px-3 py-2">{participants.length > 10 ? 'PESERTA' : 'RT PESERTA'}</th>
                 {judges.map((j) => (
                   <th key={j.id} className="border border-slate-900 px-2 py-2">
-                    {j.code}
+                    {j.name || j.code}
                   </th>
                 ))}
                 <th className="border border-slate-900 px-3 py-2 bg-slate-200">Total Nilai</th>
@@ -218,7 +218,7 @@ export const OfficialPrintView: React.FC = () => {
                 return (
                   <tr key={participant.id} className={`text-center ${isRank1 ? 'bg-amber-50 font-bold' : ''}`}>
                     <td className="border border-slate-900 px-3 py-2 font-bold bg-slate-50">
-                      {participant.code}
+                      {participant.name}
                     </td>
                     {judges.map((j) => {
                       const scoreVal = recap.scoresByJudge[j.id];

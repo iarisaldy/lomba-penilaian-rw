@@ -400,7 +400,7 @@ export const RecapDashboard: React.FC = () => {
                 </th>
                 {judges.map((j) => (
                   <th key={j.id} scope="col" className="px-3 py-3.5 text-center min-w-[100px]">
-                    Nilai {j.code}
+                    {j.name || j.code}
                   </th>
                 ))}
                 <th scope="col" className="px-4 py-3.5 text-center bg-slate-900/80 text-amber-400 min-w-[110px]">
@@ -434,10 +434,10 @@ export const RecapDashboard: React.FC = () => {
                         : 'hover:bg-slate-800/30'
                     }`}
                   >
-                    {/* RT Peserta */}
+                    {/* Peserta Name Column */}
                     <td className="px-4 py-3.5 font-bold text-white sticky left-0 bg-slate-900 border-r border-slate-800">
                       <span className="inline-flex items-center justify-center px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 font-extrabold text-amber-400 text-xs shadow-sm">
-                        {participant.code}
+                        {participant.name}
                       </span>
                     </td>
 

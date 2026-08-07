@@ -286,15 +286,15 @@ export const JudgeForm: React.FC = () => {
                         : 'bg-red-500/10 text-red-400 border-red-500/20'
                     }`}
                   >
-                    #{participant.code}
+                    No. #{participant.code.replace(/\D/g, '') || participant.code}
                   </div>
                   <div>
                     <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-1.5">
-                      {participant.name !== participant.code ? participant.name : `RT ${participant.code}`}
+                      {participant.name}
                       {(isLocked || isSystemLocked) && <Lock className="w-3.5 h-3.5 text-amber-400 inline" />}
                     </h3>
                     <span className="text-[10px] sm:text-[11px] text-slate-400">
-                      {isSelf ? 'RT Sendiri' : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : `No. Sepeda #${participant.code}`}
+                      {isSelf ? 'RT Sendiri' : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : 'Peserta Lomba'}
                     </span>
                   </div>
                 </div>

@@ -61,12 +61,12 @@ export const SEPEDA_HIAS_PARTICIPANTS: Participant[] = Array.from({ length: 100 
 });
 
 export const SEPEDA_HIAS_JUDGES: Judge[] = [
-  { id: 'juri_rt01', code: 'RT 01', name: 'Ketua RT 01', pin: '1111' },
-  { id: 'juri_rt02', code: 'RT 02', name: 'Ketua RT 02', pin: '2222' },
-  { id: 'juri_rt03', code: 'RT 03', name: 'Ketua RT 03', pin: '3333' },
-  { id: 'juri_rt04', code: 'RT 04', name: 'Ketua RT 04', pin: '4444' },
-  { id: 'juri_rt05', code: 'RT 05', name: 'Ketua RT 05', pin: '5555' },
-  { id: 'juri_rt06', code: 'RT 06', name: 'Ketua RT 06', pin: '6666' },
+  { id: 'juri_rt01', code: 'Ketua RT 01', name: 'Ketua RT 01', pin: '1111' },
+  { id: 'juri_rt02', code: 'Ketua RT 02', name: 'Ketua RT 02', pin: '2222' },
+  { id: 'juri_rt03', code: 'Ketua RT 03', name: 'Ketua RT 03', pin: '3333' },
+  { id: 'juri_rt04', code: 'Ketua RT 04', name: 'Ketua RT 04', pin: '4444' },
+  { id: 'juri_rt05', code: 'Ketua RT 05', name: 'Ketua RT 05', pin: '5555' },
+  { id: 'juri_rt06', code: 'Ketua RT 06', name: 'Ketua RT 06', pin: '6666' },
 ];
 
 export interface CompetitionPreset {

@@ -101,6 +101,29 @@ const normalizeScores = (rawScores: Record<string, any>): Record<string, any> =>
   return normalized;
 };
 
+const sanitizeParticipantList = (list: Participant[], isSepedaHias: boolean): Participant[] => {
+  if (!list) return [];
+  return list.map((p, idx) => {
+    let cleanCode = (p.code || '').trim();
+    let cleanName = (p.name || '').trim();
+
+    // For Sepeda Hias or if code contains 'Peserta ', convert code to 3-digit number (e.g. 001)
+    if (isSepedaHias || cleanCode.toLowerCase().includes('peserta')) {
+      const numMatch = cleanCode.match(/\d+/) || cleanName.match(/\d+/) || [String(idx + 1)];
+      const num = Number(numMatch[0]);
+      const formattedNum = num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
+      cleanCode = formattedNum;
+      cleanName = `Peserta ${formattedNum}`;
+    }
+
+    return {
+      ...p,
+      code: cleanCode,
+      name: cleanName,
+    };
+  });
+};
+
 export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeEventId, setActiveEventId] = useState<string>('blind-rias');
 
