@@ -50,6 +50,16 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
   const [savedMessage, setSavedMessage] = useState('');
 
+  // Sync modal form states whenever context state or active event changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setEventForm({ ...eventInfo });
+      setCriteriaForm([...criteria]);
+      setParticipantForm([...participants]);
+      setJudgeForm([...judges]);
+    }
+  }, [isOpen, eventInfo, criteria, participants, judges]);
+
   if (!isOpen) return null;
 
   const showToast = (msg: string) => {

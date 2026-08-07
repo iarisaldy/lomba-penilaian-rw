@@ -278,7 +278,7 @@ export const JudgeForm: React.FC = () => {
               >
                 <div className="flex items-center gap-2.5">
                   <div
-                    className={`w-9 h-9 rounded-xl font-black text-sm flex items-center justify-center border shadow-inner ${
+                    className={`px-2.5 py-1.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center border shadow-inner ${
                       isSelf
                         ? 'bg-slate-800 text-slate-500 border-slate-700'
                         : isLocked || isSystemLocked
@@ -286,15 +286,15 @@ export const JudgeForm: React.FC = () => {
                         : 'bg-red-500/10 text-red-400 border-red-500/20'
                     }`}
                   >
-                    {participant.code}
+                    #{participant.code}
                   </div>
                   <div>
                     <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-1.5">
-                      {participant.name}
+                      {participant.name !== participant.code ? participant.name : `RT ${participant.code}`}
                       {(isLocked || isSystemLocked) && <Lock className="w-3.5 h-3.5 text-amber-400 inline" />}
                     </h3>
                     <span className="text-[10px] sm:text-[11px] text-slate-400">
-                      {isSelf ? 'RT Sendiri' : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : 'Peserta Lomba'}
+                      {isSelf ? 'RT Sendiri' : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : `No. Sepeda #${participant.code}`}
                     </span>
                   </div>
                 </div>

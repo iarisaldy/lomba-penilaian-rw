@@ -196,54 +196,163 @@ export const RecapDashboard: React.FC = () => {
 
       {/* Winner Podium Showcase */}
       {juara1 && juara1.averageScore > 0 && (
-        <div className="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden relative">
-          <div className="text-center max-w-xl mx-auto mb-6 space-y-1">
-            <h2 className="text-2xl font-black text-white">
+        <div className="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden relative space-y-6">
+          <div className="text-center max-w-xl mx-auto space-y-1">
+            <h2 className="text-2xl font-black text-white flex items-center justify-center gap-2">
+              <Trophy className="w-6 h-6 text-amber-400" />
               Penetapan Hasil Pemenang — {eventInfo.competitionTitle}
             </h2>
+            <p className="text-xs text-amber-300 font-semibold">
+              {participants.length > 10 ? '👑 Penetapan Top 5 Pemenang Lomba' : '👑 Penetapan Juara 1 & Juara 2'}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-            {/* Juara 1 */}
-            <div className="bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-900 border-2 border-amber-400/60 rounded-2xl p-5 text-center shadow-xl shadow-amber-500/10 flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-2">
-              <div className="absolute top-3 right-3 bg-amber-400 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
-                Juara 1
-              </div>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg my-2">
-                🏆
-              </div>
-              <h3 className="font-extrabold text-xl text-white">
-                Peserta {juara1.participantCode}
-              </h3>
-              <p className="text-xs text-amber-300 font-semibold mt-1">
-                Rata-Rata Nilai: <span className="text-lg font-black text-white">{juara1.averageScore}</span>
-              </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Total Skor: {juara1.totalScore} poin
-              </p>
-            </div>
+          {participants.length > 10 ? (
+            /* Top 5 Winners Layout for Sepeda Hias */
+            <div className="space-y-4 max-w-4xl mx-auto">
+              {/* Top 3 Podium (Juara 1, 2, 3) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                {/* Juara 2 */}
+                {sortedRecap[1] && (
+                  <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 text-center shadow-lg relative overflow-hidden order-2 sm:order-1">
+                    <div className="absolute top-2.5 right-2.5 bg-slate-300 text-slate-950 font-black text-[9px] uppercase px-2 py-0.5 rounded-full">
+                      Juara 2
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-slate-300 text-slate-950 font-black text-xl flex items-center justify-center shadow-md mx-auto my-2">
+                      🥈
+                    </div>
+                    <h3 className="font-extrabold text-base text-white">
+                      Peserta #{sortedRecap[1].participantCode}
+                    </h3>
+                    <p className="text-xs text-slate-300 font-semibold mt-1">
+                      Rata-Rata: <span className="text-sm font-black text-amber-400">{sortedRecap[1].averageScore}</span>
+                    </p>
+                    <p className="text-[10px] text-slate-400">Total: {sortedRecap[1].totalScore} pts</p>
+                  </div>
+                )}
 
-            {/* Juara 2 */}
-            {juara2 && (
-              <div className="bg-gradient-to-b from-slate-800/40 via-slate-900 to-slate-900 border border-slate-700 rounded-2xl p-5 text-center shadow-lg flex flex-col items-center justify-center relative overflow-hidden order-2 md:order-1">
-                <div className="absolute top-3 right-3 bg-slate-300 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
-                  Juara 2
+                {/* Juara 1 (Main Center Champion) */}
+                {sortedRecap[0] && (
+                  <div className="bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-900 border-2 border-amber-400 rounded-2xl p-5 text-center shadow-xl shadow-amber-500/10 relative overflow-hidden order-1 sm:order-2 scale-105">
+                    <div className="absolute top-2.5 right-2.5 bg-amber-400 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
+                      Juara 1
+                    </div>
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg mx-auto my-2">
+                      🏆
+                    </div>
+                    <h3 className="font-extrabold text-xl text-white">
+                      Peserta #{sortedRecap[0].participantCode}
+                    </h3>
+                    <p className="text-xs text-amber-300 font-bold mt-1">
+                      Rata-Rata: <span className="text-lg font-black text-white">{sortedRecap[0].averageScore}</span>
+                    </p>
+                    <p className="text-[11px] text-slate-400">Total: {sortedRecap[0].totalScore} pts</p>
+                  </div>
+                )}
+
+                {/* Juara 3 */}
+                {sortedRecap[2] && (
+                  <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 text-center shadow-lg relative overflow-hidden order-3">
+                    <div className="absolute top-2.5 right-2.5 bg-amber-700 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-full">
+                      Juara 3
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-amber-700 text-white font-black text-xl flex items-center justify-center shadow-md mx-auto my-2">
+                      🥉
+                    </div>
+                    <h3 className="font-extrabold text-base text-white">
+                      Peserta #{sortedRecap[2].participantCode}
+                    </h3>
+                    <p className="text-xs text-slate-300 font-semibold mt-1">
+                      Rata-Rata: <span className="text-sm font-black text-amber-400">{sortedRecap[2].averageScore}</span>
+                    </p>
+                    <p className="text-[10px] text-slate-400">Total: {sortedRecap[2].totalScore} pts</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Runner Up Winners (Juara Harapan 1 & 2) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {sortedRecap[3] && (
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-black text-xs">
+                        🎖️
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Juara Harapan 1</div>
+                        <div className="text-sm font-extrabold text-white">Peserta #{sortedRecap[3].participantCode}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-black text-amber-400">{sortedRecap[3].averageScore}</div>
+                      <div className="text-[10px] text-slate-500">{sortedRecap[3].totalScore} pts</div>
+                    </div>
+                  </div>
+                )}
+
+                {sortedRecap[4] && (
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-xs">
+                        🎖️
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Juara Harapan 2</div>
+                        <div className="text-sm font-extrabold text-white">Peserta #{sortedRecap[4].participantCode}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-black text-amber-400">{sortedRecap[4].averageScore}</div>
+                      <div className="text-[10px] text-slate-500">{sortedRecap[4].totalScore} pts</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Standard 2-Winners Layout for Blind Rias */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+              {/* Juara 1 */}
+              <div className="bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-900 border-2 border-amber-400/60 rounded-2xl p-5 text-center shadow-xl shadow-amber-500/10 flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-2">
+                <div className="absolute top-3 right-3 bg-amber-400 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
+                  Juara 1
                 </div>
-                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-slate-300 to-slate-400 text-slate-950 font-black text-xl flex items-center justify-center shadow-md my-2">
-                  🥈
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg my-2">
+                  🏆
                 </div>
-                <h3 className="font-extrabold text-lg text-white">
-                  Peserta {juara2.participantCode}
+                <h3 className="font-extrabold text-xl text-white">
+                  Peserta {juara1.participantCode}
                 </h3>
-                <p className="text-xs text-slate-300 font-semibold mt-1">
-                  Rata-Rata Nilai: <span className="text-base font-black text-white">{juara2.averageScore}</span>
+                <p className="text-xs text-amber-300 font-semibold mt-1">
+                  Rata-Rata Nilai: <span className="text-lg font-black text-white">{juara1.averageScore}</span>
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Total Skor: {juara2.totalScore} poin
+                  Total Skor: {juara1.totalScore} poin
                 </p>
               </div>
-            )}
-          </div>
+
+              {/* Juara 2 */}
+              {juara2 && (
+                <div className="bg-gradient-to-b from-slate-800/40 via-slate-900 to-slate-900 border border-slate-700 rounded-2xl p-5 text-center shadow-lg flex flex-col items-center justify-center relative overflow-hidden order-2 md:order-1">
+                  <div className="absolute top-3 right-3 bg-slate-300 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
+                    Juara 2
+                  </div>
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-slate-300 to-slate-400 text-slate-950 font-black text-xl flex items-center justify-center shadow-md my-2">
+                    🥈
+                  </div>
+                  <h3 className="font-extrabold text-lg text-white">
+                    Peserta {juara2.participantCode}
+                  </h3>
+                  <p className="text-xs text-slate-300 font-semibold mt-1">
+                    Rata-Rata Nilai: <span className="text-base font-black text-white">{juara2.averageScore}</span>
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Total Skor: {juara2.totalScore} poin
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

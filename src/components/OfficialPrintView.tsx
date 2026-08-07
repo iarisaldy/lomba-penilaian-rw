@@ -86,33 +86,102 @@ export const OfficialPrintView: React.FC = () => {
               🏆 HASIL KEPUTUSAN PENETAPAN PEMENANG LOMBA
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-amber-100/60 border border-amber-300 rounded-lg p-3 text-center">
-                <span className="text-[10px] font-black text-amber-900 uppercase tracking-widest block">
-                  JUARA I (PERTAMA)
-                </span>
-                <div className="text-xl font-black text-slate-900 my-1">
-                  PESERTA {juara1.participantCode}
+            {participants.length > 10 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Juara 1 */}
+                  {sortedRecap[0] && (
+                    <div className="bg-amber-100/70 border border-amber-400 rounded-lg p-3 text-center">
+                      <span className="text-[10px] font-black text-amber-900 uppercase tracking-widest block">
+                        JUARA I (PERTAMA)
+                      </span>
+                      <div className="text-lg font-black text-slate-900 my-1">
+                        PESERTA #{sortedRecap[0].participantCode}
+                      </div>
+                      <div className="text-xs font-bold text-amber-950">
+                        Skor Rata-Rata: {sortedRecap[0].averageScore}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Juara 2 */}
+                  {sortedRecap[1] && (
+                    <div className="bg-slate-200/70 border border-slate-300 rounded-lg p-3 text-center">
+                      <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest block">
+                        JUARA II (KEDUA)
+                      </span>
+                      <div className="text-lg font-black text-slate-900 my-1">
+                        PESERTA #{sortedRecap[1].participantCode}
+                      </div>
+                      <div className="text-xs font-bold text-slate-800">
+                        Skor Rata-Rata: {sortedRecap[1].averageScore}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Juara 3 */}
+                  {sortedRecap[2] && (
+                    <div className="bg-amber-800/10 border border-amber-700/30 rounded-lg p-3 text-center">
+                      <span className="text-[10px] font-black text-amber-900 uppercase tracking-widest block">
+                        JUARA III (KETIGA)
+                      </span>
+                      <div className="text-lg font-black text-slate-900 my-1">
+                        PESERTA #{sortedRecap[2].participantCode}
+                      </div>
+                      <div className="text-xs font-bold text-slate-800">
+                        Skor Rata-Rata: {sortedRecap[2].averageScore}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-xs font-bold text-amber-950">
-                  Rata-Rata Nilai: {juara1.averageScore} <span className="font-normal text-slate-600">(Total: {juara1.totalScore} poin)</span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-200 pt-2">
+                  {/* Harapan 1 */}
+                  {sortedRecap[3] && (
+                    <div className="bg-white border border-slate-300 rounded-lg p-2.5 flex items-center justify-between text-xs">
+                      <span className="font-extrabold text-slate-800">JUARA HARAPAN I:</span>
+                      <span className="font-black text-slate-900">PESERTA #{sortedRecap[3].participantCode} <span className="font-normal text-slate-600">({sortedRecap[3].averageScore})</span></span>
+                    </div>
+                  )}
+
+                  {/* Harapan 2 */}
+                  {sortedRecap[4] && (
+                    <div className="bg-white border border-slate-300 rounded-lg p-2.5 flex items-center justify-between text-xs">
+                      <span className="font-extrabold text-slate-800">JUARA HARAPAN II:</span>
+                      <span className="font-black text-slate-900">PESERTA #{sortedRecap[4].participantCode} <span className="font-normal text-slate-600">({sortedRecap[4].averageScore})</span></span>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {juara2 && (
-                <div className="bg-slate-200/60 border border-slate-300 rounded-lg p-3 text-center">
-                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest block">
-                    JUARA II (KEDUAN)
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-amber-100/60 border border-amber-300 rounded-lg p-3 text-center">
+                  <span className="text-[10px] font-black text-amber-900 uppercase tracking-widest block">
+                    JUARA I (PERTAMA)
                   </span>
                   <div className="text-xl font-black text-slate-900 my-1">
-                    PESERTA {juara2.participantCode}
+                    PESERTA {juara1.participantCode}
                   </div>
-                  <div className="text-xs font-bold text-slate-800">
-                    Rata-Rata Nilai: {juara2.averageScore} <span className="font-normal text-slate-600">(Total: {juara2.totalScore} poin)</span>
+                  <div className="text-xs font-bold text-amber-950">
+                    Rata-Rata Nilai: {juara1.averageScore} <span className="font-normal text-slate-600">(Total: {juara1.totalScore} poin)</span>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {juara2 && (
+                  <div className="bg-slate-200/60 border border-slate-300 rounded-lg p-3 text-center">
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest block">
+                      JUARA II (KEDUA)
+                    </span>
+                    <div className="text-xl font-black text-slate-900 my-1">
+                      PESERTA {juara2.participantCode}
+                    </div>
+                    <div className="text-xs font-bold text-slate-800">
+                      Rata-Rata Nilai: {juara2.averageScore} <span className="font-normal text-slate-600">(Total: {juara2.totalScore} poin)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center text-xs text-amber-800 font-sans">

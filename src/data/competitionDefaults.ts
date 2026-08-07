@@ -55,7 +55,7 @@ export const SEPEDA_HIAS_PARTICIPANTS: Participant[] = Array.from({ length: 100 
   const formattedNum = num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
   return {
     id: `p_${formattedNum}`,
-    code: `Peserta ${formattedNum}`,
+    code: formattedNum,
     name: `Peserta ${formattedNum}`,
   };
 });
