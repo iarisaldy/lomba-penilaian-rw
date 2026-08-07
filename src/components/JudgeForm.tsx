@@ -19,6 +19,7 @@ export const JudgeForm: React.FC = () => {
     toggleCardLock,
     lockAllCardsForJudge,
     isCardLocked,
+    isRealtimeConnected,
   } = useScore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -201,6 +202,23 @@ export const JudgeForm: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Cloud Database Maintenance / Offline Notice Banner */}
+      {!isRealtimeConnected && (
+        <div className="bg-gradient-to-r from-amber-950/90 via-slate-900 to-amber-950/90 border border-amber-500/50 rounded-2xl p-4 flex items-start gap-3 shadow-2xl animate-pulse">
+          <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-slate-200 leading-relaxed space-y-1">
+            <h4 className="font-extrabold text-amber-300 text-sm flex items-center gap-2">
+              🛠️ PEMBERITAHUAN PEMELIHARAAN SERVER DATABASE CLOUD
+            </h4>
+            <p className="text-slate-300">
+              Server database cloud (Supabase) sedang dalam pemeliharaan berkala atau terkendala koneksi sejenak.{' '}
+              <strong className="text-amber-300">Seluruh nilai yang Anda input TETAP TERSIMPAN 100% AMAN di HP Anda (Local Storage)</strong>{' '}
+              dan akan otomatis disinkronkan ke server begitu koneksi terhubung kembali. Anda dapat terus mengisi nilai seperti biasa!
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Rules Notice */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 flex items-start gap-2.5">
