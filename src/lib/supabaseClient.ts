@@ -16,12 +16,12 @@ export const supabase = isSupabaseConfigured
         autoRefreshToken: false,
       },
       global: {
-        // Cap per-request timeout at 8 seconds — free tier 522 can hang 30s+ otherwise
+        // Cap per-request timeout at 12 seconds — free tier 522 can hang 30s+ otherwise
         fetch: (url, options) =>
           Promise.race([
             fetch(url, options),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Supabase request timed out after 8s')), 8000)
+              setTimeout(() => reject(new Error('Supabase request timed out after 12s')), 12000)
             ),
           ]) as Promise<Response>,
       },
