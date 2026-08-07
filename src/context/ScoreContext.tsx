@@ -525,7 +525,12 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const saveAndSync = useCallback(async (newScores: AllScores, newNotes: JudgeGeneralNotes, reset = false) => {
+  const saveAndSync = useCallback(async (
+    newScores: AllScores,
+    newNotes: JudgeGeneralNotes,
+    reset = false,
+    judgeId?: string  // Jika ada → server hanya tulis ke baris juri ini (zero lock contention)
+  ) => {
     lastLocalInteractionRef.current = Date.now();
     const curEventId = activeEventIdRef.current;
 
@@ -563,7 +568,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           await fetch(`/api/scores?event=${curEventId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, lockedCards, eventId: curEventId }),
+            // judgeId → server routes write ke baris khusus juri ini saja
+            body: JSON.stringify({
+              scores: newScores,
+              judgeNotes: newNotes,
+              lockedCards,
+              eventId: curEventId,
+              ...(judgeId ? { judgeId } : {}),
+            }),
           });
         } catch (e) {
           console.error('Failed to post sync to /api/scores', e);
@@ -650,7 +662,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         next[judgeId][participantId].scores[criteriaId] = validScore;
         // Gunakan ref agar judgeNotes selalu fresh di dalam setter async
-        saveAndSync(next, judgeNotesRef.current);
+        // Pass judgeId → server tulis ke baris master_j_{judgeId} (zero lock conflict!)
+        saveAndSync(next, judgeNotesRef.current, false, judgeId);
         return next;
       });
     },
@@ -667,7 +680,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         next[judgeId][participantId].notes = notes;
         // Gunakan ref agar judgeNotes selalu fresh di dalam setter async
-        saveAndSync(next, judgeNotesRef.current);
+        saveAndSync(next, judgeNotesRef.current, false, judgeId);
         return next;
       });
     },
@@ -679,7 +692,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setJudgeNotes((prev) => {
         const next = { ...prev, [judgeId]: notes };
         // Gunakan scoresRef.current agar scores selalu fresh di dalam setter async
-        saveAndSync(scoresRef.current, next);
+        saveAndSync(scoresRef.current, next, false, judgeId);
         return next;
       });
     },

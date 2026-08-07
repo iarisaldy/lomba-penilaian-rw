@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   isSupabaseConfigured,
-  fetchMasterScoresFromSupabase,
+  fetchAllEventDataFromSupabase,
   saveMasterScoresToSupabase,
+  saveJudgeScoreToSupabase,
 } from '@/lib/supabaseClient';
 
 // Cache TTL: only re-fetch from Supabase if dirty (new POST) or > 30s elapsed.
@@ -68,7 +69,8 @@ export async function GET(request: NextRequest) {
   const now = Date.now();
   const cacheIsStale = now - cache.lastSyncedAt > SUPABASE_CACHE_TTL_MS;
   if (isSupabaseConfigured && (cache.isDirty || cacheIsStale)) {
-    const supabaseData = await fetchMasterScoresFromSupabase(eventId);
+    // Fetch config row + ALL judge rows in one query
+    const supabaseData = await fetchAllEventDataFromSupabase(eventId);
     if (supabaseData) {
       const supabaseTs = typeof supabaseData.resetTimestamp === 'number' ? supabaseData.resetTimestamp : 0;
 
@@ -176,17 +178,54 @@ export async function POST(request: NextRequest) {
     // Mark dirty so the next GET will re-confirm state with Supabase
     cache.isDirty = true;
 
-    // Persist to Supabase PostgreSQL instantly
+    // Persist to Supabase PostgreSQL
     if (isSupabaseConfigured) {
-      saveMasterScoresToSupabase(
-        cache.scores,
-        cache.judgeNotes,
-        cache.resetTimestamp,
-        Boolean(body.reset),
-        cache.config,
-        cache.lockedCards,
-        eventId
-      ).catch((err) => console.error(`Background Supabase save error for ${eventId}:`, err));
+      if (body.reset) {
+        // Reset: wipe master row only. Per-judge rows get ignored via resetTimestamp check in fetch.
+        saveMasterScoresToSupabase(
+          {},
+          {},
+          cache.resetTimestamp,
+          true,
+          cache.config,
+          cache.lockedCards,
+          eventId
+        ).catch((err) => console.error(`Reset Supabase error for ${eventId}:`, err));
+
+      } else if (body.judgeId && typeof body.judgeId === 'string' && !body.config) {
+        // Judge-triggered save: write ONLY to that judge's dedicated row.
+        // No lock contention with other judges — each writes their own row!
+        const judgeId = body.judgeId as string;
+        const judgeScores = cache.scores[judgeId] || {};
+        const judgeNote   = cache.judgeNotes[judgeId] || '';
+        saveJudgeScoreToSupabase(eventId, judgeId, judgeScores, judgeNote)
+          .catch((err) => console.error(`Judge save error [${judgeId}]:`, err));
+
+        // Also persist lockedCards / config to master row when they changed
+        if (body.lockedCards || body.config) {
+          saveMasterScoresToSupabase(
+            {},
+            {},
+            cache.resetTimestamp,
+            false,
+            cache.config,
+            cache.lockedCards,
+            eventId
+          ).catch(() => {});
+        }
+
+      } else {
+        // Admin action (config change, system lock, lockedCards) → master row
+        saveMasterScoresToSupabase(
+          cache.scores,
+          cache.judgeNotes,
+          cache.resetTimestamp,
+          false,
+          cache.config,
+          cache.lockedCards,
+          eventId
+        ).catch((err) => console.error(`Config save error for ${eventId}:`, err));
+      }
     }
 
     return NextResponse.json(
