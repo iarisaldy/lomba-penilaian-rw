@@ -36,6 +36,17 @@ function getEventCache(eventId: string): EventCache {
   return eventCaches[normId];
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const rawEvent = searchParams.get('event');
@@ -86,6 +97,7 @@ export async function GET(request: NextRequest) {
     {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Access-Control-Allow-Origin': '*',
       },
     }
   );
@@ -132,20 +144,32 @@ export async function POST(request: NextRequest) {
       ).catch((err) => console.error(`Background Supabase save error for ${eventId}:`, err));
     }
 
-    return NextResponse.json({
-      success: true,
-      eventId,
-      scores: cache.scores,
-      judgeNotes: cache.judgeNotes,
-      resetTimestamp: cache.resetTimestamp,
-      config: cache.config,
-      lockedCards: cache.lockedCards,
-      source: isSupabaseConfigured ? 'supabase' : 'server-memory',
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        eventId,
+        scores: cache.scores,
+        judgeNotes: cache.judgeNotes,
+        resetTimestamp: cache.resetTimestamp,
+        config: cache.config,
+        lockedCards: cache.lockedCards,
+        source: isSupabaseConfigured ? 'supabase' : 'server-memory',
+      },
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json(
       { success: false, error: 'Invalid JSON body' },
-      { status: 400 }
+      {
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
     );
   }
 }
