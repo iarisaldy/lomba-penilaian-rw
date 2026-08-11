@@ -490,20 +490,11 @@ export const JudgeForm: React.FC = () => {
                       )}
                     </button>
                   ) : isLocked ? (
-                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs bg-slate-900 border border-amber-500/30 text-amber-400 select-none">
+                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs bg-slate-900 border border-amber-500/30 text-amber-400 select-none">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span>Nilai Terkunci Permanen</span>
+                      <span>Nilai Terkunci</span>
                     </div>
-                  ) : (
-                    /* Tombol Kunci & Kirim Per-Peserta (Klik ini mengunci & menyetor nilai ke DB) */
-                    <button
-                      onClick={() => toggleCardLock(activeJudge.id, participant.id)}
-                      disabled={isSystemLocked}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send className="w-4 h-4" /> Kunci & Kirim {participant.code}
-                    </button>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>

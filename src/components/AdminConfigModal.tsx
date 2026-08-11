@@ -101,12 +101,21 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
   const handleAddParticipant = () => {
     const num = participantForm.length + 1;
-    const code = `RT 0${num}`;
-    const newId = `rt${num < 10 ? '0' + num : num}`;
-    setParticipantForm([
-      ...participantForm,
-      { id: newId, code, name: code },
-    ]);
+    const isSepedaHias = activeEventId === 'sepeda-hias';
+    if (isSepedaHias) {
+      const formattedNum = num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
+      setParticipantForm([
+        ...participantForm,
+        { id: `p_${formattedNum}`, code: formattedNum, name: `Peserta ${formattedNum}` },
+      ]);
+    } else {
+      const code = `RT 0${num}`;
+      const newId = `rt${num < 10 ? '0' + num : num}`;
+      setParticipantForm([
+        ...participantForm,
+        { id: newId, code, name: code },
+      ]);
+    }
   };
 
   const handleDeleteParticipant = (id: string) => {
@@ -147,7 +156,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
       <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]">
         
         {/* Modal Header */}
-        <div className="p-4 sm:p-6 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-4 sm:p-6 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
               <Settings className="w-5 h-5" />
@@ -171,7 +180,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Master System Lock Control Banner */}
-        <div className={`p-4 border-b flex flex-col sm:flex-row items-center justify-between gap-3 ${
+        <div className={`p-4 border-b flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 ${
           isSystemLocked ? 'bg-red-950/40 border-red-500/40' : 'bg-slate-950/50 border-slate-800'
         }`}>
           <div className="flex items-center gap-3 text-center sm:text-left">
@@ -218,14 +227,14 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
         {/* Saved Toast Notification */}
         {savedMessage && (
-          <div className="bg-emerald-500/20 border-b border-emerald-500/30 text-emerald-300 text-xs font-bold py-2.5 px-4 text-center flex items-center justify-center gap-2">
+          <div className="bg-emerald-500/20 border-b border-emerald-500/30 text-emerald-300 text-xs font-bold py-2.5 px-4 text-center flex items-center justify-center gap-2 shrink-0">
             <CheckCircle2 className="w-4 h-4" />
             {savedMessage}
           </div>
         )}
 
         {/* Sub-Tabs Navigation */}
-        <div className="flex border-b border-slate-800 bg-slate-950 px-4 gap-2 overflow-x-auto">
+        <div className="flex border-b border-slate-800 bg-slate-950 px-4 gap-2 overflow-x-auto shrink-0 min-h-[48px] items-stretch">
           <button
             onClick={() => setActiveSubTab('info')}
             className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
@@ -532,7 +541,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                           Array.from({ length: num }, (_, i) => {
                             const n = i + 1;
                             const formatted = n < 10 ? `00${n}` : n < 100 ? `0${n}` : `${n}`;
-                            return { id: `p_${formatted}`, code: `Peserta ${formatted}`, name: `Peserta ${formatted}` };
+                            return { id: `p_${formatted}`, code: formatted, name: `Peserta ${formatted}` };
                           })
                         );
                         showToast(`✅ Berhasil menyesuaikan jumlah peserta menjadi ${num} orang!`);
@@ -705,7 +714,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end">
+        <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"

@@ -18,6 +18,14 @@ import {
   DEFAULT_PARTICIPANTS,
   EVENT_INFO,
 } from '../data/competitionDefaults';
+import {
+  isSupabaseConfigured,
+  fetchAllEventDataFromSupabase,
+  saveJudgeScoreToSupabase,
+  saveMasterScoresToSupabase,
+  subscribeToEventChanges,
+  MasterPayload,
+} from '../lib/supabaseClient';
 
 interface ScoreContextType {
   activeEventId: string;
@@ -218,14 +226,19 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const syncConfigToServer = useCallback(async (newConfig: any) => {
     try {
-      localStorage.setItem(getStorageKey('lomba_event_config_v1', activeEventIdRef.current), JSON.stringify(newConfig));
-      await fetch(`/api/scores?event=${activeEventIdRef.current}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: newConfig, eventId: activeEventIdRef.current }),
-      });
+      const curEventId = activeEventIdRef.current;
+      localStorage.setItem(getStorageKey('lomba_event_config_v1', curEventId), JSON.stringify(newConfig));
+      await saveMasterScoresToSupabase(
+        scoresRef.current,
+        judgeNotesRef.current,
+        0,
+        false,
+        newConfig,
+        undefined,
+        curEventId
+      );
     } catch (e) {
-      console.error('Failed to sync config to server', e);
+      console.error('Failed to sync config to Supabase', e);
     }
   }, []);
 
@@ -254,7 +267,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const formattedNum = num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
       return {
         id: `p_${formattedNum}`,
-        code: `Peserta ${formattedNum}`,
+        code: formattedNum,
         name: `Peserta ${formattedNum}`,
       };
     });
@@ -273,22 +286,20 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const key = `${judgeId}_${p.id}`;
         next[key] = true;
       });
+      const curEventId = activeEventIdRef.current;
       try {
-        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', activeEventIdRef.current), JSON.stringify(next));
+        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', curEventId), JSON.stringify(next));
       } catch (e) {}
 
-      // Kirim SELURUH nilai juri ini + lock status ke server dalam 1 POST request sekaligus!
-      fetch(`/api/scores?event=${activeEventIdRef.current}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scores: scoresRef.current,
-          judgeNotes: judgeNotesRef.current,
-          lockedCards: next,
-          eventId: activeEventIdRef.current,
-          judgeId,
-        }),
-      }).catch((e) => console.error('Failed to post lock all scores', e));
+      saveMasterScoresToSupabase(
+        scoresRef.current,
+        judgeNotesRef.current,
+        0,
+        false,
+        undefined,
+        next,
+        curEventId
+      ).catch((e) => console.error('Failed to post lock all scores', e));
 
       return next;
     });
@@ -308,8 +319,6 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const currentlyLocked = Boolean(lockedCards[key]);
     const currentRole = authStateRef.current.role;
 
-    // RULE: Juri can LOCK their card, but CANNOT UNLOCK once locked!
-    // Only Admin can unlock individual cards or toggle master system lock.
     if (currentRole === 'juri' && currentlyLocked) {
       alert('🔒 Nilai peserta ini telah dikunci permanen. Untuk perubahan nilai, silakan hubungi Admin Panitia.');
       return;
@@ -318,172 +327,196 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setLockedCards(prev => {
       const nextLocked = !currentlyLocked;
       const next = { ...prev, [key]: nextLocked };
+      const curEventId = activeEventIdRef.current;
       try {
-        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', activeEventIdRef.current), JSON.stringify(next));
+        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', curEventId), JSON.stringify(next));
       } catch (e) {}
 
-      // Sync lock status & current scores of this judge to server
-      fetch(`/api/scores?event=${activeEventIdRef.current}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scores: scoresRef.current,
-          judgeNotes: judgeNotesRef.current,
-          lockedCards: next,
-          eventId: activeEventIdRef.current,
-          judgeId,
-        }),
-      }).catch((e) => console.error('Failed to post card lock score', e));
+      saveMasterScoresToSupabase(
+        scoresRef.current,
+        judgeNotesRef.current,
+        0,
+        false,
+        undefined,
+        next,
+        curEventId
+      ).catch((e) => console.error('Failed to post card lock score', e));
 
       return next;
     });
   }, [lockedCards]);
 
-  // Poll /api/scores endpoint (1ms response time directly from server memory / Supabase)
-  useEffect(() => {
-    const fetchApiScores = async () => {
+  // Handler for merging data received directly from Supabase (Realtime or Direct REST)
+  const applyRemoteData = useCallback((data: MasterPayload) => {
+    const curEventId = activeEventIdRef.current;
+
+    if (data.config) {
+      if (data.config.eventInfo) setEventInfo(data.config.eventInfo);
+      if (data.config.criteria) setCriteria(data.config.criteria);
+      if (data.config.participants) setParticipants(data.config.participants);
+      if (data.config.judges) setJudges(data.config.judges);
+    }
+
+    if (data.lockedCards && Object.keys(data.lockedCards).length > 0) {
+      setLockedCards(prev => {
+        const mergedLocks = { ...prev, ...data.lockedCards };
+        if (JSON.stringify(prev) === JSON.stringify(mergedLocks)) return prev;
+        return mergedLocks;
+      });
+    }
+
+    if (data.resetTimestamp && data.resetTimestamp > lastResetTs && lastResetTs > 0) {
+      setLastResetTs(data.resetTimestamp);
+      setScores({});
+      setJudgeNotes({});
+      setLockedCards({});
       try {
-        const curEventId = activeEventIdRef.current;
-        const res = await fetch(`/api/scores?event=${curEventId}`, { cache: 'no-store' });
-        let data: {
-          scores?: Record<string, any>;
-          judgeNotes?: Record<string, any>;
-          resetTimestamp?: number;
-          config?: any;
-          lockedCards?: Record<string, boolean>;
-        } | null = null;
-        if (res.ok) {
-          data = await res.json();
-        } else {
-          setIsRealtimeConnected(false);
-          return;
-        }
+        localStorage.setItem(getStorageKey('lomba_last_reset_ts_v1', curEventId), String(data.resetTimestamp));
+        localStorage.removeItem(getStorageKey('lomba_scores_v1', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_notes_v1', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_locked_cards_v1', curEventId));
+      } catch (e) {}
+      return;
+    }
 
-        if (data) {
-          // 1. Sync remote config if available
-          if (data.config) {
-            if (data.config.eventInfo) setEventInfo(data.config.eventInfo);
-            if (data.config.criteria) setCriteria(data.config.criteria);
-            if (data.config.participants) setParticipants(data.config.participants);
-            if (data.config.judges) setJudges(data.config.judges);
-          }
+    let serverScores = normalizeScores(data.scores || {});
+    let serverNotes = data.judgeNotes || {};
 
-          // 2. Sync remote locked cards
-          if (data.lockedCards && Object.keys(data.lockedCards).length > 0) {
-            setLockedCards(prev => {
-              const mergedLocks = { ...prev, ...data.lockedCards };
-              if (JSON.stringify(prev) === JSON.stringify(mergedLocks)) return prev;
-              return mergedLocks;
-            });
-          }
+    if (Object.keys(serverScores).length > 0) {
+      setScores(prev => {
+        const now = Date.now();
+        const isRecentlyEdited = now - lastLocalInteractionRef.current < 8000;
+        const currentAuthState = authStateRef.current;
+        const currentActiveJudgeId = activeJudgeIdRef.current;
 
-          // 3. If remote reset timestamp is newer, wipe local state!
-          if (data.resetTimestamp && data.resetTimestamp > lastResetTs && lastResetTs > 0) {
-            setLastResetTs(data.resetTimestamp);
-            setScores({});
-            setJudgeNotes({});
-            setLockedCards({});
-            try {
-              localStorage.setItem(getStorageKey('lomba_last_reset_ts_v1', curEventId), String(data.resetTimestamp));
-              localStorage.removeItem(getStorageKey('lomba_scores_v1', curEventId));
-              localStorage.removeItem(getStorageKey('lomba_notes_v1', curEventId));
-              localStorage.removeItem(getStorageKey('lomba_locked_cards_v1', curEventId));
-            } catch (e) {}
-            return;
-          }
+        const mergedScores: Record<string, any> = { ...prev };
 
-          let serverScores = normalizeScores(data.scores || {});
-          let serverNotes = data.judgeNotes || {};
+        for (const jId of Object.keys(serverScores)) {
+          const isOwnJudgeData = currentAuthState.role === 'juri' && currentAuthState.judgeId === jId;
+          const isRecentlyActiveJudge = isRecentlyEdited && jId === currentActiveJudgeId && prev[jId];
 
-          // Synchronize with Central Server Master Scores with Accumulative Non-Zero Merge
-          if (Object.keys(serverScores).length > 0) {
-            setScores(prev => {
-              const now = Date.now();
-              const isRecentlyEdited = now - lastLocalInteractionRef.current < 8000;
-              const currentAuthState = authStateRef.current;
-              const currentActiveJudgeId = activeJudgeIdRef.current;
+          const prevJudge = prev[jId] || {};
+          const serverJudge = serverScores[jId] || {};
+          const mergedJudge: Record<string, any> = { ...prevJudge };
 
-              const mergedScores: Record<string, any> = { ...prev };
+          for (const pId of Object.keys(serverJudge)) {
+            const prevParticipant = prevJudge[pId] || { scores: {} };
+            const serverParticipant = serverJudge[pId] || { scores: {} };
 
-              for (const jId of Object.keys(serverScores)) {
-                const isOwnJudgeData = currentAuthState.role === 'juri' && currentAuthState.judgeId === jId;
-                const isRecentlyActiveJudge = isRecentlyEdited && jId === currentActiveJudgeId && prev[jId];
+            const prevCriteriaScores = prevParticipant.scores || {};
+            const serverCriteriaScores = serverParticipant.scores || {};
 
-                const prevJudge = prev[jId] || {};
-                const serverJudge = serverScores[jId] || {};
-                const mergedJudge: Record<string, any> = { ...prevJudge };
+            const mergedCriteria: Record<string, number> = { ...prevCriteriaScores };
 
-                for (const pId of Object.keys(serverJudge)) {
-                  const prevParticipant = prevJudge[pId] || { scores: {} };
-                  const serverParticipant = serverJudge[pId] || { scores: {} };
-
-                  const prevCriteriaScores = prevParticipant.scores || {};
-                  const serverCriteriaScores = serverParticipant.scores || {};
-
-                  const mergedCriteria: Record<string, number> = { ...prevCriteriaScores };
-
-                  for (const cId of Object.keys(serverCriteriaScores)) {
-                    const serverVal = serverCriteriaScores[cId];
-                    if (isOwnJudgeData || isRecentlyActiveJudge) {
-                      const localVal = prevCriteriaScores[cId];
-                      if (typeof localVal === 'number' && localVal > 0) {
-                        mergedCriteria[cId] = localVal;
-                      } else if (typeof serverVal === 'number' && serverVal > 0) {
-                        mergedCriteria[cId] = serverVal;
-                      }
-                    } else {
-                      if (typeof serverVal === 'number' && serverVal > 0) {
-                        mergedCriteria[cId] = serverVal;
-                      }
-                    }
-                  }
-
-                  mergedJudge[pId] = {
-                    ...prevParticipant,
-                    ...serverParticipant,
-                    scores: mergedCriteria,
-                    notes: serverParticipant.notes || prevParticipant.notes || '',
-                  };
+            for (const cId of Object.keys(serverCriteriaScores)) {
+              const serverVal = serverCriteriaScores[cId];
+              if (isOwnJudgeData || isRecentlyActiveJudge) {
+                const localVal = prevCriteriaScores[cId];
+                if (typeof localVal === 'number' && localVal > 0) {
+                  mergedCriteria[cId] = localVal;
+                } else if (typeof serverVal === 'number' && serverVal > 0) {
+                  mergedCriteria[cId] = serverVal;
                 }
-
-                mergedScores[jId] = mergedJudge;
+              } else {
+                if (typeof serverVal === 'number' && serverVal > 0) {
+                  mergedCriteria[cId] = serverVal;
+                }
               }
+            }
 
-              const nextScores = normalizeScores(mergedScores);
-              const prevNorm = normalizeScores(prev);
-
-              if (JSON.stringify(prevNorm) === JSON.stringify(nextScores)) {
-                return prev;
-              }
-              return nextScores;
-            });
+            mergedJudge[pId] = {
+              ...prevParticipant,
+              ...serverParticipant,
+              scores: mergedCriteria,
+              notes: serverParticipant.notes || prevParticipant.notes || '',
+            };
           }
 
-          if (Object.keys(serverNotes).length > 0) {
-            setJudgeNotes(prev => {
-              const mergedNotes = { ...prev, ...serverNotes };
-              if (JSON.stringify(prev) === JSON.stringify(mergedNotes)) {
-                return prev;
-              }
-              return mergedNotes;
-            });
-          }
-          setIsRealtimeConnected(true);
-        } else {
-          setIsRealtimeConnected(false);
+          mergedScores[jId] = mergedJudge;
         }
-      } catch (e) {
-        setIsRealtimeConnected(false);
+
+        const nextScores = normalizeScores(mergedScores);
+        const prevNorm = normalizeScores(prev);
+
+        if (JSON.stringify(prevNorm) === JSON.stringify(nextScores)) {
+          return prev;
+        }
+        return nextScores;
+      });
+    }
+
+    if (Object.keys(serverNotes).length > 0) {
+      setJudgeNotes(prev => {
+        const mergedNotes = { ...prev, ...serverNotes };
+        if (JSON.stringify(prev) === JSON.stringify(mergedNotes)) {
+          return prev;
+        }
+        return mergedNotes;
+      });
+    }
+    setIsRealtimeConnected(true);
+  }, [lastResetTs]);
+
+  // Direct Supabase Fetch & Realtime Subscription (0 Vercel Serverless Function Cost!)
+  useEffect(() => {
+    const curEventId = activeEventIdRef.current;
+
+    if (isSupabaseConfigured) {
+      // Initial direct Supabase fetch
+      fetchAllEventDataFromSupabase(curEventId).then((data) => {
+        if (data) {
+          applyRemoteData(data);
+        }
+      });
+
+      // Subscribe to Supabase Realtime Channel
+      const unsubscribe = subscribeToEventChanges(curEventId, (data) => {
+        if (data) {
+          applyRemoteData(data);
+        }
+      });
+
+      // Low frequency safety net poll (every 25s - direct REST to Supabase)
+      const interval = setInterval(() => {
+        fetchAllEventDataFromSupabase(curEventId).then((data) => {
+          if (data) {
+            applyRemoteData(data);
+          }
+        });
+      }, 25000);
+
+      return () => {
+        unsubscribe();
+        clearInterval(interval);
+      };
+    }
+  }, [activeEventId, applyRemoteData]);
+
+  // Inter-tab local real-time sync via BroadcastChannel (0 network calls when testing locally!)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    const channel = new BroadcastChannel('lomba_local_sync_channel');
+    channel.onmessage = (event) => {
+      const data = event.data;
+      if (data && data.eventId === activeEventIdRef.current && data.type === 'LOCAL_SYNC') {
+        if (data.reset) {
+          setScores({});
+          setJudgeNotes({});
+          setLockedCards({});
+        } else {
+          if (data.scores) {
+            setScores(prev => normalizeScores({ ...prev, ...data.scores }));
+          }
+          if (data.judgeNotes) {
+            setJudgeNotes(prev => ({ ...prev, ...data.judgeNotes }));
+          }
+        }
       }
     };
-
-    fetchApiScores();
-    const interval = setInterval(fetchApiScores, 8000); // 8 detik — cukup responsif, tidak spam Supabase
-
-    return () => clearInterval(interval);
-  // PENTING: judgeNotes dihapus dari deps — setiap ketikan juri me-restart interval polling!
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastResetTs, activeJudgeId, activeEventId]);
+    return () => {
+      channel.close();
+    };
+  }, []);
 
   // Load initial Auth, Config, and Local Scores state
   useEffect(() => {
@@ -511,16 +544,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (parsed.judges) setJudges(parsed.judges);
       }
 
-      // Load local scores fallback so judges NEVER lose typed scores if server container restarts
       if (savedScores) {
         const parsedScores = normalizeScores(JSON.parse(savedScores));
         if (Object.keys(parsedScores).length > 0) {
           setScores(parsedScores);
-          fetch(`/api/scores?event=${curEventId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ scores: parsedScores, eventId: curEventId }),
-          }).catch(() => {});
         }
       }
       if (savedNotes) {
@@ -542,7 +569,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     newScores: AllScores,
     newNotes: JudgeGeneralNotes,
     reset = false,
-    judgeId?: string  // Jika ada → server hanya tulis ke baris juri ini (zero lock contention)
+    judgeId?: string
   ) => {
     lastLocalInteractionRef.current = Date.now();
     const curEventId = activeEventIdRef.current;
@@ -560,40 +587,51 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Failed to save to localStorage', e);
     }
 
+    // Broadcast changes locally across browser tabs
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const channel = new BroadcastChannel('lomba_local_sync_channel');
+        channel.postMessage({
+          type: 'LOCAL_SYNC',
+          eventId: curEventId,
+          scores: newScores,
+          judgeNotes: newNotes,
+          reset,
+        });
+        channel.close();
+      } catch (e) {}
+    }
+
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
-    if (reset) {
-      try {
-        await fetch(`/api/scores?event=${curEventId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scores: newScores, judgeNotes: newNotes, reset: true, eventId: curEventId }),
-        });
-      } catch (e) {
-        console.error('Failed to post reset to /api/scores', e);
+    if (isSupabaseConfigured) {
+      if (reset) {
+        saveMasterScoresToSupabase({}, {}, Date.now(), true, undefined, undefined, curEventId)
+          .catch(e => console.error('Failed to reset Supabase', e));
+      } else {
+        const jitter = Math.floor(Math.random() * 300);
+        syncTimeoutRef.current = setTimeout(async () => {
+          try {
+            if (judgeId) {
+              const jScores = newScores[judgeId] || {};
+              const jNote = newNotes[judgeId] || '';
+              await saveJudgeScoreToSupabase(curEventId, judgeId, jScores, jNote);
+            } else {
+              await saveMasterScoresToSupabase(
+                newScores,
+                newNotes,
+                0,
+                false,
+                undefined,
+                lockedCards,
+                curEventId
+              );
+            }
+          } catch (e) {
+            console.error('Failed to sync to Supabase', e);
+          }
+        }, 1500 + jitter);
       }
-    } else {
-      // Jitter 0-500ms di atas debounce 1500ms: mencegah banyak juri save
-      // ke row 'master' yang sama di momen yang persis sama (row lock conflict)
-      const jitter = Math.floor(Math.random() * 500);
-      syncTimeoutRef.current = setTimeout(async () => {
-        try {
-          await fetch(`/api/scores?event=${curEventId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // judgeId → server routes write ke baris khusus juri ini saja
-            body: JSON.stringify({
-              scores: newScores,
-              judgeNotes: newNotes,
-              lockedCards,
-              eventId: curEventId,
-              ...(judgeId ? { judgeId } : {}),
-            }),
-          });
-        } catch (e) {
-          console.error('Failed to post sync to /api/scores', e);
-        }
-      }, 1500 + jitter); // 1.5 detik debounce + jitter acak 0-500ms
     }
   }, [lockedCards]);
 
@@ -748,13 +786,15 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const recapData: ParticipantRecap[] = useMemo(() => {
+    const isSepedaHias = activeEventId === 'sepeda-hias';
     const rawRecaps = participants.map((participant) => {
       const scoresByJudge: { [judgeId: string]: number | 'N/A' } = {};
       let totalScore = 0;
       let validJudgeCount = 0;
 
       judges.forEach((judge) => {
-        if (judge.code === participant.code) {
+        // Self-judging N/A exclusion ONLY applies for RT vs RT in Blind Rias
+        if (!isSepedaHias && judge.code === participant.code) {
           scoresByJudge[judge.id] = 'N/A';
         } else {
           const subtotal = getParticipantSubtotal(judge.id, participant.id);

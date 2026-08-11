@@ -10,6 +10,12 @@ export const RecapDashboard: React.FC = () => {
   const [resetError, setResetError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const formatParticipantLabel = (code: string) => {
+    if (!code) return '';
+    if (code.toLowerCase().includes('peserta')) return code;
+    return `Peserta #${code}`;
+  };
+
   const filteredRecapParticipants = useMemo(() => {
     if (!searchQuery.trim()) return participants;
     const q = searchQuery.toLowerCase().trim();
@@ -114,7 +120,7 @@ export const RecapDashboard: React.FC = () => {
             </div>
             <div className="text-lg font-black text-white">
               {juara1 && juara1.averageScore > 0 ? (
-                <span>Peserta {juara1.participantCode} <span className="text-amber-400 text-sm font-bold">({juara1.averageScore})</span></span>
+                <span>{formatParticipantLabel(juara1.participantCode)} <span className="text-amber-400 text-sm font-bold">({juara1.averageScore})</span></span>
               ) : (
                 <span className="text-slate-500 text-sm">Belum ada data</span>
               )}
@@ -132,7 +138,7 @@ export const RecapDashboard: React.FC = () => {
             </div>
             <div className="text-lg font-black text-white">
               {juara2 && juara2.averageScore > 0 ? (
-                <span>Peserta {juara2.participantCode} <span className="text-slate-300 text-sm font-bold">({juara2.averageScore})</span></span>
+                <span>{formatParticipantLabel(juara2.participantCode)} <span className="text-slate-300 text-sm font-bold">({juara2.averageScore})</span></span>
               ) : (
                 <span className="text-slate-500 text-sm">Belum ada data</span>
               )}
@@ -239,7 +245,7 @@ export const RecapDashboard: React.FC = () => {
                       🥈
                     </div>
                     <h3 className="font-extrabold text-base text-white">
-                      Peserta #{sortedRecap[1].participantCode}
+                      {formatParticipantLabel(sortedRecap[1].participantCode)}
                     </h3>
                     <p className="text-xs text-slate-300 font-semibold mt-1">
                       Rata-Rata: <span className="text-sm font-black text-amber-400">{sortedRecap[1].averageScore}</span>
@@ -258,7 +264,7 @@ export const RecapDashboard: React.FC = () => {
                       🏆
                     </div>
                     <h3 className="font-extrabold text-xl text-white">
-                      Peserta #{sortedRecap[0].participantCode}
+                      {formatParticipantLabel(sortedRecap[0].participantCode)}
                     </h3>
                     <p className="text-xs text-amber-300 font-bold mt-1">
                       Rata-Rata: <span className="text-lg font-black text-white">{sortedRecap[0].averageScore}</span>
@@ -277,7 +283,7 @@ export const RecapDashboard: React.FC = () => {
                       🥉
                     </div>
                     <h3 className="font-extrabold text-base text-white">
-                      Peserta #{sortedRecap[2].participantCode}
+                      {formatParticipantLabel(sortedRecap[2].participantCode)}
                     </h3>
                     <p className="text-xs text-slate-300 font-semibold mt-1">
                       Rata-Rata: <span className="text-sm font-black text-amber-400">{sortedRecap[2].averageScore}</span>
@@ -297,7 +303,7 @@ export const RecapDashboard: React.FC = () => {
                       </span>
                       <div>
                         <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Juara Harapan 1</div>
-                        <div className="text-sm font-extrabold text-white">Peserta #{sortedRecap[3].participantCode}</div>
+                        <div className="text-sm font-extrabold text-white">{formatParticipantLabel(sortedRecap[3].participantCode)}</div>
                       </div>
                     </div>
                     <div className="text-right">
@@ -315,7 +321,7 @@ export const RecapDashboard: React.FC = () => {
                       </span>
                       <div>
                         <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Juara Harapan 2</div>
-                        <div className="text-sm font-extrabold text-white">Peserta #{sortedRecap[4].participantCode}</div>
+                        <div className="text-sm font-extrabold text-white">{formatParticipantLabel(sortedRecap[4].participantCode)}</div>
                       </div>
                     </div>
                     <div className="text-right">

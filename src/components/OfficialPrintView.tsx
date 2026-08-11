@@ -36,6 +36,7 @@ export const OfficialPrintView: React.FC = () => {
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
   const juara1 = sortedRecap[0];
   const juara2 = sortedRecap[1];
+  const top5Recap = participants.length > 5 ? sortedRecap.slice(0, 5) : sortedRecap;
 
   const handlePrint = () => {
     window.print();
@@ -189,10 +190,10 @@ export const OfficialPrintView: React.FC = () => {
           </div>
         )}
 
-        {/* Detailed Scores Matrix Table */}
+        {/* Detailed Scores Matrix Table (Top 5 Winners) */}
         <div className="space-y-2 mb-8 font-sans">
           <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800">
-            MATRIKS NILAI DEWAN JURI:
+            {participants.length > 5 ? 'MATRIKS NILAI DEWAN JURI (HASIL TOP 5 PEMENANG):' : 'MATRIKS NILAI DEWAN JURI:'}
           </h3>
           <table className="w-full text-left text-xs border-collapse border border-slate-900">
             <thead>
@@ -209,11 +210,21 @@ export const OfficialPrintView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-900 font-medium">
-              {participants.map((participant) => {
-                const recap = recapData.find((r) => r.participantId === participant.id);
-                if (!recap) return null;
+              {top5Recap.map((recap) => {
+                const participant = participants.find((p) => p.id === recap.participantId);
+                if (!participant) return null;
 
                 const isRank1 = recap.rank === 1 && recap.averageScore > 0;
+
+                const getRankBadge = (rank: number, avg: number) => {
+                  if (avg === 0) return `#${rank}`;
+                  if (rank === 1) return '🏆 Juara 1';
+                  if (rank === 2) return '🥈 Juara 2';
+                  if (rank === 3) return '🥉 Juara 3';
+                  if (rank === 4) return '🎖️ Harapan 1';
+                  if (rank === 5) return '🎖️ Harapan 2';
+                  return `#${rank}`;
+                };
 
                 return (
                   <tr key={participant.id} className={`text-center ${isRank1 ? 'bg-amber-50 font-bold' : ''}`}>
@@ -239,7 +250,7 @@ export const OfficialPrintView: React.FC = () => {
                       {recap.averageScore}
                     </td>
                     <td className="border border-slate-900 px-3 py-2 font-bold">
-                      {isRank1 ? '🏆 Juara 1' : recap.rank === 2 && recap.averageScore > 0 ? '🥈 Juara 2' : `#${recap.rank}`}
+                      {getRankBadge(recap.rank, recap.averageScore)}
                     </td>
                   </tr>
                 );

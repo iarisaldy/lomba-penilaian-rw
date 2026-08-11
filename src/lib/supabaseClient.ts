@@ -1,9 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://epngkmolxvylrxtqmmmx.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_zFH7ZSPQTsC491cds3K-3w_HMxAx8iN';
 
 export const isSupabaseConfigured = Boolean(
+  process.env.NEXT_PUBLIC_USE_LOCAL_DB !== 'true' &&
   supabaseUrl &&
   supabaseAnonKey &&
   supabaseAnonKey !== 'isikan_anon_key_disini'
@@ -53,7 +54,7 @@ const getJudgeRowId = (eventId: string, judgeId: string): string =>
 // After FAILURE_THRESHOLD consecutive failures the circuit "opens" and
 // all Supabase calls are skipped for COOLDOWN_MS. One success closes it again.
 const FAILURE_THRESHOLD = 3;
-const COOLDOWN_MS       = 5 * 60_000; // 5 menit
+const COOLDOWN_MS       = 3 * 60_000; // 3 menit
 
 let consecutiveFailures = 0;
 let circuitOpenedAt     = 0; // 0 = closed (healthy)
@@ -82,7 +83,7 @@ function recordFailure(context: string, msg: string): void {
     console.warn(
       `[Supabase] Circuit OPEN after ${FAILURE_THRESHOLD} failures — ` +
       `pausing Supabase calls for ${COOLDOWN_MS / 60_000} min. ` +
-      `App running on server-memory fallback. (${context}: ${msg})`
+      `App running on local storage fallback. (${context}: ${msg})`
     );
   } else if (circuitOpenedAt === 0) {
     console.warn(`[Supabase] ${context} (${consecutiveFailures}/${FAILURE_THRESHOLD}): ${msg}`);
@@ -90,7 +91,6 @@ function recordFailure(context: string, msg: string): void {
 }
 
 // ─── Error Message Helper ─────────────────────────────────────────────────────
-// Collapses HTML error pages (e.g. Cloudflare 522) to a one-liner.
 const getErrMsg = (err: any): string => {
   if (!err) return '';
   let raw: string;
@@ -109,8 +109,6 @@ const getErrMsg = (err: any): string => {
 };
 
 // ─── Shared Upsert with Retry ─────────────────────────────────────────────────
-// Retries up to 2x on row-lock conflicts (SQL 57014 = statement timeout).
-// Concurrent upserts to the same row cause lock contention on Supabase NANO.
 async function upsertWithRetry(payload: Record<string, any>): Promise<{ error: any }> {
   if (!supabase) return { error: new Error('Supabase not configured') };
 
@@ -127,7 +125,6 @@ async function upsertWithRetry(payload: Record<string, any>): Promise<{ error: a
 
     if (isLockConflict) {
       for (let attempt = 1; attempt <= 2; attempt++) {
-        // Exponential backoff + random jitter
         const wait = 200 * attempt + Math.floor(Math.random() * 300);
         await new Promise(r => setTimeout(r, wait));
         const { error: retryError } = await doUpsert();
@@ -141,8 +138,6 @@ async function upsertWithRetry(payload: Record<string, any>): Promise<{ error: a
 }
 
 // ─── Fetch ALL event data (config row + all judge rows) ───────────────────────
-// One query returns the master config AND every per-judge row.
-// This replaces the old single-row fetch.
 export const fetchAllEventDataFromSupabase = async (
   eventId: string = 'master'
 ): Promise<MasterPayload | null> => {
@@ -151,7 +146,6 @@ export const fetchAllEventDataFromSupabase = async (
 
   const normId = getRowId(eventId);
   try {
-    // Fetch master row (config/lockedCards) AND all judge rows in ONE round-trip
     const { data, error } = await supabase
       .from('scores_state')
       .select('id, scores, judge_notes, reset_timestamp, updated_at')
@@ -166,18 +160,15 @@ export const fetchAllEventDataFromSupabase = async (
     const judgeRows   = data.filter(r => r.id !== normId);
     const resetTimestamp = Number(configRow?.reset_timestamp || 0);
 
-    // Merge all per-judge rows (skip rows that predate the last reset)
     const mergedScores: Record<string, any> = {};
     const mergedNotes: Record<string, any>  = {};
 
     for (const row of judgeRows) {
-      // Ignore stale judge data if it predates the last reset
       if (resetTimestamp > 0 && row.updated_at) {
         const rowUpdatedMs = new Date(row.updated_at).getTime();
         if (rowUpdatedMs < resetTimestamp) continue;
       }
 
-      // Judge ID is the suffix after "master_j_"
       const judgeId = row.id.slice(`${normId}_j_`.length);
       if (row.scores && Object.keys(row.scores).length > 0) {
         mergedScores[judgeId] = row.scores;
@@ -187,19 +178,15 @@ export const fetchAllEventDataFromSupabase = async (
       }
     }
 
-    // ── Backward compatibility: also read scores from the old master row format ──
-    // (scores stored as { juri_rt01: {...}, ... } in the master row)
     if (configRow?.scores && typeof configRow.scores === 'object') {
       for (const [judgeId, judgeData] of Object.entries(configRow.scores)) {
         if (!mergedScores[judgeId]) mergedScores[judgeId] = judgeData;
       }
     }
 
-    // Extract config & lockedCards from master row's judge_notes blob
     const rawNotes = configRow?.judge_notes || {};
     const { _config, _lockedCards, ...legacyNotes } = rawNotes;
 
-    // Also merge legacy judge notes stored in the old master-row format
     for (const [judgeId, note] of Object.entries(legacyNotes)) {
       if (!mergedNotes[judgeId]) mergedNotes[judgeId] = note;
     }
@@ -217,11 +204,9 @@ export const fetchAllEventDataFromSupabase = async (
   }
 };
 
-// Keep the old function name as an alias for backward compatibility
 export const fetchMasterScoresFromSupabase = fetchAllEventDataFromSupabase;
 
 // ─── Save ONE judge's scores to their dedicated row ───────────────────────────
-// Each judge → their own row → ZERO lock contention with other judges!
 export const saveJudgeScoreToSupabase = async (
   eventId: string,
   judgeId: string,
@@ -251,8 +236,6 @@ export const saveJudgeScoreToSupabase = async (
 };
 
 // ─── Save config / lockedCards / reset to the master row ─────────────────────
-// Only called for: config updates, system lock toggles, and reset.
-// Regular judge score saves use saveJudgeScoreToSupabase above.
 export const saveMasterScoresToSupabase = async (
   scores: Record<string, any>,
   judgeNotes: Record<string, any>,
@@ -286,4 +269,44 @@ export const saveMasterScoresToSupabase = async (
     recordFailure(`save[${rowId}]`, getErrMsg(err));
     return false;
   }
+};
+
+// ─── Realtime Channel Subscription ────────────────────────────────────────────
+// Listens for postgres_changes on scores_state directly from browser
+export const subscribeToEventChanges = (
+  eventId: string,
+  onPayload: (payload: MasterPayload) => void
+): (() => void) => {
+  if (!supabase || isCircuitOpen()) return () => {};
+
+  const channelName = `realtime_scores_${getRowId(eventId)}_${Math.random().toString(36).substring(2, 7)}`;
+  let channel: RealtimeChannel | null = null;
+
+  try {
+    channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'scores_state' },
+        async () => {
+          const freshData = await fetchAllEventDataFromSupabase(eventId);
+          if (freshData) {
+            onPayload(freshData);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          recordSuccess();
+        }
+      });
+  } catch (e) {
+    console.warn('[Supabase] Failed to subscribe to realtime channel', e);
+  }
+
+  return () => {
+    if (channel && supabase) {
+      supabase.removeChannel(channel).catch(() => {});
+    }
+  };
 };
