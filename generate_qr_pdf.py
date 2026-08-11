@@ -7,7 +7,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 # 1. Generate QR Code image
-qr_url = "https://lomba-permata-discovery.vercel.app/"
+qr_url = "https://lomba-permata-discovery.netlify.app/"
 qr = qrcode.QRCode(
     version=1,
     error_correction=qrcode.constants.ERROR_CORRECT_H,
@@ -21,10 +21,11 @@ qr_img = qr.make_image(fill_color="#0F172A", back_color="white")
 qr_img_path = "/tmp/lomba_qr_code.png"
 qr_img.save(qr_img_path)
 
-logo_path = "/Users/muhammadirfan/Documents/lomba/public/permata_logo.png"
+base_dir = os.path.dirname(os.path.abspath(__file__))
+logo_path = os.path.join(base_dir, "public", "permata_logo.png")
 
 # 2. Setup PDF Document
-pdf_path = "/Users/muhammadirfan/Documents/lomba/Kartu_Akses_Juri_Lomba.pdf"
+pdf_path = os.path.join(base_dir, "Kartu_Akses_Juri_Lomba.pdf")
 doc = SimpleDocTemplate(
     pdf_path,
     pagesize=A4,
@@ -146,7 +147,7 @@ story.append(Spacer(1, 6))
 # Link URL
 story.append(Paragraph("Atau buka melalui Browser HP / Laptop:", ParagraphStyle('SubText', parent=body_style, alignment=TA_CENTER)))
 story.append(Spacer(1, 3))
-story.append(Paragraph("<u>https://lomba-permata-discovery.vercel.app/</u>", link_style))
+story.append(Paragraph("<u>https://lomba-permata-discovery.netlify.app/</u>", link_style))
 story.append(Spacer(1, 12))
 
 story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceBefore=0, spaceAfter=12))

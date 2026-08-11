@@ -3,13 +3,12 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useScore } from '../context/ScoreContext';
-import { ShieldCheck, ChevronDown, ChevronUp, HelpCircle, KeyRound } from 'lucide-react';
+import { ShieldCheck, KeyRound } from 'lucide-react';
 
 export const PinLoginModal: React.FC = () => {
-  const { loginWithPin, eventInfo, judges } = useScore();
+  const { loginWithPin, eventInfo } = useScore();
   const [pin, setPin] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [showCheatSheet, setShowCheatSheet] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,15 +20,6 @@ export const PinLoginModal: React.FC = () => {
     }
 
     const res = loginWithPin(pin);
-    if (!res.success) {
-      setErrorMsg(res.message || 'PIN salah!');
-    }
-  };
-
-  const handleQuickPinSelect = (selectedPin: string) => {
-    setPin(selectedPin);
-    setErrorMsg('');
-    const res = loginWithPin(selectedPin);
     if (!res.success) {
       setErrorMsg(res.message || 'PIN salah!');
     }
@@ -113,51 +103,6 @@ export const PinLoginModal: React.FC = () => {
               Masuk Aplikasi
             </button>
           </form>
-
-          {/* PIN Quick Select Cheat Sheet (Bantuan Panitia & Juri) */}
-          <div className="border-t border-slate-800/80 pt-3">
-            <button
-              onClick={() => setShowCheatSheet(!showCheatSheet)}
-              className="w-full flex items-center justify-between text-xs text-slate-400 hover:text-slate-200 transition-colors py-1.5 px-3 rounded-xl bg-slate-950/60 border border-slate-800/80"
-            >
-              <span className="flex items-center gap-1.5 font-medium text-[11px]">
-                <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-                Bantuan PIN Juri & Admin Panitia
-              </span>
-              {showCheatSheet ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-
-            {showCheatSheet && (
-              <div className="mt-2.5 bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs space-y-2 max-h-48 overflow-y-auto">
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Klik salah satu PIN di bawah untuk memilih:
-                </p>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  {judges.map((j) => (
-                    <button
-                      key={j.id}
-                      onClick={() => handleQuickPinSelect(j.pin)}
-                      className="p-2 bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800 flex items-center justify-between cursor-pointer"
-                    >
-                      <span className="font-semibold text-slate-300 text-xs">{j.name}</span>
-                      <span className="font-mono text-amber-400 font-bold text-xs">{j.pin}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="pt-1.5 border-t border-slate-800">
-                  <button
-                    onClick={() => handleQuickPinSelect(eventInfo.adminPin)}
-                    className="w-full p-2 bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 hover:border-amber-400 rounded-xl transition-all text-left flex items-center justify-between cursor-pointer"
-                  >
-                    <span className="font-bold text-amber-400 text-xs">👑 Admin Panitia / Ketua RW</span>
-                    <span className="font-mono text-white font-bold text-xs">{eventInfo.adminPin}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
       </div>
