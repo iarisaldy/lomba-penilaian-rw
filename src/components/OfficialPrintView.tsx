@@ -36,7 +36,7 @@ export const OfficialPrintView: React.FC = () => {
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
   const juara1 = sortedRecap[0];
   const juara2 = sortedRecap[1];
-  const topWinnersRecap = participants.length > 9 ? sortedRecap.slice(0, 9) : sortedRecap;
+  const topWinnersRecap = participants.length > 6 ? sortedRecap.slice(0, 6) : sortedRecap;
 
   const handlePrint = () => {
     window.print();
@@ -151,68 +151,35 @@ export const OfficialPrintView: React.FC = () => {
                   )}
                 </div>
 
-                {/* Harapan 1, 2, 3 */}
+                {/* Harapan 4, 5, 6 */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 border-t border-slate-200 pt-2">
-                  {/* Harapan 1 */}
+                  {/* Harapan 4 */}
                   {sortedRecap[3] && (
                     <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
-                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN I</span>
+                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN IV</span>
                       <span className="font-black text-slate-900 text-xs">#{sortedRecap[3].participantCode} - {sortedRecap[3].participantName}</span>
                       {sortedRecap[3].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[3].participantRt})</span>}
                       <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[3].averageScore}</span>
                     </div>
                   )}
 
-                  {/* Harapan 2 */}
+                  {/* Harapan 5 */}
                   {sortedRecap[4] && (
                     <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
-                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN II</span>
+                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN V</span>
                       <span className="font-black text-slate-900 text-xs">#{sortedRecap[4].participantCode} - {sortedRecap[4].participantName}</span>
                       {sortedRecap[4].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[4].participantRt})</span>}
                       <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[4].averageScore}</span>
                     </div>
                   )}
 
-                  {/* Harapan 3 */}
+                  {/* Harapan 6 */}
                   {sortedRecap[5] && (
                     <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
-                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN III</span>
+                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN VI</span>
                       <span className="font-black text-slate-900 text-xs">#{sortedRecap[5].participantCode} - {sortedRecap[5].participantName}</span>
                       {sortedRecap[5].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[5].participantRt})</span>}
                       <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[5].averageScore}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Harapan 4, 5, 6 */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 border-t border-slate-200 pt-2">
-                  {/* Harapan 4 */}
-                  {sortedRecap[6] && (
-                    <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
-                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN IV</span>
-                      <span className="font-black text-slate-900 text-xs">#{sortedRecap[6].participantCode} - {sortedRecap[6].participantName}</span>
-                      {sortedRecap[6].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[6].participantRt})</span>}
-                      <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[6].averageScore}</span>
-                    </div>
-                  )}
-
-                  {/* Harapan 5 */}
-                  {sortedRecap[7] && (
-                    <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
-                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN V</span>
-                      <span className="font-black text-slate-900 text-xs">#{sortedRecap[7].participantCode} - {sortedRecap[7].participantName}</span>
-                      {sortedRecap[7].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[7].participantRt})</span>}
-                      <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[7].averageScore}</span>
-                    </div>
-                  )}
-
-                  {/* Harapan 6 */}
-                  {sortedRecap[8] && (
-                    <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
-                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN VI</span>
-                      <span className="font-black text-slate-900 text-xs">#{sortedRecap[8].participantCode} - {sortedRecap[8].participantName}</span>
-                      {sortedRecap[8].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[8].participantRt})</span>}
-                      <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[8].averageScore}</span>
                     </div>
                   )}
                 </div>
@@ -256,7 +223,7 @@ export const OfficialPrintView: React.FC = () => {
         {/* Detailed Scores Matrix Table (Top Winners) */}
         <div className="space-y-2 mb-8 font-sans">
           <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800">
-            {participants.length > 6 ? 'MATRIKS NILAI DEWAN JURI (HASIL TOP 9 PEMENANG):' : 'MATRIKS NILAI DEWAN JURI:'}
+            {participants.length > 6 ? 'MATRIKS NILAI DEWAN JURI (HASIL TOP 6 PEMENANG):' : 'MATRIKS NILAI DEWAN JURI:'}
           </h3>
           <table className="w-full text-left text-xs border-collapse border border-slate-900">
             <thead>
@@ -284,12 +251,9 @@ export const OfficialPrintView: React.FC = () => {
                   if (rank === 1) return '🏆 Juara 1';
                   if (rank === 2) return '🥈 Juara 2';
                   if (rank === 3) return '🥉 Juara 3';
-                  if (rank === 4) return '🎖️ Harapan 1';
-                  if (rank === 5) return '🎖️ Harapan 2';
-                  if (rank === 6) return '🎖️ Harapan 3';
-                  if (rank === 7) return '🎖️ Harapan 4';
-                  if (rank === 8) return '🎖️ Harapan 5';
-                  if (rank === 9) return '🎖️ Harapan 6';
+                  if (rank === 4) return '🎖️ Harapan 4';
+                  if (rank === 5) return '🎖️ Harapan 5';
+                  if (rank === 6) return '🎖️ Harapan 6';
                   return `#${rank}`;
                 };
 
