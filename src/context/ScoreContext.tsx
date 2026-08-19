@@ -17,6 +17,7 @@ import {
   DEFAULT_JUDGES,
   DEFAULT_PARTICIPANTS,
   EVENT_INFO,
+  SEPEDA_HIAS_EVENT_INFO,
 } from '../data/competitionDefaults';
 import {
   isSupabaseConfigured,
@@ -409,7 +410,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const curEventId = activeEventIdRef.current;
 
     if (data.config) {
-      if (data.config.eventInfo) setEventInfo(data.config.eventInfo);
+      if (data.config.eventInfo) {
+        if (curEventId === 'sepeda-hias' && data.config.eventInfo.competitionTitle?.toLowerCase().includes('blind')) {
+          setEventInfo(SEPEDA_HIAS_EVENT_INFO);
+        } else {
+          setEventInfo(data.config.eventInfo);
+        }
+      }
       if (data.config.criteria) setCriteria(data.config.criteria);
       if (data.config.participants) setParticipants(data.config.participants);
       if (data.config.judges) setJudges(data.config.judges);
@@ -596,7 +603,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (savedResetTs) setLastResetTs(Number(savedResetTs));
       if (savedConfig) {
         const parsed = JSON.parse(savedConfig);
-        if (parsed.eventInfo) setEventInfo(parsed.eventInfo);
+        if (parsed.eventInfo) {
+          if (curEventId === 'sepeda-hias' && parsed.eventInfo.competitionTitle?.toLowerCase().includes('blind')) {
+            setEventInfo(SEPEDA_HIAS_EVENT_INFO);
+          } else {
+            setEventInfo(parsed.eventInfo);
+          }
+        }
         if (parsed.criteria) setCriteria(parsed.criteria);
         if (parsed.participants) setParticipants(parsed.participants);
         if (parsed.judges) setJudges(parsed.judges);
