@@ -96,11 +96,16 @@ export const OfficialPrintView: React.FC = () => {
                       <span className="text-[10px] font-black text-amber-900 uppercase tracking-widest block">
                         JUARA I (PERTAMA)
                       </span>
-                      <div className="text-lg font-black text-slate-900 my-1">
-                        PESERTA #{sortedRecap[0].participantCode}
+                      <div className="text-base font-black text-slate-900 my-0.5">
+                        #{sortedRecap[0].participantCode} - {sortedRecap[0].participantName || `Peserta #${sortedRecap[0].participantCode}`}
                       </div>
-                      <div className="text-xs font-bold text-amber-950">
-                        Skor Rata-Rata: {sortedRecap[0].averageScore}
+                      {sortedRecap[0].participantRt && (
+                        <div className="text-[11px] font-bold text-amber-800">
+                          {sortedRecap[0].participantRt}
+                        </div>
+                      )}
+                      <div className="text-xs font-bold text-amber-950 mt-1">
+                        Skor Rata-Rata: <span className="font-black text-sm">{sortedRecap[0].averageScore}</span>
                       </div>
                     </div>
                   )}
@@ -111,11 +116,16 @@ export const OfficialPrintView: React.FC = () => {
                       <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest block">
                         JUARA II (KEDUA)
                       </span>
-                      <div className="text-lg font-black text-slate-900 my-1">
-                        PESERTA #{sortedRecap[1].participantCode}
+                      <div className="text-base font-black text-slate-900 my-0.5">
+                        #{sortedRecap[1].participantCode} - {sortedRecap[1].participantName || `Peserta #${sortedRecap[1].participantCode}`}
                       </div>
-                      <div className="text-xs font-bold text-slate-800">
-                        Skor Rata-Rata: {sortedRecap[1].averageScore}
+                      {sortedRecap[1].participantRt && (
+                        <div className="text-[11px] font-bold text-slate-700">
+                          {sortedRecap[1].participantRt}
+                        </div>
+                      )}
+                      <div className="text-xs font-bold text-slate-800 mt-1">
+                        Skor Rata-Rata: <span className="font-black text-sm">{sortedRecap[1].averageScore}</span>
                       </div>
                     </div>
                   )}
@@ -126,11 +136,16 @@ export const OfficialPrintView: React.FC = () => {
                       <span className="text-[10px] font-black text-amber-900 uppercase tracking-widest block">
                         JUARA III (KETIGA)
                       </span>
-                      <div className="text-lg font-black text-slate-900 my-1">
-                        PESERTA #{sortedRecap[2].participantCode}
+                      <div className="text-base font-black text-slate-900 my-0.5">
+                        #{sortedRecap[2].participantCode} - {sortedRecap[2].participantName || `Peserta #${sortedRecap[2].participantCode}`}
                       </div>
-                      <div className="text-xs font-bold text-slate-800">
-                        Skor Rata-Rata: {sortedRecap[2].averageScore}
+                      {sortedRecap[2].participantRt && (
+                        <div className="text-[11px] font-bold text-amber-900">
+                          {sortedRecap[2].participantRt}
+                        </div>
+                      )}
+                      <div className="text-xs font-bold text-slate-800 mt-1">
+                        Skor Rata-Rata: <span className="font-black text-sm">{sortedRecap[2].averageScore}</span>
                       </div>
                     </div>
                   )}
@@ -141,8 +156,9 @@ export const OfficialPrintView: React.FC = () => {
                   {sortedRecap[3] && (
                     <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
                       <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN I</span>
-                      <span className="font-black text-slate-900 text-sm">PESERTA #{sortedRecap[3].participantCode}</span>
-                      <span className="text-[11px] font-bold text-amber-800">Skor: {sortedRecap[3].averageScore}</span>
+                      <span className="font-black text-slate-900 text-xs">#{sortedRecap[3].participantCode} - {sortedRecap[3].participantName}</span>
+                      {sortedRecap[3].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[3].participantRt})</span>}
+                      <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[3].averageScore}</span>
                     </div>
                   )}
 
@@ -150,8 +166,9 @@ export const OfficialPrintView: React.FC = () => {
                   {sortedRecap[4] && (
                     <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
                       <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN II</span>
-                      <span className="font-black text-slate-900 text-sm">PESERTA #{sortedRecap[4].participantCode}</span>
-                      <span className="text-[11px] font-bold text-amber-800">Skor: {sortedRecap[4].averageScore}</span>
+                      <span className="font-black text-slate-900 text-xs">#{sortedRecap[4].participantCode} - {sortedRecap[4].participantName}</span>
+                      {sortedRecap[4].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[4].participantRt})</span>}
+                      <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[4].averageScore}</span>
                     </div>
                   )}
 
@@ -159,8 +176,9 @@ export const OfficialPrintView: React.FC = () => {
                   {sortedRecap[5] && (
                     <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
                       <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN III</span>
-                      <span className="font-black text-slate-900 text-sm">PESERTA #{sortedRecap[5].participantCode}</span>
-                      <span className="text-[11px] font-bold text-amber-800">Skor: {sortedRecap[5].averageScore}</span>
+                      <span className="font-black text-slate-900 text-xs">#{sortedRecap[5].participantCode} - {sortedRecap[5].participantName}</span>
+                      {sortedRecap[5].participantRt && <span className="text-[10px] text-slate-600 font-bold">({sortedRecap[5].participantRt})</span>}
+                      <span className="text-[11px] font-bold text-amber-800 mt-0.5">Skor: {sortedRecap[5].averageScore}</span>
                     </div>
                   )}
                 </div>
