@@ -25,7 +25,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
       {/* Show PIN Login Modal if guest */}
-      {isLoaded && authState.role === 'guest' && <PinLoginModal />}
+      {authState.role === 'guest' && <PinLoginModal />}
 
       {/* Header component */}
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />

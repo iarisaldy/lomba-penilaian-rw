@@ -72,6 +72,8 @@ interface ScoreContextType {
   generateParticipantsCount: (count: number) => void;
   updateJudges: (newJudges: Judge[]) => void;
   toggleMasterSystemLock: (locked?: boolean) => void;
+  toggleParticipantAttendance: (participantId: string, isAttending?: boolean) => void;
+  setBulkAttendance: (attendanceMap: Record<string, boolean>) => void;
 }
 
 const STORAGE_KEY_ACTIVE_JURI = 'lomba_active_juri_v1';
@@ -82,19 +84,20 @@ const getStorageKey = (base: string, eventId: string) => `${base}_${eventId}`;
 const ScoreContext = createContext<ScoreContextType | undefined>(undefined);
 
 const normalizeScores = (rawScores: Record<string, any>): Record<string, any> => {
-  if (!rawScores) return {};
+  if (!rawScores || typeof rawScores !== 'object') return {};
   const normalized: Record<string, any> = {};
   const sortedJudgeKeys = Object.keys(rawScores).sort();
 
   for (const jId of sortedJudgeKeys) {
     normalized[jId] = {};
     const pDict = rawScores[jId] || {};
+    if (typeof pDict !== 'object') continue;
     const sortedPKeys = Object.keys(pDict).sort();
 
     for (const rawPKey of sortedPKeys) {
-      const cleanPKey = rawPKey.replace('p_', '');
+      const cleanPKey = String(rawPKey || '').replace('p_', '');
       const item = pDict[rawPKey];
-      if (item && item.scores) {
+      if (item && item.scores && typeof item.scores === 'object') {
         const criteriaScores: Record<string, number> = {};
         for (const cKey of Object.keys(item.scores)) {
           criteriaScores[cKey] = Number(item.scores[cKey] || 0);
@@ -124,10 +127,14 @@ const sanitizeParticipantList = (list: Participant[], isSepedaHias: boolean): Pa
       cleanName = `Peserta ${formattedNum}`;
     }
 
+    const defaultRt = `RT 0${(idx % 6) + 1}`;
+
     return {
       ...p,
       code: cleanCode,
       name: cleanName,
+      rt: p.rt || (isSepedaHias ? defaultRt : undefined),
+      isAttending: p.isAttending !== undefined ? p.isAttending : true,
     };
   });
 };
@@ -179,6 +186,16 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     activeJudgeIdRef.current = activeJudgeId;
   }, [activeJudgeId]);
+
+  const judgesRef = useRef<Judge[]>(judges);
+  useEffect(() => {
+    judgesRef.current = judges;
+  }, [judges]);
+
+  const lastResetTsRef = useRef<number>(lastResetTs);
+  useEffect(() => {
+    lastResetTsRef.current = lastResetTs;
+  }, [lastResetTs]);
 
   // Detect URL parameter on mount
   useEffect(() => {
@@ -265,10 +282,13 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newParticipants: Participant[] = Array.from({ length: validCount }, (_, i) => {
       const num = i + 1;
       const formattedNum = num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
+      const rtNum = (i % 6) + 1;
       return {
         id: `p_${formattedNum}`,
         code: formattedNum,
         name: `Peserta ${formattedNum}`,
+        rt: `RT 0${rtNum}`,
+        isAttending: true,
       };
     });
     updateParticipants(newParticipants);
@@ -278,6 +298,33 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setJudges(newJudges);
     syncConfigToServer({ eventInfo, criteria, participants, judges: newJudges });
   }, [eventInfo, criteria, participants, syncConfigToServer]);
+
+  const toggleParticipantAttendance = useCallback((participantId: string, targetAttending?: boolean) => {
+    setParticipants(prev => {
+      const next = prev.map(p => {
+        if (p.id === participantId) {
+          const nextState = targetAttending !== undefined ? targetAttending : !(p.isAttending !== false);
+          return { ...p, isAttending: nextState };
+        }
+        return p;
+      });
+      syncConfigToServer({ eventInfo, criteria, participants: next, judges });
+      return next;
+    });
+  }, [eventInfo, criteria, judges, syncConfigToServer]);
+
+  const setBulkAttendance = useCallback((attendanceMap: Record<string, boolean>) => {
+    setParticipants(prev => {
+      const next = prev.map(p => {
+        if (attendanceMap[p.id] !== undefined) {
+          return { ...p, isAttending: attendanceMap[p.id] };
+        }
+        return p;
+      });
+      syncConfigToServer({ eventInfo, criteria, participants: next, judges });
+      return next;
+    });
+  }, [eventInfo, criteria, judges, syncConfigToServer]);
 
   const lockAllCardsForJudge = useCallback((judgeId: string) => {
     setLockedCards(prev => {
@@ -365,7 +412,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     }
 
-    if (data.resetTimestamp && data.resetTimestamp > lastResetTs && lastResetTs > 0) {
+    if (data.resetTimestamp && data.resetTimestamp > lastResetTsRef.current && lastResetTsRef.current > 0) {
       setLastResetTs(data.resetTimestamp);
       setScores({});
       setJudgeNotes({});
@@ -455,7 +502,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     }
     setIsRealtimeConnected(true);
-  }, [lastResetTs]);
+  }, []);
 
   // Direct Supabase Fetch & Realtime Subscription (0 Vercel Serverless Function Cost!)
   useEffect(() => {
@@ -530,7 +577,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const savedScores = localStorage.getItem(getStorageKey('lomba_scores_v1', curEventId));
       const savedNotes = localStorage.getItem(getStorageKey('lomba_notes_v1', curEventId));
 
-      if (savedActiveJuri && judges.some(j => j.id === savedActiveJuri)) {
+      if (savedActiveJuri && judgesRef.current.some(j => j.id === savedActiveJuri)) {
         setActiveJudgeId(savedActiveJuri);
       }
       if (savedAuth) setAuthState(JSON.parse(savedAuth));
@@ -561,7 +608,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoaded(true);
     }
-  }, [activeEventId, judges]);
+  }, [activeEventId]);
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -793,8 +840,22 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       let validJudgeCount = 0;
 
       judges.forEach((judge) => {
-        // Self-judging N/A exclusion ONLY applies for RT vs RT in Blind Rias
-        if (!isSepedaHias && judge.code === participant.code) {
+        let isSelf = false;
+        if (!isSepedaHias) {
+          isSelf = Boolean(
+            (judge?.code && participant?.code && judge.code === participant.code) ||
+            (judge?.name && participant?.name && judge.name === participant.name)
+          );
+        } else {
+          if (participant?.rt) {
+            const cleanRt = String(participant.rt || '').trim().toLowerCase();
+            const judgeCode = String(judge?.code || '').trim().toLowerCase();
+            const judgeName = String(judge?.name || '').trim().toLowerCase();
+            isSelf = Boolean(cleanRt) && (judgeCode.includes(cleanRt) || judgeName.includes(cleanRt));
+          }
+        }
+
+        if (isSelf) {
           scoresByJudge[judge.id] = 'N/A';
         } else {
           const subtotal = getParticipantSubtotal(judge.id, participant.id);
@@ -813,6 +874,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         participantId: participant.id,
         participantCode: participant.code,
         participantName: participant.name,
+        participantRt: participant.rt,
+        isAttending: participant.isAttending !== false,
         scoresByJudge,
         totalScore,
         validJudgeCount,
@@ -962,6 +1025,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         generateParticipantsCount,
         updateJudges,
         toggleMasterSystemLock,
+        toggleParticipantAttendance,
+        setBulkAttendance,
       }}
     >
       {children}

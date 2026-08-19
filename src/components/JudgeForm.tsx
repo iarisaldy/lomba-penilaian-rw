@@ -27,7 +27,18 @@ export const JudgeForm: React.FC = () => {
   const isBlindRias = activeEventId === 'blind-rias';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [batchFilter, setBatchFilter] = useState<'all' | '1-20' | '21-40' | '41-60' | '61-80' | '81-100'>('all');
+  const [batchFilter, setBatchFilter] = useState<string>('all');
+  const [attendanceFilter, setAttendanceFilter] = useState<'attending' | 'all'>('attending');
+
+  const batchOptions = useMemo(() => {
+    const options: string[] = [];
+    const step = 20;
+    for (let i = 1; i <= participants.length; i += step) {
+      const end = Math.min(i + step - 1, participants.length);
+      options.push(`${i}-${end}`);
+    }
+    return options;
+  }, [participants.length]);
 
   const effectiveJudgeId =
     authState.role === 'juri' && authState.judgeId
@@ -40,30 +51,33 @@ export const JudgeForm: React.FC = () => {
   const isAdmin = authState.role === 'admin';
   const isSystemLocked = Boolean(eventInfo.isSystemLocked);
 
-  // Filter participants by search query and batch range
+  // Filter participants by search query, batch range, and attendance status
   const filteredParticipants = useMemo(() => {
     return participants.filter((p, index) => {
+      // 0. Attendance Filter (default: only show present participants)
+      if (attendanceFilter === 'attending' && p.isAttending === false) {
+        return false;
+      }
+
       // 1. Search Query Filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
         const matchesCode = p.code.toLowerCase().includes(query);
         const matchesName = p.name.toLowerCase().includes(query);
-        if (!matchesCode && !matchesName) return false;
+        const matchesRt = (p.rt || '').toLowerCase().includes(query);
+        if (!matchesCode && !matchesName && !matchesRt) return false;
       }
 
       // 2. Batch Range Filter (only applies if length > 10 and no active search query)
       if (!searchQuery.trim() && participants.length > 10 && batchFilter !== 'all') {
         const num = index + 1;
-        if (batchFilter === '1-20' && (num < 1 || num > 20)) return false;
-        if (batchFilter === '21-40' && (num < 21 || num > 40)) return false;
-        if (batchFilter === '41-60' && (num < 41 || num > 60)) return false;
-        if (batchFilter === '61-80' && (num < 61 || num > 80)) return false;
-        if (batchFilter === '81-100' && (num < 81 || num > 100)) return false;
+        const [start, end] = batchFilter.split('-').map(Number);
+        if (num < start || num > end) return false;
       }
 
       return true;
     });
-  }, [participants, searchQuery, batchFilter]);
+  }, [participants, searchQuery, batchFilter, attendanceFilter]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -178,9 +192,36 @@ export const JudgeForm: React.FC = () => {
             )}
           </div>
 
-          {/* Result Count Indicator */}
-          <div className="text-xs text-slate-400 flex items-center gap-2 self-start sm:self-auto">
-            <span>Menampilkan <strong className="text-amber-400">{filteredParticipants.length}</strong> dari {participants.length} peserta</span>
+          {/* Attendance Toggle & Result Count Indicator */}
+          <div className="flex flex-wrap items-center gap-3 justify-between w-full sm:w-auto">
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setAttendanceFilter('attending')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  attendanceFilter === 'attending'
+                    ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ✅ Hadir ({participants.filter((p) => p.isAttending !== false).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setAttendanceFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  attendanceFilter === 'all'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                👥 Semua ({participants.length})
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-400">
+              Menampilkan <strong className="text-amber-400">{filteredParticipants.length}</strong> peserta
+            </div>
           </div>
         </div>
 
@@ -190,7 +231,17 @@ export const JudgeForm: React.FC = () => {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mr-1 flex-shrink-0">
               <Filter className="w-3 h-3 text-amber-400" /> Filter:
             </span>
-            {(['all', '1-20', '21-40', '41-60', '61-80', '81-100'] as const).map((b) => (
+            <button
+              onClick={() => setBatchFilter('all')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer touch-manipulation ${
+                batchFilter === 'all' && !searchQuery
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              Semua ({participants.length})
+            </button>
+            {batchOptions.map((b) => (
               <button
                 key={b}
                 onClick={() => setBatchFilter(b)}
@@ -200,7 +251,7 @@ export const JudgeForm: React.FC = () => {
                     : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
                 }`}
               >
-                {b === 'all' ? 'Semua (100)' : `Peserta ${b}`}
+                Peserta {b}
               </button>
             ))}
           </div>
@@ -280,7 +331,16 @@ export const JudgeForm: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {filteredParticipants.map((participant) => {
-          const isSelf = activeJudge.code === participant.code;
+          const isSelf = isSepedaHias
+            ? Boolean(
+                participant?.rt &&
+                (String(activeJudge?.code || '').toLowerCase().includes(String(participant.rt || '').trim().toLowerCase()) ||
+                 String(activeJudge?.name || '').toLowerCase().includes(String(participant.rt || '').trim().toLowerCase()))
+              )
+            : Boolean(
+                (activeJudge?.code && participant?.code && activeJudge.code === participant.code) ||
+                (activeJudge?.name && participant?.name && activeJudge.name === participant.name)
+              );
           const participantScores = scores[activeJudge.id]?.[participant.id]?.scores || {};
           const subtotal = getParticipantSubtotal(activeJudge.id, participant.id);
           const isLocked = isCardLocked(activeJudge.id, participant.id);
@@ -322,10 +382,15 @@ export const JudgeForm: React.FC = () => {
                   <div>
                     <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-1.5">
                       {participant.name}
+                      {participant.rt && (
+                        <span className="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">
+                          {participant.rt}
+                        </span>
+                      )}
                       {(isLocked || isSystemLocked) && <Lock className="w-3.5 h-3.5 text-amber-400 inline" />}
                     </h3>
                     <span className="text-[10px] sm:text-[11px] text-slate-400">
-                      {isSelf ? 'RT Sendiri' : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : 'Peserta Lomba'}
+                      {isSelf ? `Penilaian Silang (${participant.rt || 'RT Sendiri'})` : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : 'Peserta Lomba'}
                     </span>
                   </div>
                 </div>
@@ -352,10 +417,10 @@ export const JudgeForm: React.FC = () => {
                   <div className="py-6 text-center px-4 space-y-1.5">
                     <Lock className="w-7 h-7 text-slate-600 mx-auto" />
                     <p className="text-xs font-medium text-slate-400">
-                      Juri <span className="text-white font-bold">{activeJudge.code}</span> tidak memberikan nilai untuk <span className="text-white font-bold">{participant.code}</span>.
+                      Juri <span className="text-white font-bold">{activeJudge.name}</span> tidak menilai <span className="text-white font-bold">{participant.name} ({participant.rt || 'RT Sendiri'})</span>.
                     </p>
-                    <p className="text-[11px] text-slate-500">
-                      Nilai RT sendiri dikecualikan dari perhitungan (N/A).
+                    <p className="text-[11px] text-amber-400/90 font-semibold">
+                      🔒 Aturan Penilaian Silang: Peserta dari RT yang sama bernilai N/A dan dihitung murni dari Juri RT lainnya.
                     </p>
                   </div>
                 ) : (
@@ -406,7 +471,7 @@ export const JudgeForm: React.FC = () => {
                                 Number(e.target.value)
                               )
                             }
-                            className={`w-full h-3 rounded-lg appearance-none accent-red-500 touch-pan-x ${
+                            className={`w-full h-3 rounded-lg appearance-none accent-amber-500 touch-pan-x ${
                               isInputDisabled ? 'bg-slate-800 opacity-50 cursor-not-allowed' : 'bg-slate-800 cursor-pointer'
                             }`}
                           />
@@ -447,11 +512,41 @@ export const JudgeForm: React.FC = () => {
                               );
                             }}
                             placeholder="0"
-                            className={`w-11 sm:w-13 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-red-500 transition-colors flex-shrink-0 ${
+                            className={`w-11 sm:w-13 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-amber-500 transition-colors flex-shrink-0 ${
                               isInputDisabled ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           />
                         </div>
+
+                        {/* Quick Rating Preset Buttons for 1-10 Scale */}
+                        {crit.maxScore === 10 && !isInputDisabled && (
+                          <div className="flex items-center justify-between gap-1 pt-1.5 overflow-x-auto scrollbar-none">
+                            <span className="text-[10px] text-slate-500 font-semibold flex-shrink-0">Pilih Cepat:</span>
+                            <div className="flex items-center gap-1">
+                              {[1, 5, 6, 7, 8, 9, 10].map((quickVal) => (
+                                <button
+                                  key={quickVal}
+                                  type="button"
+                                  onClick={() =>
+                                    updateCriteriaScore(
+                                      activeJudge.id,
+                                      participant.id,
+                                      crit.id,
+                                      quickVal
+                                    )
+                                  }
+                                  className={`w-6 h-6 rounded-md text-[11px] font-black transition-all border ${
+                                    currentValue === quickVal
+                                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm scale-110'
+                                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                                  }`}
+                                >
+                                  {quickVal}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })

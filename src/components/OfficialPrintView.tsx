@@ -36,7 +36,7 @@ export const OfficialPrintView: React.FC = () => {
   const sortedRecap = [...recapData].sort((a, b) => b.averageScore - a.averageScore || b.totalScore - a.totalScore);
   const juara1 = sortedRecap[0];
   const juara2 = sortedRecap[1];
-  const top5Recap = participants.length > 5 ? sortedRecap.slice(0, 5) : sortedRecap;
+  const top6Recap = participants.length > 6 ? sortedRecap.slice(0, 6) : sortedRecap;
 
   const handlePrint = () => {
     window.print();
@@ -136,20 +136,31 @@ export const OfficialPrintView: React.FC = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-200 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 border-t border-slate-200 pt-2">
                   {/* Harapan 1 */}
                   {sortedRecap[3] && (
-                    <div className="bg-white border border-slate-300 rounded-lg p-2.5 flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-slate-800">JUARA HARAPAN I:</span>
-                      <span className="font-black text-slate-900">PESERTA #{sortedRecap[3].participantCode} <span className="font-normal text-slate-600">({sortedRecap[3].averageScore})</span></span>
+                    <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
+                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN I</span>
+                      <span className="font-black text-slate-900 text-sm">PESERTA #{sortedRecap[3].participantCode}</span>
+                      <span className="text-[11px] font-bold text-amber-800">Skor: {sortedRecap[3].averageScore}</span>
                     </div>
                   )}
 
                   {/* Harapan 2 */}
                   {sortedRecap[4] && (
-                    <div className="bg-white border border-slate-300 rounded-lg p-2.5 flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-slate-800">JUARA HARAPAN II:</span>
-                      <span className="font-black text-slate-900">PESERTA #{sortedRecap[4].participantCode} <span className="font-normal text-slate-600">({sortedRecap[4].averageScore})</span></span>
+                    <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
+                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN II</span>
+                      <span className="font-black text-slate-900 text-sm">PESERTA #{sortedRecap[4].participantCode}</span>
+                      <span className="text-[11px] font-bold text-amber-800">Skor: {sortedRecap[4].averageScore}</span>
+                    </div>
+                  )}
+
+                  {/* Harapan 3 */}
+                  {sortedRecap[5] && (
+                    <div className="bg-white border border-slate-300 rounded-lg p-2 flex flex-col items-center justify-center text-center text-xs">
+                      <span className="font-extrabold text-slate-700 text-[10px] uppercase">JUARA HARAPAN III</span>
+                      <span className="font-black text-slate-900 text-sm">PESERTA #{sortedRecap[5].participantCode}</span>
+                      <span className="text-[11px] font-bold text-amber-800">Skor: {sortedRecap[5].averageScore}</span>
                     </div>
                   )}
                 </div>
@@ -190,10 +201,10 @@ export const OfficialPrintView: React.FC = () => {
           </div>
         )}
 
-        {/* Detailed Scores Matrix Table (Top 5 Winners) */}
+        {/* Detailed Scores Matrix Table (Top 6 Winners) */}
         <div className="space-y-2 mb-8 font-sans">
           <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800">
-            {participants.length > 5 ? 'MATRIKS NILAI DEWAN JURI (HASIL TOP 5 PEMENANG):' : 'MATRIKS NILAI DEWAN JURI:'}
+            {participants.length > 6 ? 'MATRIKS NILAI DEWAN JURI (HASIL TOP 6 PEMENANG):' : 'MATRIKS NILAI DEWAN JURI:'}
           </h3>
           <table className="w-full text-left text-xs border-collapse border border-slate-900">
             <thead>
@@ -210,7 +221,7 @@ export const OfficialPrintView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-900 font-medium">
-              {top5Recap.map((recap) => {
+              {top6Recap.map((recap) => {
                 const participant = participants.find((p) => p.id === recap.participantId);
                 if (!participant) return null;
 
@@ -223,6 +234,7 @@ export const OfficialPrintView: React.FC = () => {
                   if (rank === 3) return '🥉 Juara 3';
                   if (rank === 4) return '🎖️ Harapan 1';
                   if (rank === 5) return '🎖️ Harapan 2';
+                  if (rank === 6) return '🎖️ Harapan 3';
                   return `#${rank}`;
                 };
 

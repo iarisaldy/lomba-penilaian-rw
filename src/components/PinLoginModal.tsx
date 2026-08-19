@@ -52,7 +52,7 @@ export const PinLoginModal: React.FC = () => {
               />
             </div>
             <p className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
-              {eventInfo.eventName} • {eventInfo.location}
+              {eventInfo?.eventName || 'HUT KEMERDEKAAN RI KE-81'} • {eventInfo?.location || 'PERMATA DISCOVERY'}
             </p>
           </div>
         </div>
@@ -65,7 +65,7 @@ export const PinLoginModal: React.FC = () => {
               Sistem Penilaian Lomba
             </h2>
             <p className="text-xs text-amber-300 font-semibold bg-amber-500/10 border border-amber-500/20 py-1 px-3 rounded-full inline-block mt-1">
-              {eventInfo.competitionTitle}
+              {eventInfo?.competitionTitle || 'LOMBA SEPEDA HIAS'}
             </p>
             <p className="text-[11px] text-slate-400 pt-1">
               Masukkan PIN Akses Juri / Ketua RT 1-6 atau PIN Admin Panitia.

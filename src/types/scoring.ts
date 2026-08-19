@@ -8,6 +8,8 @@ export interface Participant {
   id: string;
   code: string;
   name: string;
+  rt?: string;
+  isAttending?: boolean;
 }
 
 export interface Judge {
@@ -56,6 +58,8 @@ export interface ParticipantRecap {
   participantId: string;
   participantCode: string;
   participantName: string;
+  participantRt?: string;
+  isAttending?: boolean;
   scoresByJudge: { [judgeId: string]: number | 'N/A' };
   totalScore: number;
   validJudgeCount: number;

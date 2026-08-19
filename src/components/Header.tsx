@@ -26,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
     activeEventId,
     switchEvent,
     eventInfo,
+    participants,
     isLoaded,
     authState,
     logout,
@@ -33,6 +34,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   } = useScore();
 
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [configTab, setConfigTab] = useState<'info' | 'criteria' | 'participants' | 'judges' | 'attendance'>('attendance');
+
+  const attendingCount = (participants || []).filter(p => p.isAttending !== false).length;
+  const totalParticipants = (participants || []).length;
 
   return (
     <>
@@ -60,19 +65,19 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
               <div className="border-l border-slate-800 pl-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="bg-gradient-to-r from-red-600/20 to-amber-600/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-amber-400" /> {eventInfo.eventName}
+                    <Building2 className="w-3 h-3 text-amber-400" /> {eventInfo?.eventName || 'HUT KEMERDEKAAN RI KE-81'}
                   </span>
                   <span className="text-slate-400 text-xs font-semibold">
-                    {eventInfo.location}
+                    {eventInfo?.location || 'PERMATA DISCOVERY'}
                   </span>
-                  {eventInfo.isSystemLocked && (
+                  {eventInfo?.isSystemLocked && (
                     <span className="bg-red-600 text-white font-extrabold text-[10px] uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm animate-pulse">
                       <Lock className="w-3 h-3" /> Penilaian Final (Terkunci)
                     </span>
                   )}
                 </div>
                 <h1 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent mt-0.5">
-                  {eventInfo.competitionTitle}
+                  {eventInfo?.competitionTitle || 'LOMBA SEPEDA HIAS'}
                 </h1>
               </div>
             </div>
@@ -102,15 +107,32 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                 </div>
               )}
 
-              {/* Admin Config Button */}
+              {/* Admin Actions: Direct Absensi & Settings Buttons */}
               {authState.role === 'admin' && (
-                <button
-                  onClick={() => setIsConfigOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 border border-amber-500/40 text-amber-300 text-xs font-extrabold transition-all cursor-pointer shadow-sm"
-                >
-                  <Settings className="w-4 h-4 text-amber-400" />
-                  <span>Pengaturan Lomba & Kriteria</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => {
+                      setConfigTab('attendance');
+                      setIsConfigOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600/30 to-indigo-600/30 hover:from-blue-600/40 hover:to-indigo-600/40 border border-blue-500/40 text-blue-300 text-xs font-extrabold transition-all cursor-pointer shadow-sm"
+                    title="Buka Check-in Absensi Peserta Lomba"
+                  >
+                    <ClipboardCheck className="w-4 h-4 text-blue-400" />
+                    <span>📋 Absensi ({attendingCount}/{totalParticipants} Hadir)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setConfigTab('criteria');
+                      setIsConfigOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 border border-amber-500/40 text-amber-300 text-xs font-extrabold transition-all cursor-pointer shadow-sm"
+                  >
+                    <Settings className="w-4 h-4 text-amber-400" />
+                    <span>⚙️ Pengaturan</span>
+                  </button>
+                </div>
               )}
 
               {/* Auth Badge */}
@@ -176,10 +198,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
       </header>
 
       {/* Admin Settings Modal */}
-      <AdminConfigModal
-        isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
-      />
+      {isConfigOpen && (
+        <AdminConfigModal
+          isOpen={isConfigOpen}
+          onClose={() => setIsConfigOpen(false)}
+          initialTab={configTab}
+        />
+      )}
     </>
   );
 };
