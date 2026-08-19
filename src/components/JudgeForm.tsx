@@ -341,7 +341,9 @@ export const JudgeForm: React.FC = () => {
                 (activeJudge?.code && participant?.code && activeJudge.code === participant.code) ||
                 (activeJudge?.name && participant?.name && activeJudge.name === participant.name)
               );
-          const participantScores = scores[activeJudge.id]?.[participant.id]?.scores || {};
+          const jScores = scores[activeJudge.id] || {};
+          const pEntry = jScores[participant.id] || jScores[participant.id.replace(/^p_/, '')] || jScores[`p_${participant.id}`];
+          const participantScores = pEntry?.scores || {};
           const subtotal = getParticipantSubtotal(activeJudge.id, participant.id);
           const isLocked = isCardLocked(activeJudge.id, participant.id);
           const isInputDisabled = isAdmin || isLocked || isSystemLocked;

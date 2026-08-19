@@ -96,14 +96,13 @@ const normalizeScores = (rawScores: Record<string, any>): Record<string, any> =>
     const sortedPKeys = Object.keys(pDict).sort();
 
     for (const rawPKey of sortedPKeys) {
-      const cleanPKey = String(rawPKey || '').replace('p_', '');
       const item = pDict[rawPKey];
       if (item && item.scores && typeof item.scores === 'object') {
         const criteriaScores: Record<string, number> = {};
         for (const cKey of Object.keys(item.scores)) {
           criteriaScores[cKey] = Number(item.scores[cKey] || 0);
         }
-        normalized[jId][cleanPKey] = {
+        normalized[jId][rawPKey] = {
           scores: criteriaScores,
           notes: item.notes || '',
         };
@@ -849,9 +848,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const getParticipantSubtotal = useCallback(
     (judgeId: string, participantId: string): number => {
-      const pData = scores[judgeId]?.[participantId];
+      const jData = scores[judgeId];
+      if (!jData) return 0;
+      const pData = jData[participantId] || jData[participantId.replace(/^p_/, '')] || jData[`p_${participantId}`];
       if (!pData || !pData.scores) return 0;
-      return Object.values(pData.scores).reduce((acc, curr) => acc + (curr || 0), 0);
+      return Object.values(pData.scores).reduce((acc, curr) => acc + (Number(curr) || 0), 0);
     },
     [scores]
   );
