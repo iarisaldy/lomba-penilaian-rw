@@ -242,13 +242,13 @@ export const RecapDashboard: React.FC = () => {
               Penetapan Hasil Pemenang — {eventInfo.competitionTitle}
             </h2>
             <p className="text-xs text-amber-300 font-semibold">
-              {participants.length > 10 ? '👑 Penetapan 6 Juara Utama (Juara 1 - 3 & Harapan 1 - 3)' : '👑 Penetapan Juara 1 & Juara 2'}
+              {participants.length > 10 ? '👑 Penetapan 9 Juara Utama (Juara 1 - 3 & Harapan 1 - 6)' : '👑 Penetapan Juara 1 & Juara 2'}
             </p>
           </div>
 
           {participants.length > 10 ? (
-            /* Top 6 Winners Layout for Sepeda Hias */
-            <div className="space-y-4 max-w-4xl mx-auto">
+            /* Top 9 Winners Layout for Sepeda Hias */
+            <div className="space-y-4 max-w-5xl mx-auto">
               {/* Top 3 Podium (Juara 1, 2, 3) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 {/* Juara 2 */}
@@ -339,7 +339,7 @@ export const RecapDashboard: React.FC = () => {
                 )}
               </div>
 
-              {/* Runner Up Winners (Juara Harapan 1, 2, 3) */}
+              {/* Runner Up Winners Row 1 (Juara Harapan 1, 2, 3) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 {sortedRecap[3] && (
                   <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
@@ -406,6 +406,78 @@ export const RecapDashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="text-xs font-black text-amber-400">{sortedRecap[5].averageScore}</div>
                       <div className="text-[9px] text-slate-500">{sortedRecap[5].totalScore} pts</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Runner Up Winners Row 2 (Juara Harapan 4, 5, 6) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {sortedRecap[6] && (
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black text-xs">
+                        🎖️
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Juara Harapan 4</div>
+                        <div className="text-xs font-extrabold text-white">
+                          {formatParticipantLabel(sortedRecap[6].participantCode, sortedRecap[6].participantName)}
+                          <span className="text-[10px] text-slate-400 font-normal ml-1">
+                            (#{sortedRecap[6].participantCode}{sortedRecap[6].participantRt ? ` • ${sortedRecap[6].participantRt}` : ''})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-amber-400">{sortedRecap[6].averageScore}</div>
+                      <div className="text-[9px] text-slate-500">{sortedRecap[6].totalScore} pts</div>
+                    </div>
+                  </div>
+                )}
+
+                {sortedRecap[7] && (
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-black text-xs">
+                        🎖️
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Juara Harapan 5</div>
+                        <div className="text-xs font-extrabold text-white">
+                          {formatParticipantLabel(sortedRecap[7].participantCode, sortedRecap[7].participantName)}
+                          <span className="text-[10px] text-slate-400 font-normal ml-1">
+                            (#{sortedRecap[7].participantCode}{sortedRecap[7].participantRt ? ` • ${sortedRecap[7].participantRt}` : ''})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-amber-400">{sortedRecap[7].averageScore}</div>
+                      <div className="text-[9px] text-slate-500">{sortedRecap[7].totalScore} pts</div>
+                    </div>
+                  </div>
+                )}
+
+                {sortedRecap[8] && (
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-black text-xs">
+                        🎖️
+                      </span>
+                      <div>
+                        <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Juara Harapan 6</div>
+                        <div className="text-xs font-extrabold text-white">
+                          {formatParticipantLabel(sortedRecap[8].participantCode, sortedRecap[8].participantName)}
+                          <span className="text-[10px] text-slate-400 font-normal ml-1">
+                            (#{sortedRecap[8].participantCode}{sortedRecap[8].participantRt ? ` • ${sortedRecap[8].participantRt}` : ''})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-amber-400">{sortedRecap[8].averageScore}</div>
+                      <div className="text-[9px] text-slate-500">{sortedRecap[8].totalScore} pts</div>
                     </div>
                   </div>
                 )}
@@ -616,6 +688,18 @@ export const RecapDashboard: React.FC = () => {
                       ) : recap.rank === 6 && recap.averageScore > 0 ? (
                         <span className="inline-flex items-center gap-1 bg-purple-600 text-white font-bold text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap">
                           🎖️ HARAPAN 3
+                        </span>
+                      ) : recap.rank === 7 && recap.averageScore > 0 ? (
+                        <span className="inline-flex items-center gap-1 bg-orange-600 text-white font-bold text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap">
+                          🎖️ HARAPAN 4
+                        </span>
+                      ) : recap.rank === 8 && recap.averageScore > 0 ? (
+                        <span className="inline-flex items-center gap-1 bg-teal-600 text-white font-bold text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap">
+                          🎖️ HARAPAN 5
+                        </span>
+                      ) : recap.rank === 9 && recap.averageScore > 0 ? (
+                        <span className="inline-flex items-center gap-1 bg-indigo-600 text-white font-bold text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap">
+                          🎖️ HARAPAN 6
                         </span>
                       ) : (
                         <span className="text-slate-400 text-xs">Peringkat #{recap.rank}</span>

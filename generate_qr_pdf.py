@@ -196,7 +196,7 @@ instructions_html = """
 <b>1. Skala Nilai 1 s/d 10:</b> Gunakan tombol cepat rating [1, 5, 6, 7, 8, 9, 10] atau tombol (-) / (+) saat menilai kreativitas, kerapian, & keindahan sepeda.<br/>
 <b>2. Penilaian Silang Otomatis (Anti-Konflik):</b> Juri RT otomatis <b>TIDAK BISA</b> menilai sepeda anak dari RT-nya sendiri (terkunci <i>N/A - RT Sendiri</i> dan dihitung adil dari 5 Juri RT lainnya).<br/>
 <b>3. 🔒 PENGUNCIAN NILAI PERMANEN (ANTI-PERUBAHAN SUSULAN):</b> Setelah selesai menilai seluruh peserta, tekan tombol hijau <b>'🔒 Kunci & Kirim Seluruh Nilai'</b> di bawah layar HP. Nilai akan <b>TERKUNCI PERMANEN</b> di HP dan Server Database Cloud serta <b>TIDAK DAPAT DIUBAH LAGI</b> oleh juri secara sepihak.<br/>
-<b>4. Penetapan 6 Juara Utama (Individu):</b> Juara 1, Juara 2, Juara 3, Juara Harapan 1, Juara Harapan 2, dan Juara Harapan 3.<br/>
+<b>4. Penetapan 9 Juara Utama (Individu):</b> Juara 1, Juara 2, Juara 3, serta Juara Harapan 1, 2, 3, 4, 5, dan 6.<br/>
 <b>5. Check-in Kehadiran Panitia:</b> Juri hanya menilai peserta sepeda yang berstatus Hadir di Titik Kumpul / Garis Start.
 """
 story.append(Paragraph(instructions_html, ParagraphStyle('InstructStyle', parent=body_style, leading=12.5)))
