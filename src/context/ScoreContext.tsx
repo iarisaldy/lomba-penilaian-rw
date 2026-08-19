@@ -458,7 +458,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         for (const jId of Object.keys(serverScores)) {
           const isOwnJudgeData = currentAuthState.role === 'juri' && currentAuthState.judgeId === jId;
-          const isRecentlyActiveJudge = isRecentlyEdited && jId === currentActiveJudgeId && prev[jId];
+          const isRecentlyActiveJudge = currentAuthState.role === 'juri' && isRecentlyEdited && jId === currentActiveJudgeId && prev[jId];
 
           const prevJudge = prev[jId] || {};
           const serverJudge = serverScores[jId] || {};
@@ -479,11 +479,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 const localVal = prevCriteriaScores[cId];
                 if (typeof localVal === 'number' && localVal > 0) {
                   mergedCriteria[cId] = localVal;
-                } else if (typeof serverVal === 'number' && serverVal > 0) {
+                } else if (typeof serverVal === 'number') {
                   mergedCriteria[cId] = serverVal;
                 }
               } else {
-                if (typeof serverVal === 'number' && serverVal > 0) {
+                if (typeof serverVal === 'number') {
                   mergedCriteria[cId] = serverVal;
                 }
               }
@@ -541,14 +541,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      // Low frequency safety net poll (every 25s - direct REST to Supabase)
+      // Ultra-fast live safety net poll (every 3.5s - direct REST to Supabase)
       const interval = setInterval(() => {
         fetchAllEventDataFromSupabase(curEventId).then((data) => {
           if (data) {
             applyRemoteData(data);
           }
         });
-      }, 25000);
+      }, 3500);
 
       return () => {
         unsubscribe();
