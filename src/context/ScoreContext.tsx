@@ -920,7 +920,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     return sorted;
-  }, [participants, judges, getParticipantSubtotal]);
+  }, [participants, judges, getParticipantSubtotal, activeEventId]);
 
   const loadDemoData = useCallback(() => {
     const demoScores: AllScores = {};
