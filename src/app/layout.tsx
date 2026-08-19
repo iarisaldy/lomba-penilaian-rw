@@ -3,8 +3,8 @@ import './globals.css';
 import { ScoreProvider } from '../context/ScoreContext';
 
 export const metadata: Metadata = {
-  title: 'Permata Discovery — Sistem Penilaian Lomba Blind Rias HUT RI Ke-81',
-  description: 'Aplikasi Rekapitulasi Penilaian Lomba Blind Rias Ibu-Ibu & Lomba RW secara otomatis dan real-time.',
+  title: 'Permata Discovery — Sistem Penilaian Lomba Sepeda Hias HUT RI Ke-81',
+  description: 'Aplikasi Rekapitulasi Penilaian Lomba Sepeda Hias & Lomba RW secara otomatis dan real-time.',
   icons: {
     icon: '/icon.svg',
     shortcut: '/icon.svg',

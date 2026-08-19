@@ -139,10 +139,21 @@ const sanitizeParticipantList = (list: Participant[], isSepedaHias: boolean): Pa
   });
 };
 
-export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeEventId, setActiveEventId] = useState<string>('blind-rias');
+const getInitialEventId = (): string => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const urlEvent = params.get('event');
+    if (urlEvent && COMPETITION_PRESETS[urlEvent]) {
+      return urlEvent;
+    }
+  }
+  return 'sepeda-hias';
+};
 
-  const activePreset = COMPETITION_PRESETS[activeEventId] || COMPETITION_PRESETS['blind-rias'];
+export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeEventId, setActiveEventId] = useState<string>(getInitialEventId);
+
+  const activePreset = COMPETITION_PRESETS[activeEventId] || COMPETITION_PRESETS['sepeda-hias'];
 
   const [eventInfo, setEventInfo] = useState<EventInfo>(activePreset.eventInfo);
   const [criteria, setCriteria] = useState<Criteria[]>(activePreset.criteria);
