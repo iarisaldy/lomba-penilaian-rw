@@ -11,23 +11,23 @@ export const OfficialPrintView: React.FC = () => {
 
   if (isJuriLockedOut) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 shadow-2xl space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
+      <div className="bg-white border-2 border-amber-200 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 shadow-sm space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center mx-auto font-black">
           <Hourglass className="w-8 h-8 animate-pulse" />
         </div>
         <div className="space-y-2">
-          <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+          <span className="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider">
             ⏳ Penilaian Sedang Berlangsung
           </span>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-white">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900">
             Dokumen Berita Acara Masih Ditutup
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto font-medium">
             Untuk menjaga <strong>independensi dan kerahasiaan hasil penilaian</strong>, dokumen resmi berita acara pemenang akan otomatis terbuka setelah seluruh penilaian selesai dan dikunci oleh Admin Panitia.
           </p>
         </div>
-        <div className="pt-2 text-xs text-slate-500 border-t border-slate-800/80">
-          Silakan lengkapi nilai Anda pada tab <strong className="text-red-400">Formulir Penilaian Juri</strong>.
+        <div className="pt-2 text-xs text-slate-500 border-t border-slate-200 font-medium">
+          Silakan lengkapi nilai Anda pada tab <strong className="text-red-700 font-bold">Formulir Penilaian Juri</strong>.
         </div>
       </div>
     );
@@ -45,19 +45,19 @@ export const OfficialPrintView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Banner Action (Hidden during print) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
         <div>
-          <h2 className="text-lg font-bold text-white">
+          <h2 className="text-lg font-black text-slate-900">
             Pratinjau Dokumen Cetak Resmi (Berita Acara)
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">
             Format disesuaikan untuk dicetak di kertas A4 atau disimpan ke PDF bertanda tangan Ketua RW.
           </p>
         </div>
 
         <button
           onClick={handlePrint}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all cursor-pointer flex-shrink-0"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/30 transition-all cursor-pointer flex-shrink-0 active:scale-95"
         >
           <Printer className="w-4 h-4" />
           Cetak Dokumen / Simpan PDF

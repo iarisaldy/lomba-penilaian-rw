@@ -77,8 +77,8 @@ interface ScoreContextType {
   setBulkAttendance: (attendanceMap: Record<string, boolean>) => void;
 }
 
-const STORAGE_KEY_ACTIVE_JURI = 'lomba_active_juri_v1';
-const STORAGE_KEY_AUTH = 'lomba_auth_v1';
+const STORAGE_KEY_ACTIVE_JURI = 'lomba_active_juri_v2';
+const STORAGE_KEY_AUTH = 'lomba_auth_v2';
 
 const getStorageKey = (base: string, eventId: string) => `${base}_${eventId}`;
 
@@ -255,7 +255,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const syncConfigToServer = useCallback(async (newConfig: any) => {
     try {
       const curEventId = activeEventIdRef.current;
-      localStorage.setItem(getStorageKey('lomba_event_config_v1', curEventId), JSON.stringify(newConfig));
+      localStorage.setItem(getStorageKey('lomba_event_config_v2', curEventId), JSON.stringify(newConfig));
       await saveMasterScoresToSupabase(
         scoresRef.current,
         judgeNotesRef.current,
@@ -346,9 +346,18 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
       const curEventId = activeEventIdRef.current;
       try {
-        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', curEventId), JSON.stringify(next));
+        localStorage.setItem(getStorageKey('lomba_locked_cards_v2', curEventId), JSON.stringify(next));
       } catch (e) {}
 
+      // 1. Immediately save judge's dedicated row
+      saveJudgeScoreToSupabase(
+        curEventId,
+        judgeId,
+        scoresRef.current[judgeId] || {},
+        judgeNotesRef.current[judgeId] || ''
+      ).catch((e) => console.error('Failed to save judge scores on lock all', e));
+
+      // 2. Save master lock state to cloud
       saveMasterScoresToSupabase(
         scoresRef.current,
         judgeNotesRef.current,
@@ -387,7 +396,7 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const next = { ...prev, [key]: nextLocked };
       const curEventId = activeEventIdRef.current;
       try {
-        localStorage.setItem(getStorageKey('lomba_locked_cards_v1', curEventId), JSON.stringify(next));
+        localStorage.setItem(getStorageKey('lomba_locked_cards_v2', curEventId), JSON.stringify(next));
       } catch (e) {}
 
       saveMasterScoresToSupabase(
@@ -417,7 +426,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
       if (data.config.criteria) setCriteria(data.config.criteria);
-      if (data.config.participants) setParticipants(data.config.participants);
+      if (data.config.participants) {
+        const defaultPresetParticipants = COMPETITION_PRESETS[curEventId]?.participants || [];
+        if (data.config.participants.length < defaultPresetParticipants.length) {
+          setParticipants(defaultPresetParticipants);
+        } else {
+          setParticipants(data.config.participants);
+        }
+      }
       if (data.config.judges) setJudges(data.config.judges);
     }
 
@@ -435,10 +451,10 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setJudgeNotes({});
       setLockedCards({});
       try {
-        localStorage.setItem(getStorageKey('lomba_last_reset_ts_v1', curEventId), String(data.resetTimestamp));
-        localStorage.removeItem(getStorageKey('lomba_scores_v1', curEventId));
-        localStorage.removeItem(getStorageKey('lomba_notes_v1', curEventId));
-        localStorage.removeItem(getStorageKey('lomba_locked_cards_v1', curEventId));
+        localStorage.setItem(getStorageKey('lomba_last_reset_ts_v2', curEventId), String(data.resetTimestamp));
+        localStorage.removeItem(getStorageKey('lomba_scores_v2', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_notes_v2', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_locked_cards_v2', curEventId));
       } catch (e) {}
       return;
     }
@@ -588,11 +604,11 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const curEventId = activeEventIdRef.current;
       const savedActiveJuri = localStorage.getItem(STORAGE_KEY_ACTIVE_JURI);
       const savedAuth = localStorage.getItem(STORAGE_KEY_AUTH);
-      const savedLockedCards = localStorage.getItem(getStorageKey('lomba_locked_cards_v1', curEventId));
-      const savedResetTs = localStorage.getItem(getStorageKey('lomba_last_reset_ts_v1', curEventId));
-      const savedConfig = localStorage.getItem(getStorageKey('lomba_event_config_v1', curEventId));
-      const savedScores = localStorage.getItem(getStorageKey('lomba_scores_v1', curEventId));
-      const savedNotes = localStorage.getItem(getStorageKey('lomba_notes_v1', curEventId));
+      const savedLockedCards = localStorage.getItem(getStorageKey('lomba_locked_cards_v2', curEventId));
+      const savedResetTs = localStorage.getItem(getStorageKey('lomba_last_reset_ts_v2', curEventId));
+      const savedConfig = localStorage.getItem(getStorageKey('lomba_event_config_v2', curEventId));
+      const savedScores = localStorage.getItem(getStorageKey('lomba_scores_v2', curEventId));
+      const savedNotes = localStorage.getItem(getStorageKey('lomba_notes_v2', curEventId));
 
       if (savedActiveJuri && judgesRef.current.some(j => j.id === savedActiveJuri)) {
         setActiveJudgeId(savedActiveJuri);
@@ -610,7 +626,14 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         }
         if (parsed.criteria) setCriteria(parsed.criteria);
-        if (parsed.participants) setParticipants(parsed.participants);
+        if (parsed.participants) {
+          const defaultPresetParticipants = activePreset.participants || [];
+          if (parsed.participants.length < defaultPresetParticipants.length) {
+            setParticipants(defaultPresetParticipants);
+          } else {
+            setParticipants(parsed.participants);
+          }
+        }
         if (parsed.judges) setJudges(parsed.judges);
       }
 
@@ -646,12 +669,12 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       if (reset) {
-        localStorage.removeItem(getStorageKey('lomba_scores_v1', curEventId));
-        localStorage.removeItem(getStorageKey('lomba_notes_v1', curEventId));
-        localStorage.removeItem(getStorageKey('lomba_locked_cards_v1', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_scores_v2', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_notes_v2', curEventId));
+        localStorage.removeItem(getStorageKey('lomba_locked_cards_v2', curEventId));
       } else {
-        localStorage.setItem(getStorageKey('lomba_scores_v1', curEventId), JSON.stringify(newScores));
-        localStorage.setItem(getStorageKey('lomba_notes_v1', curEventId), JSON.stringify(newNotes));
+        localStorage.setItem(getStorageKey('lomba_scores_v2', curEventId), JSON.stringify(newScores));
+        localStorage.setItem(getStorageKey('lomba_notes_v2', curEventId), JSON.stringify(newNotes));
       }
     } catch (e) {
       console.error('Failed to save to localStorage', e);
@@ -772,8 +795,8 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     lastLocalInteractionRef.current = Date.now();
     const curEventId = activeEventIdRef.current;
     try {
-      localStorage.setItem(getStorageKey('lomba_scores_v1', curEventId), JSON.stringify(newScores));
-      localStorage.setItem(getStorageKey('lomba_notes_v1', curEventId), JSON.stringify(newNotes));
+      localStorage.setItem(getStorageKey('lomba_scores_v2', curEventId), JSON.stringify(newScores));
+      localStorage.setItem(getStorageKey('lomba_notes_v2', curEventId), JSON.stringify(newNotes));
     } catch (e) {
       console.error('Failed to save to localStorage', e);
     }
@@ -960,9 +983,9 @@ export const ScoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newTs = Date.now();
     setLastResetTs(newTs);
     try {
-      localStorage.setItem(getStorageKey('lomba_last_reset_ts_v1', activeEventIdRef.current), String(newTs));
+      localStorage.setItem(getStorageKey('lomba_last_reset_ts_v2', activeEventIdRef.current), String(newTs));
       // Hapus config lama dari localStorage agar isSystemLocked tidak kembali saat reload
-      localStorage.removeItem(getStorageKey('lomba_event_config_v1', activeEventIdRef.current));
+      localStorage.removeItem(getStorageKey('lomba_event_config_v2', activeEventIdRef.current));
     } catch (e) {}
     saveAndSync({}, {}, true);
   }, [saveAndSync]);

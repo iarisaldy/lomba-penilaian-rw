@@ -15,12 +15,9 @@ import {
   UserCheck,
   Building2,
   X,
-  AlertTriangle,
   CheckCircle2,
   ClipboardCheck,
   Search,
-  Filter,
-  Check,
 } from 'lucide-react';
 
 interface AdminConfigModalProps {
@@ -166,28 +163,28 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
   const isSystemLocked = eventInfo.isSystemLocked;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]">
         
         {/* Modal Header */}
-        <div className="p-4 sm:p-6 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center font-bold">
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
                 Pengaturan Lomba & Kriteria (Admin)
               </h2>
-              <p className="text-xs text-slate-400">
-                Atur judul lomba, custom kriteria & bobot skor, kelola juri, atau kunci sistem penilaian.
+              <p className="text-xs text-slate-500 font-medium">
+                Atur judul lomba, custom kriteria & bobot skor, absensi peserta, atau kunci sistem penilaian.
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -195,23 +192,23 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
         {/* Master System Lock Control Banner */}
         <div className={`p-4 border-b flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 ${
-          isSystemLocked ? 'bg-red-950/40 border-red-500/40' : 'bg-slate-950/50 border-slate-800'
+          isSystemLocked ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'
         }`}>
           <div className="flex items-center gap-3 text-center sm:text-left">
             {isSystemLocked ? (
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 border border-red-500/40 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 border border-red-300 flex items-center justify-center flex-shrink-0 font-bold">
                 <Lock className="w-5 h-5" />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center justify-center flex-shrink-0 font-bold">
                 <Unlock className="w-5 h-5" />
               </div>
             )}
             <div>
-              <h4 className="font-extrabold text-sm text-white flex items-center justify-center sm:justify-start gap-2">
-                Status Sistem Penilaian: {isSystemLocked ? <span className="text-red-400">TERKUNCI (FINAL)</span> : <span className="text-emerald-400">TERBUKA (INPUT AKTIF)</span>}
+              <h4 className="font-extrabold text-sm text-slate-900 flex items-center justify-center sm:justify-start gap-2">
+                Status Sistem: {isSystemLocked ? <span className="text-red-700 font-black">TERKUNCI (FINAL)</span> : <span className="text-emerald-700 font-black">TERBUKA (INPUT AKTIF)</span>}
               </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5 font-medium">
                 {isSystemLocked
                   ? 'Seluruh lembar penilaian juri terkunci total. Nilai aman dan tidak dapat diubah siapapun.'
                   : 'Juri sedang dapat menginput dan mengedit nilai pada formulir masing-masing.'}
@@ -221,10 +218,10 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
           <button
             onClick={() => toggleMasterSystemLock()}
-            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95 ${
               isSystemLocked
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'
-                : 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30'
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30'
+                : 'bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/30'
             }`}
           >
             {isSystemLocked ? (
@@ -241,67 +238,67 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
         {/* Saved Toast Notification */}
         {savedMessage && (
-          <div className="bg-emerald-500/20 border-b border-emerald-500/30 text-emerald-300 text-xs font-bold py-2.5 px-4 text-center flex items-center justify-center gap-2 shrink-0">
-            <CheckCircle2 className="w-4 h-4" />
+          <div className="bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs font-bold py-2.5 px-4 text-center flex items-center justify-center gap-2 shrink-0">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             {savedMessage}
           </div>
         )}
 
         {/* Sub-Tabs Navigation */}
-        <div className="flex border-b border-slate-800 bg-slate-950 px-4 gap-2 overflow-x-auto shrink-0 min-h-[48px] items-stretch">
+        <div className="flex border-b border-slate-200 bg-slate-50 px-4 gap-2 overflow-x-auto shrink-0 min-h-[48px] items-stretch">
           <button
             onClick={() => setActiveSubTab('attendance')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-3 px-4 text-xs font-extrabold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'attendance'
-                ? 'border-emerald-400 text-emerald-400 bg-emerald-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-emerald-600 text-emerald-700 bg-white shadow-sm'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
-            <ClipboardCheck className="w-4 h-4 text-emerald-400" /> 📋 Absensi Peserta ({participants.filter(p => p.isAttending !== false).length}/{participants.length})
+            <ClipboardCheck className="w-4 h-4 text-emerald-600" /> 📋 Absensi Peserta ({participants.filter(p => p.isAttending !== false).length}/{participants.length})
           </button>
 
           <button
             onClick={() => setActiveSubTab('info')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-3 px-4 text-xs font-extrabold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'info'
-                ? 'border-amber-400 text-amber-400 bg-amber-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-red-600 text-red-700 bg-white shadow-sm'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Building2 className="w-4 h-4" /> Informasi Lomba
+            <Building2 className="w-4 h-4 text-red-600" /> Informasi Lomba
           </button>
 
           <button
             onClick={() => setActiveSubTab('criteria')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-3 px-4 text-xs font-extrabold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'criteria'
-                ? 'border-amber-400 text-amber-400 bg-amber-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-red-600 text-red-700 bg-white shadow-sm'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Sliders className="w-4 h-4" /> Kriteria Penilaian ({criteriaForm.length})
+            <Sliders className="w-4 h-4 text-red-600" /> Kriteria Penilaian ({criteriaForm.length})
           </button>
 
           <button
             onClick={() => setActiveSubTab('participants')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-3 px-4 text-xs font-extrabold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'participants'
-                ? 'border-amber-400 text-amber-400 bg-amber-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-red-600 text-red-700 bg-white shadow-sm'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Users className="w-4 h-4" /> Kelola Peserta ({participantForm.length})
+            <Users className="w-4 h-4 text-red-600" /> Kelola Peserta ({participantForm.length})
           </button>
 
           <button
             onClick={() => setActiveSubTab('judges')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-3 px-4 text-xs font-extrabold border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'judges'
-                ? 'border-amber-400 text-amber-400 bg-amber-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-red-600 text-red-700 bg-white shadow-sm'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
-            <UserCheck className="w-4 h-4" /> Kelola Juri ({judgeForm.length})
+            <UserCheck className="w-4 h-4 text-red-600" /> Kelola Juri ({judgeForm.length})
           </button>
         </div>
 
@@ -313,26 +310,26 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
             <div className="space-y-4">
               {/* Summary Counter Cards */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-center">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Terdaftar</span>
-                  <span className="text-xl sm:text-2xl font-black text-white">{participants.length}</span>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-center shadow-sm">
+                  <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Total Terdaftar</span>
+                  <span className="text-xl sm:text-2xl font-black text-slate-900">{participants.length}</span>
                 </div>
-                <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3.5 text-center">
-                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">Hadir (~40)</span>
-                  <span className="text-xl sm:text-2xl font-black text-emerald-400">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-center shadow-sm">
+                  <span className="text-[10px] text-emerald-800 font-extrabold uppercase tracking-wider block">Hadir</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-700">
                     {participants.filter((p) => p.isAttending !== false).length}
                   </span>
                 </div>
-                <div className="bg-red-950/40 border border-red-500/30 rounded-2xl p-3.5 text-center">
-                  <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider block">Tidak Hadir / Absen</span>
-                  <span className="text-xl sm:text-2xl font-black text-red-400">
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-3.5 text-center shadow-sm">
+                  <span className="text-[10px] text-red-800 font-extrabold uppercase tracking-wider block">Tidak Hadir</span>
+                  <span className="text-xl sm:text-2xl font-black text-red-700">
                     {participants.filter((p) => p.isAttending === false).length}
                   </span>
                 </div>
               </div>
 
               {/* Toolbar: Search, RT Filter & Quick Actions */}
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <div className="relative flex-1 sm:w-60">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -341,13 +338,13 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                       placeholder="Cari nomor / nama..."
                       value={attendanceSearch}
                       onChange={(e) => setAttendanceSearch(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 text-xs text-white rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-amber-400"
+                      className="w-full bg-white border border-slate-300 text-xs font-semibold text-slate-900 rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-red-500"
                     />
                   </div>
                   <select
                     value={attendanceRtFilter}
                     onChange={(e) => setAttendanceRtFilter(e.target.value)}
-                    className="bg-slate-900 border border-slate-700 text-xs text-amber-400 font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-400"
+                    className="bg-white border border-slate-300 text-xs text-red-700 font-extrabold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-red-500"
                   >
                     <option value="all">Semua RT</option>
                     <option value="RT 01">RT 01</option>
@@ -368,7 +365,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                       setBulkAttendance(map);
                       showToast('✅ Seluruh peserta ditandai HADIR');
                     }}
-                    className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-extrabold transition-all cursor-pointer active:scale-95"
                   >
                     ✅ Tandai Semua Hadir
                   </button>
@@ -380,7 +377,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                       setBulkAttendance(map);
                       showToast('❌ Seluruh peserta ditandai TIDAK HADIR');
                     }}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95"
                   >
                     🔄 Reset Absensi
                   </button>
@@ -395,23 +392,23 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                     <div
                       key={p.id}
                       onClick={() => toggleParticipantAttendance(p.id)}
-                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2 touch-manipulation ${
+                      className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-2 touch-manipulation ${
                         isPresent
-                          ? 'bg-emerald-950/30 border-emerald-500/40 shadow-md shadow-emerald-950/20'
-                          : 'bg-slate-950/60 border-slate-800 opacity-60 hover:opacity-100'
+                          ? 'bg-emerald-50/70 border-emerald-300 shadow-sm'
+                          : 'bg-slate-100 border-slate-200 opacity-60 hover:opacity-100'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black border ${
                           isPresent
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                            ? 'bg-emerald-600 text-white border-emerald-700'
+                            : 'bg-slate-200 text-slate-600 border-slate-300'
                         }`}>
                           {p.code}
                         </span>
                         <div>
-                          <h5 className="text-xs font-bold text-white leading-tight">{p.name}</h5>
-                          <span className="text-[10px] text-amber-400 font-semibold">{p.rt || 'RT --'}</span>
+                          <h5 className="text-xs font-extrabold text-slate-900 leading-tight">{p.name}</h5>
+                          <span className="text-[10px] text-blue-700 font-bold">{p.rt || 'RT --'}</span>
                         </div>
                       </div>
 
@@ -419,8 +416,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                         type="button"
                         className={`px-2.5 py-1 rounded-xl text-[11px] font-black tracking-wide border transition-all cursor-pointer ${
                           isPresent
-                            ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                            ? 'bg-emerald-600 text-white border-emerald-700'
+                            : 'bg-slate-200 text-slate-600 border-slate-300'
                         }`}
                       >
                         {isPresent ? '✅ HADIR' : '❌ ABSEN'}
@@ -435,163 +432,155 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
           {/* TAB 1: INFORMASI LOMBA */}
           {activeSubTab === 'info' && (
             <div className="space-y-6 max-w-2xl">
-              {/* Preset Template Switcher Card */}
-              <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 space-y-2.5">
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 space-y-2.5 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sliders className="w-4 h-4" /> Beralih Template Event Lomba (Preset)
+                  <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="w-4 h-4 text-amber-700" /> Template Event Lomba (Preset)
                   </h4>
-                  <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-full border border-slate-700">
-                    Active: {activeEventId === 'sepeda-hias' ? '🚲 Sepeda Hias' : '🌸 Blind Rias'}
+                  <span className="text-[10px] bg-white text-slate-800 font-bold px-2 py-0.5 rounded-full border border-slate-300">
+                    Aktif: {activeEventId === 'sepeda-hias' ? '🚲 Sepeda Hias' : '🌸 Blind Rias'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Pilih preset di bawah untuk memuat konfigurasi lomba secara instan tanpa menghapus data event lain:
-                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                   <button
                     type="button"
                     onClick={() => {
                       switchEvent('blind-rias');
-                      showToast('🌸 Berhasil berpindah ke Lomba Blind Rias Ibu-Ibu!');
+                      showToast('🌸 Berhasil beralih ke Lomba Blind Rias!');
                     }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       activeEventId === 'blind-rias'
-                        ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg'
-                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800'
+                        ? 'bg-red-50 border-red-400 text-red-900 font-bold shadow-sm'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="text-xs font-bold text-amber-300">🌸 Lomba Blind Rias Ibu-Ibu</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">6 Peserta RT • 6 Juri RT • 4 Kriteria</div>
+                    <div className="text-xs font-black">🌸 Lomba Blind Rias Ibu-Ibu</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">6 RT Peserta • 6 Juri RT • 4 Kriteria</div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => {
                       switchEvent('sepeda-hias');
-                      showToast('🚲 Berhasil berpindah ke Lomba Sepeda Hias!');
+                      showToast('🚲 Berhasil beralih ke Lomba Sepeda Hias!');
                     }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       activeEventId === 'sepeda-hias'
-                        ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg'
-                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800'
+                        ? 'bg-red-50 border-red-400 text-red-900 font-bold shadow-sm'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="text-xs font-bold text-amber-300">🚲 Lomba Sepeda Hias</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">30 Peserta Individu (default) • Ketua RT 1-6 • Skala 1-100</div>
+                    <div className="text-xs font-black">🚲 Lomba Sepeda Hias</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">76 Peserta • Juri RT 1-6 • Skala 1-10</div>
                   </button>
                 </div>
               </div>
 
               <form onSubmit={handleSaveInfo} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Nama Acara / Kegiatan</label>
+                    <input
+                      type="text"
+                      value={eventForm.eventName}
+                      onChange={(e) => setEventForm({ ...eventForm, eventName: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-red-500 focus:bg-white"
+                      placeholder="HUT KEMERDEKAAN RI KE-81"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Lokasi Kegiatan</label>
+                    <input
+                      type="text"
+                      value={eventForm.location}
+                      onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-red-500 focus:bg-white"
+                      placeholder="PERMATA DISCOVERY"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Nama Acara / Kegiatan</label>
+                  <label className="text-xs font-bold text-red-700">Judul Utama Lomba</label>
                   <input
                     type="text"
-                    value={eventForm.eventName}
-                    onChange={(e) => setEventForm({ ...eventForm, eventName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                    placeholder="HUT KEMERDEKAAN RI KE-81"
+                    value={eventForm.competitionTitle}
+                    onChange={(e) => setEventForm({ ...eventForm, competitionTitle: e.target.value })}
+                    className="w-full bg-slate-50 border-2 border-red-300 rounded-xl px-3 py-2.5 text-sm font-black text-slate-900 focus:outline-none focus:border-red-500 focus:bg-white"
+                    placeholder="LOMBA SEPEDA HIAS"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Lokasi Kegiatan</label>
+                  <label className="text-xs font-bold text-slate-700">Sub-Judul / Kategori Lomba</label>
                   <input
                     type="text"
-                    value={eventForm.location}
-                    onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                    placeholder="PERMATA DISCOVERY"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-amber-400">Judul Utama Lomba</label>
-                <input
-                  type="text"
-                  value={eventForm.competitionTitle}
-                  onChange={(e) => setEventForm({ ...eventForm, competitionTitle: e.target.value })}
-                  className="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-amber-400"
-                  placeholder="LOMBA BLIND RIAS IBU-IBU / LOMBA MEWARNAI"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Sub-Judul / Kategori Lomba</label>
-                <input
-                  type="text"
-                  value={eventForm.subtitle}
-                  onChange={(e) => setEventForm({ ...eventForm, subtitle: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                  placeholder="Sistem Penilaian & Rekapitulasi Otomatis"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Penyelenggara</label>
-                  <input
-                    type="text"
-                    value={eventForm.organizer}
-                    onChange={(e) => setEventForm({ ...eventForm, organizer: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                    placeholder="Koordinator Sie Acara"
+                    value={eventForm.subtitle}
+                    onChange={(e) => setEventForm({ ...eventForm, subtitle: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-red-500 focus:bg-white"
+                    placeholder="Sistem Penilaian Peserta Individu"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Penanggung Jawab / Ketua RW</label>
-                  <input
-                    type="text"
-                    value={eventForm.approver}
-                    onChange={(e) => setEventForm({ ...eventForm, approver: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                    placeholder="Ketua RW Permata Discovery"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Penyelenggara</label>
+                    <input
+                      type="text"
+                      value={eventForm.organizer}
+                      onChange={(e) => setEventForm({ ...eventForm, organizer: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-red-500 focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Penanggung Jawab / Ketua RW</label>
+                    <input
+                      type="text"
+                      value={eventForm.approver}
+                      onChange={(e) => setEventForm({ ...eventForm, approver: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-red-500 focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-red-700">PIN Admin Panitia</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={eventForm.adminPin}
+                      onChange={(e) => setEventForm({ ...eventForm, adminPin: e.target.value })}
+                      className="w-full bg-slate-50 border-2 border-red-300 rounded-xl px-3 py-2 text-xs font-mono font-black text-red-700 focus:outline-none focus:border-red-500 focus:bg-white text-center"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-red-400">PIN Admin Panitia</label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={eventForm.adminPin}
-                    onChange={(e) => setEventForm({ ...eventForm, adminPin: e.target.value })}
-                    className="w-full bg-slate-950 border border-red-500/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-red-400"
-                    placeholder="0000"
-                  />
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-md shadow-red-600/30 flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Save className="w-4 h-4" /> Simpan Informasi Lomba
+                  </button>
                 </div>
-              </div>
-
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
-                >
-                  <Save className="w-4 h-4" /> Simpan Informasi Lomba
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+              </form>
+            </div>
+          )}
 
           {/* TAB 2: KRITERIA PENILAIAN & BOBOT */}
           {activeSubTab === 'criteria' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-white">Custom Kriteria & Skor Maksimal</h3>
-                  <p className="text-xs text-slate-400">
-                    Atur nama kriteria dan skor maksimal untuk setiap kriteria. Total skor maksimal dihitung otomatis.
+                  <h3 className="font-black text-sm text-slate-900">Custom Kriteria & Skor Maksimal</h3>
+                  <p className="text-xs text-slate-500">
+                    Atur nama kriteria dan skor maksimal untuk setiap kriteria.
                   </p>
                 </div>
                 <button
                   onClick={handleAddCriteria}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-extrabold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Tambah Kriteria
                 </button>
@@ -599,8 +588,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
               <div className="space-y-3">
                 {criteriaForm.map((item, index) => (
-                  <div key={item.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                  <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+                    <span className="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
                       {index + 1}
                     </span>
 
@@ -613,14 +602,14 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                           next[index].name = e.target.value;
                           setCriteriaForm(next);
                         }}
-                        placeholder="Nama Kriteria (misal: Kerapian)"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
+                        placeholder="Nama Kriteria"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-red-500"
                       />
                     </div>
 
-                    <div className="w-28 space-y-1">
+                    <div className="w-32 space-y-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-400 font-medium">Skor Maks:</span>
+                        <span className="text-[10px] text-slate-600 font-bold">Maks:</span>
                         <input
                           type="number"
                           min={1}
@@ -631,14 +620,14 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                             next[index].maxScore = Number(e.target.value);
                             setCriteriaForm(next);
                           }}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-center font-bold text-amber-400 focus:outline-none focus:border-amber-400"
+                          className="w-full bg-white border border-slate-300 rounded-xl px-2 py-1.5 text-xs text-center font-black text-red-700 focus:outline-none focus:border-red-500"
                         />
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleDeleteCriteria(item.id)}
-                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
+                      className="p-2 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
                       title="Hapus Kriteria"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -647,9 +636,9 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                 ))}
               </div>
 
-              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-300">Total Skor Maksimal Lomba:</span>
-                <span className="font-black text-amber-400 text-sm">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-700">Total Skor Maksimal:</span>
+                <span className="font-black text-red-700 text-sm">
                   {criteriaForm.reduce((acc, curr) => acc + (curr.maxScore || 0), 0)} Poin
                 </span>
               </div>
@@ -657,7 +646,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
               <div className="pt-2">
                 <button
                   onClick={handleSaveCriteria}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-md shadow-red-600/30 flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Save className="w-4 h-4" /> Simpan Kriteria Penilaian
                 </button>
@@ -668,64 +657,25 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
           {/* TAB 3: KELOLA PESERTA */}
           {activeSubTab === 'participants' && (
             <div className="space-y-6">
-              {/* Quick Participant Generator Panel */}
-              <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Users className="w-4 h-4" /> Format Otomatis Jumlah Peserta ({participants.length} Orang)
-                  </h4>
-                  <span className="text-[10px] text-slate-400">Generasi cepat Peserta 001 - N</span>
-                </div>
-                <p className="text-xs text-slate-400">
-                  Ubah jumlah total peserta individu secara otomatis (misal: 50, 75, 100, 150 peserta):
-                </p>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {[25, 50, 75, 100, 150].map((num) => (
-                    <button
-                      key={num}
-                      type="button"
-                      onClick={() => {
-                        generateParticipantsCount(num);
-                        setParticipantForm(
-                          Array.from({ length: num }, (_, i) => {
-                            const n = i + 1;
-                            const formatted = n < 10 ? `00${n}` : n < 100 ? `0${n}` : `${n}`;
-                            return { id: `p_${formatted}`, code: formatted, name: `Peserta ${formatted}` };
-                          })
-                        );
-                        showToast(`✅ Berhasil menyesuaikan jumlah peserta menjadi ${num} orang!`);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                        participants.length === num
-                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md scale-105'
-                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
-                      }`}
-                    >
-                      Set {num} Peserta
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-white">Daftar Rincian Peserta Lomba</h3>
-                  <p className="text-xs text-slate-400">
-                    Atur kode RT atau nama tim/individu peserta yang mengikuti perlombaan.
+                  <h3 className="font-black text-sm text-slate-900">Daftar Rincian Peserta ({participantForm.length} Orang)</h3>
+                  <p className="text-xs text-slate-500">
+                    Atur nama dan RT peserta yang mengikuti perlombaan.
                   </p>
                 </div>
                 <button
                   onClick={handleAddParticipant}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-extrabold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Tambah Manual
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1">
                 {participantForm.map((item, index) => (
-                  <div key={item.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-red-500/20">
+                  <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
+                    <span className="w-7 h-7 rounded-lg bg-red-100 text-red-700 font-black text-xs flex items-center justify-center flex-shrink-0 border border-red-200">
                       {index + 1}
                     </span>
 
@@ -738,8 +688,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                           next[index].code = e.target.value;
                           setParticipantForm(next);
                         }}
-                        placeholder="Kode (001)"
-                        className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
+                        placeholder="Kode"
+                        className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-red-500"
                       />
                       <input
                         type="text"
@@ -750,7 +700,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                           setParticipantForm(next);
                         }}
                         placeholder="Nama Peserta"
-                        className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-red-500"
                       />
                       <select
                         value={item.rt || `RT 0${(index % 6) + 1}`}
@@ -759,7 +709,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                           next[index].rt = e.target.value;
                           setParticipantForm(next);
                         }}
-                        className="bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-amber-400 font-bold focus:outline-none focus:border-amber-400"
+                        className="bg-white border border-slate-300 rounded-xl px-2 py-1.5 text-xs text-blue-700 font-extrabold focus:outline-none focus:border-red-500"
                       >
                         <option value="RT 01">RT 01</option>
                         <option value="RT 02">RT 02</option>
@@ -772,7 +722,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
                     <button
                       onClick={() => handleDeleteParticipant(item.id)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -783,7 +733,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
               <div className="pt-2">
                 <button
                   onClick={handleSaveParticipants}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-md shadow-red-600/30 flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Save className="w-4 h-4" /> Simpan Daftar Peserta
                 </button>
@@ -796,14 +746,14 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-white">Daftar Juri Penilai & PIN Akses</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="font-black text-sm text-slate-900">Daftar Juri Penilai & PIN Akses</h3>
+                  <p className="text-xs text-slate-500">
                     Atur nama juri penilai dan PIN 4 digit untuk login juri.
                   </p>
                 </div>
                 <button
                   onClick={handleAddJudge}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-extrabold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Tambah Juri
                 </button>
@@ -811,8 +761,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {judgeForm.map((item, index) => (
-                  <div key={item.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-amber-500/20">
+                  <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+                    <span className="w-7 h-7 rounded-lg bg-red-100 text-red-700 font-black text-xs flex items-center justify-center flex-shrink-0 border border-red-200">
                       {index + 1}
                     </span>
 
@@ -826,8 +776,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                             next[index].code = e.target.value;
                             setJudgeForm(next);
                           }}
-                          placeholder="Kode RT (RT 01)"
-                          className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
+                          placeholder="Kode (RT 01)"
+                          className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-extrabold focus:outline-none focus:border-red-500"
                         />
                         <input
                           type="text"
@@ -838,8 +788,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                             next[index].pin = e.target.value;
                             setJudgeForm(next);
                           }}
-                          placeholder="PIN (1111)"
-                          className="bg-slate-900 border border-amber-500/40 rounded-xl px-2.5 py-1.5 text-xs font-mono font-black text-amber-400 text-center focus:outline-none focus:border-amber-400"
+                          placeholder="PIN"
+                          className="bg-white border-2 border-red-300 rounded-xl px-2.5 py-1.5 text-xs font-mono font-black text-red-700 text-center focus:outline-none focus:border-red-500"
                         />
                       </div>
                       <input
@@ -851,13 +801,13 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
                           setJudgeForm(next);
                         }}
                         placeholder="Nama Tampilan Juri"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-amber-400"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-xs text-slate-700 font-semibold focus:outline-none focus:border-red-500"
                       />
                     </div>
 
                     <button
                       onClick={() => handleDeleteJudge(item.id)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -868,7 +818,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
               <div className="pt-2">
                 <button
                   onClick={handleSaveJudges}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-md shadow-red-600/30 flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Save className="w-4 h-4" /> Simpan Daftar Juri & PIN
                 </button>
@@ -879,10 +829,10 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end shrink-0">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold text-xs rounded-xl transition-colors cursor-pointer"
           >
             Tutup Pengaturan
           </button>

@@ -1,6 +1,10 @@
+'use client';
+
 import React, { useState, useMemo } from 'react';
 import { useScore } from '../context/ScoreContext';
 import { UserCheck, Lock, Unlock, AlertCircle, MessageSquareText, Check, Shield, Eye, Send, Plus, Minus, CheckCircle2, Search, Filter } from 'lucide-react';
+
+const RT_LIST = ['RT 01', 'RT 02', 'RT 03', 'RT 04', 'RT 05', 'RT 06'];
 
 export const JudgeForm: React.FC = () => {
   const {
@@ -24,21 +28,10 @@ export const JudgeForm: React.FC = () => {
   } = useScore();
 
   const isSepedaHias = activeEventId === 'sepeda-hias';
-  const isBlindRias = activeEventId === 'blind-rias';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [batchFilter, setBatchFilter] = useState<string>('all');
+  const [rtFilter, setRtFilter] = useState<string>('all');
   const [attendanceFilter, setAttendanceFilter] = useState<'attending' | 'all'>('attending');
-
-  const batchOptions = useMemo(() => {
-    const options: string[] = [];
-    const step = 20;
-    for (let i = 1; i <= participants.length; i += step) {
-      const end = Math.min(i + step - 1, participants.length);
-      options.push(`${i}-${end}`);
-    }
-    return options;
-  }, [participants.length]);
 
   const effectiveJudgeId =
     authState.role === 'juri' && authState.judgeId
@@ -51,9 +44,18 @@ export const JudgeForm: React.FC = () => {
   const isAdmin = authState.role === 'admin';
   const isSystemLocked = Boolean(eventInfo.isSystemLocked);
 
-  // Filter participants by search query, batch range, and attendance status
+  // Count participants per RT
+  const rtCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    RT_LIST.forEach(rt => {
+      counts[rt] = participants.filter(p => (p.rt || '').trim().toUpperCase() === rt).length;
+    });
+    return counts;
+  }, [participants]);
+
+  // Filter participants by search query, RT filter, and attendance status
   const filteredParticipants = useMemo(() => {
-    return participants.filter((p, index) => {
+    return participants.filter((p) => {
       // 0. Attendance Filter (default: only show present participants)
       if (attendanceFilter === 'attending' && p.isAttending === false) {
         return false;
@@ -68,31 +70,30 @@ export const JudgeForm: React.FC = () => {
         if (!matchesCode && !matchesName && !matchesRt) return false;
       }
 
-      // 2. Batch Range Filter (only applies if length > 10 and no active search query)
-      if (!searchQuery.trim() && participants.length > 10 && batchFilter !== 'all') {
-        const num = index + 1;
-        const [start, end] = batchFilter.split('-').map(Number);
-        if (num < start || num > end) return false;
+      // 2. RT Filter
+      if (rtFilter !== 'all') {
+        const pRt = (p.rt || '').trim().toUpperCase();
+        if (pRt !== rtFilter.toUpperCase()) return false;
       }
 
       return true;
     });
-  }, [participants, searchQuery, batchFilter, attendanceFilter]);
+  }, [participants, searchQuery, rtFilter, attendanceFilter]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
       
       {/* Master System Lock Warning Banner */}
       {isSystemLocked && (
-        <div className="bg-red-950/60 border border-red-500/50 rounded-2xl p-4 flex items-center gap-3 shadow-2xl animate-pulse">
-          <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 border border-red-500/40 flex items-center justify-center font-bold flex-shrink-0">
+        <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-4 flex items-center gap-3 shadow-md">
+          <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 border border-red-300 flex items-center justify-center font-bold flex-shrink-0">
             <Lock className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-2">
+            <h3 className="font-extrabold text-sm sm:text-base text-red-900 flex items-center gap-2">
               🔒 PENILAIAN LOMBA TELAH DITUTUP RESMI SEBAGAI FINAL
             </h3>
-            <p className="text-xs text-red-200/90 mt-0.5">
+            <p className="text-xs text-red-700 mt-0.5 font-medium">
               Seluruh lembar nilai telah dikunci oleh Admin Panitia. Nilai aman dan tidak dapat diubah kembali oleh juri manapun.
             </p>
           </div>
@@ -101,17 +102,17 @@ export const JudgeForm: React.FC = () => {
 
       {/* Admin Read-Only Notice Banner */}
       {isAdmin && !isSystemLocked && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-lg">
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center font-bold flex-shrink-0">
               <Eye className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-xs sm:text-sm text-white flex items-center gap-2">
+              <h3 className="font-extrabold text-xs sm:text-sm text-amber-950 flex items-center gap-2">
                 👑 Mode Admin — Pratinjau Lembar Penilaian (Read-Only)
               </h3>
-              <p className="text-[11px] sm:text-xs text-amber-200/90 mt-0.5">
-                Admin berhak memeriksa lembar juri dan dapat membuka kunci RT secara khusus jika juri mengajukan ralat resmi.
+              <p className="text-[11px] sm:text-xs text-amber-800 mt-0.5 font-medium">
+                Admin berhak memeriksa lembar juri dan dapat membuka kunci kartu secara khusus jika juri mengajukan ralat resmi.
               </p>
             </div>
           </div>
@@ -119,25 +120,25 @@ export const JudgeForm: React.FC = () => {
       )}
 
       {/* Judge Header Card */}
-      <div className="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-3.5 sm:p-6 shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-red-400 tracking-wider uppercase mb-0.5">
+            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-red-700 tracking-wider uppercase mb-0.5">
               <UserCheck className="w-3.5 h-3.5" />
               Lembar Penilaian Resmi ({eventInfo.competitionTitle})
             </div>
-            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
               Formulir Penilaian — {activeJudge.name}
             </h2>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Sebagai <span className="text-amber-400 font-bold">{activeJudge.name}</span>, Anda memberikan nilai untuk {participants.length} peserta.
+            <p className="text-xs text-slate-600 mt-0.5 font-medium">
+              Sebagai <span className="text-red-700 font-extrabold">{activeJudge.name}</span>, Anda memberikan nilai untuk {participants.length} peserta lomba.
             </p>
           </div>
 
           {/* Selector buttons (ONLY FOR ADMIN TO INSPECT). For Juri, display locked badge! */}
           {isAdmin ? (
-            <div className="flex flex-col items-start sm:items-end gap-1 pt-2 sm:pt-0 border-t sm:border-0 border-slate-800">
-              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+            <div className="flex flex-col items-start sm:items-end gap-1.5 pt-2 sm:pt-0 border-t sm:border-0 border-slate-200">
+              <span className="text-[10px] text-amber-800 font-extrabold uppercase tracking-wider flex items-center gap-1">
                 <Shield className="w-3 h-3" /> Pilih Lembar Juri (Inspeksi Admin)
               </span>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 w-full sm:w-auto">
@@ -147,45 +148,45 @@ export const JudgeForm: React.FC = () => {
                     <button
                       key={judge.id}
                       onClick={() => setActiveJudgeId(judge.id)}
-                      className={`py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1 cursor-pointer touch-manipulation ${
+                      className={`py-1.5 px-2.5 rounded-xl text-xs font-extrabold transition-all border flex items-center justify-center gap-1 cursor-pointer touch-manipulation active:scale-95 ${
                         isActive
-                          ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 scale-105'
-                          : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                          ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-md font-black scale-105'
+                          : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
                       <span>{judge.code}</span>
-                      {isActive && <Check className="w-3 h-3" />}
+                      {isActive && <Check className="w-3.5 h-3.5" />}
                     </button>
                   );
                 })}
               </div>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] sm:text-xs font-bold text-slate-300 self-start sm:self-auto">
-              <Lock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Akses Terkunci Khusus <strong className="text-amber-400">{activeJudge.name}</strong></span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-800 self-start sm:self-auto shadow-sm">
+              <Lock className="w-4 h-4 text-red-600" />
+              <span>Akses Terkunci Khusus <strong className="text-red-700">{activeJudge.name}</strong></span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Search & Batch Filter Toolbar (Especially useful for 100 participants) */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-lg">
+      {/* Search & RT Filter Toolbar */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 space-y-3 shadow-sm">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Search Bar */}
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari nomor / nama peserta (cth: 025)..."
+              placeholder="Cari nomor / nama peserta (cth: 025 / Ameena)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 text-slate-100 text-xs rounded-xl pl-9 pr-8 py-2.5 outline-none transition-all placeholder:text-slate-500"
+              className="w-full bg-slate-50 border border-slate-300 focus:border-red-500 focus:bg-white text-slate-900 text-xs font-semibold rounded-xl pl-9 pr-8 py-2.5 outline-none transition-all placeholder:text-slate-400 shadow-inner"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold bg-slate-800 rounded-full w-4 h-4 flex items-center justify-center"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-xs font-bold bg-slate-200 rounded-full w-4 h-4 flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
@@ -194,14 +195,14 @@ export const JudgeForm: React.FC = () => {
 
           {/* Attendance Toggle & Result Count Indicator */}
           <div className="flex flex-wrap items-center gap-3 justify-between w-full sm:w-auto">
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
               <button
                 type="button"
                 onClick={() => setAttendanceFilter('attending')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                   attendanceFilter === 'attending'
-                    ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 ✅ Hadir ({participants.filter((p) => p.isAttending !== false).length})
@@ -209,84 +210,86 @@ export const JudgeForm: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAttendanceFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                   attendanceFilter === 'all'
-                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 👥 Semua ({participants.length})
               </button>
             </div>
 
-            <div className="text-xs text-slate-400">
-              Menampilkan <strong className="text-amber-400">{filteredParticipants.length}</strong> peserta
+            <div className="text-xs text-slate-600 font-semibold">
+              Menampilkan <strong className="text-red-700 font-extrabold">{filteredParticipants.length}</strong> peserta
             </div>
           </div>
         </div>
 
-        {/* Batch Range Filter Tabs (Only shown if participants > 10) */}
-        {participants.length > 10 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mr-1 flex-shrink-0">
-              <Filter className="w-3 h-3 text-amber-400" /> Filter:
-            </span>
-            <button
-              onClick={() => setBatchFilter('all')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer touch-manipulation ${
-                batchFilter === 'all' && !searchQuery
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
-                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              Semua ({participants.length})
-            </button>
-            {batchOptions.map((b) => (
+        {/* RT Filter Tabs (Semua, RT 01, RT 02, RT 03, RT 04, RT 05, RT 06) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1">
+          <span className="text-[11px] text-slate-600 font-bold uppercase tracking-wider flex items-center gap-1 mr-1 flex-shrink-0">
+            <Filter className="w-3.5 h-3.5 text-red-600" /> Filter RT:
+          </span>
+          <button
+            onClick={() => setRtFilter('all')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all border whitespace-nowrap cursor-pointer touch-manipulation active:scale-95 ${
+              rtFilter === 'all'
+                ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            Semua ({participants.length})
+          </button>
+          {RT_LIST.map((rt) => {
+            const isSelected = rtFilter === rt;
+            const count = rtCounts[rt] || 0;
+            return (
               <button
-                key={b}
-                onClick={() => setBatchFilter(b)}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer touch-manipulation ${
-                  batchFilter === b && !searchQuery
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
-                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+                key={rt}
+                onClick={() => setRtFilter(rt)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all border whitespace-nowrap cursor-pointer touch-manipulation active:scale-95 ${
+                  isSelected
+                    ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                Peserta {b}
+                {rt} ({count})
               </button>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Cloud Database Maintenance / Offline Notice Banner */}
+      {/* Cloud Offline Notice Banner */}
       {!isRealtimeConnected && (
-        <div className="bg-gradient-to-r from-amber-950/90 via-slate-900 to-amber-950/90 border border-amber-500/50 rounded-2xl p-4 flex items-start gap-3 shadow-2xl animate-pulse">
-          <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-slate-200 leading-relaxed space-y-1">
-            <h4 className="font-extrabold text-amber-300 text-sm flex items-center gap-2">
-              🛠️ PEMBERITAHUAN PEMELIHARAAN SERVER DATABASE CLOUD
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+          <AlertCircle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-slate-700 leading-relaxed space-y-1">
+            <h4 className="font-extrabold text-amber-900 text-sm flex items-center gap-2">
+              🛠️ PEMBERITAHUAN KONEKSI LOKAL (OFFLINE AMAN)
             </h4>
-            <p className="text-slate-300">
-              Server database cloud (Supabase) sedang dalam pemeliharaan berkala atau terkendala koneksi sejenak.{' '}
-              <strong className="text-amber-300">Seluruh nilai yang Anda input TETAP TERSIMPAN 100% AMAN di HP Anda (Local Storage)</strong>{' '}
-              dan akan otomatis disinkronkan ke server begitu koneksi terhubung kembali. Anda dapat terus mengisi nilai seperti biasa!
+            <p>
+              Server cloud sedang dalam pemeliharaan sejenak.{' '}
+              <strong className="text-amber-950 font-bold">Seluruh nilai yang Anda input TETAP TERSIMPAN 100% AMAN di HP Anda (Local Storage)</strong>{' '}
+              dan akan otomatis disinkronkan ke server begitu online. Anda dapat terus menilai seperti biasa!
             </p>
           </div>
         </div>
       )}
 
       {/* Rules Notice */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 flex items-start gap-2.5">
-        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-        <div className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
-          <span className="font-bold text-amber-400">Aturan Keamanan Penilaian:</span>{' '}
+      <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 flex items-start gap-2.5 shadow-sm">
+        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="text-[11px] sm:text-xs text-slate-700 leading-relaxed">
+          <span className="font-extrabold text-red-700">Aturan Penilaian Resmi:</span>{' '}
           {isSepedaHias ? (
             <>
-              Nilai yang Anda input/geser <strong className="text-emerald-400">otomatis tersimpan aman di HP</strong> (0 beban server). Setelah selesai menilai SELURUH {participants.length} peserta, tekan tombol hijau <strong className="text-emerald-400">🔒 Kunci & Kirim Seluruh Nilai Juri</strong> untuk menyetorkan nilai sekaligus ke Server Database.
+              Nilai yang Anda masukkan <strong className="text-emerald-700 font-bold">otomatis tersimpan aman di HP</strong>. Setelah selesai menilai seluruh peserta, tekan tombol hijau <strong className="text-emerald-700 font-bold">🔒 Kunci & Kirim Seluruh Nilai</strong> untuk menyetorkan lembar nilai ke Server Panitia.
             </>
           ) : (
             <>
-              Gunakan tombol <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">-</span> dan <span className="font-bold text-white px-1.5 py-0.5 bg-slate-800 rounded">+</span> atau slider. Nilai tersimpan di HP. Setelah selesai, tekan <span className="font-bold text-emerald-400">🔒 Kunci & Kirim</span> untuk menyetorkan nilai ke Server Database.
+              Gunakan tombol <span className="font-bold text-slate-900 px-1.5 py-0.5 bg-slate-200 rounded">-</span> dan <span className="font-bold text-slate-900 px-1.5 py-0.5 bg-slate-200 rounded">+</span> atau slider. Nilai tersimpan di HP. Setelah selesai, tekan <span className="font-bold text-emerald-700">🔒 Kunci & Kirim</span>.
             </>
           )}
         </div>
@@ -294,17 +297,17 @@ export const JudgeForm: React.FC = () => {
 
       {/* Bulk Lock Action Bar (Top) */}
       {!isAdmin && !isSystemLocked && (
-        <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border border-emerald-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+        <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 font-bold">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center flex-shrink-0 font-bold">
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-white">
+              <h3 className="font-black text-sm text-emerald-950">
                 🔒 {isSepedaHias ? `Kunci & Kirim Seluruh Nilai Sepeda Hias (${participants.length} Peserta)` : 'Selesai Mengisi Nilai? Kunci Seluruh Peserta dalam 1-Klik'}
               </h3>
-              <p className="text-xs text-emerald-200/90 mt-0.5">
-                Kunci seluruh {participants.length} peserta sekaligus dan setor formulir final juri ({activeJudge.name}) ke Server Database.
+              <p className="text-xs text-emerald-800 mt-0.5 font-medium">
+                Kunci seluruh {participants.length} peserta sekaligus dan setor formulir final juri ({activeJudge.name}) ke Server Panitia.
               </p>
             </div>
           </div>
@@ -321,7 +324,7 @@ export const JudgeForm: React.FC = () => {
                 alert(`✅ Berhasil! Seluruh ${participants.length} peserta untuk ${activeJudge.name} telah dikunci permanen & tersimpan di Database Cloud.`);
               }
             }}
-            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation hover:scale-102"
+            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation"
           >
             <Send className="w-4 h-4" />
             Kunci & Kirim Seluruh Nilai Juri ({participants.length} Peserta)
@@ -329,7 +332,8 @@ export const JudgeForm: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      {/* Participant Scoring Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {filteredParticipants.map((participant) => {
           const isSelf = isSepedaHias
             ? Boolean(
@@ -351,63 +355,63 @@ export const JudgeForm: React.FC = () => {
           return (
             <div
               key={participant.id}
-              className={`rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col ${
+              className={`rounded-2xl border-2 transition-all duration-300 overflow-hidden flex flex-col ${
                 isSelf
-                  ? 'bg-slate-900/40 border-slate-800/80 opacity-70'
+                  ? 'bg-slate-100/90 border-slate-200 opacity-75'
                   : isLocked || isSystemLocked
-                  ? 'bg-slate-900/95 border-amber-500/40 shadow-amber-500/5'
-                  : 'bg-slate-900 border-slate-800 hover:border-slate-700 shadow-xl'
+                  ? 'bg-emerald-50/40 border-emerald-300 shadow-sm'
+                  : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md'
               }`}
             >
               {/* Card Header */}
               <div
                 className={`p-3.5 sm:p-4 border-b flex items-center justify-between ${
                   isSelf
-                    ? 'bg-slate-950/50 border-slate-800'
+                    ? 'bg-slate-100 border-slate-200'
                     : isLocked || isSystemLocked
-                    ? 'bg-gradient-to-r from-amber-950/40 via-slate-950 to-amber-950/40 border-amber-500/30'
-                    : 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-slate-800'
+                    ? 'bg-emerald-100/50 border-emerald-200'
+                    : 'bg-slate-50 border-slate-200'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <div
-                    className={`px-2.5 py-1.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center border shadow-inner ${
+                    className={`px-2.5 py-1.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center border shadow-sm ${
                       isSelf
-                        ? 'bg-slate-800 text-slate-500 border-slate-700'
+                        ? 'bg-slate-200 text-slate-500 border-slate-300'
                         : isLocked || isSystemLocked
-                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                        ? 'bg-emerald-600 text-white border-emerald-700'
+                        : 'bg-red-600 text-white border-red-700'
                     }`}
                   >
                     No. #{participant.code.replace(/\D/g, '') || participant.code}
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-1.5">
+                    <h3 className="font-black text-sm sm:text-base text-slate-900 flex items-center gap-1.5">
                       {participant.name}
                       {participant.rt && (
-                        <span className="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">
+                        <span className="text-[11px] bg-blue-100 text-blue-800 font-extrabold px-2 py-0.5 rounded-full border border-blue-200">
                           {participant.rt}
                         </span>
                       )}
-                      {(isLocked || isSystemLocked) && <Lock className="w-3.5 h-3.5 text-amber-400 inline" />}
+                      {(isLocked || isSystemLocked) && <Lock className="w-3.5 h-3.5 text-emerald-600 inline" />}
                     </h3>
-                    <span className="text-[10px] sm:text-[11px] text-slate-400">
-                      {isSelf ? `Penilaian Silang (${participant.rt || 'RT Sendiri'})` : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : 'Peserta Lomba'}
+                    <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">
+                      {isSelf ? `Penilaian Silang (${participant.rt || 'RT Sendiri'})` : isLocked || isSystemLocked ? 'Nilai Terkunci Permanen' : 'Peserta Sepeda Hias'}
                     </span>
                   </div>
                 </div>
 
                 {isSelf ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-slate-800 text-slate-400 px-2.5 py-1 rounded-lg border border-slate-700">
-                    <Lock className="w-3 h-3" /> N/A (Terkunci)
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-300">
+                    <Lock className="w-3 h-3" /> N/A (RT Sendiri)
                   </span>
                 ) : (
                   <div className="text-right">
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">
                       Total Skor
                     </div>
-                    <div className="text-lg sm:text-xl font-black text-amber-400 leading-tight">
-                      {subtotal} <span className="text-xs text-slate-500 font-normal">/ {criteria.reduce((a,c) => a + c.maxScore, 0)}</span>
+                    <div className="text-lg sm:text-xl font-black text-red-700 leading-tight">
+                      {subtotal} <span className="text-xs text-slate-400 font-normal">/ {criteria.reduce((a,c) => a + c.maxScore, 0)}</span>
                     </div>
                   </div>
                 )}
@@ -417,12 +421,12 @@ export const JudgeForm: React.FC = () => {
               <div className="p-3.5 sm:p-4 space-y-3.5 sm:space-y-4 flex-1">
                 {isSelf ? (
                   <div className="py-6 text-center px-4 space-y-1.5">
-                    <Lock className="w-7 h-7 text-slate-600 mx-auto" />
-                    <p className="text-xs font-medium text-slate-400">
-                      Juri <span className="text-white font-bold">{activeJudge.name}</span> tidak menilai <span className="text-white font-bold">{participant.name} ({participant.rt || 'RT Sendiri'})</span>.
+                    <Lock className="w-8 h-8 text-slate-400 mx-auto" />
+                    <p className="text-xs font-semibold text-slate-700">
+                      Juri <span className="text-slate-900 font-extrabold">{activeJudge.name}</span> tidak menilai anak dari RT-nya sendiri: <span className="text-slate-900 font-extrabold">{participant.name} ({participant.rt || 'RT Sendiri'})</span>.
                     </p>
-                    <p className="text-[11px] text-amber-400/90 font-semibold">
-                      🔒 Aturan Penilaian Silang: Peserta dari RT yang sama bernilai N/A dan dihitung murni dari Juri RT lainnya.
+                    <p className="text-[11px] text-amber-800 font-bold bg-amber-50 p-2 rounded-xl border border-amber-200 mt-2">
+                      🔒 Aturan Penilaian Silang: Peserta dinilai adil oleh 5 Juri RT lainnya.
                     </p>
                   </div>
                 ) : (
@@ -430,13 +434,13 @@ export const JudgeForm: React.FC = () => {
                     const currentValue = participantScores[crit.id] ?? 0;
 
                     return (
-                      <div key={crit.id} className="space-y-1.5">
+                      <div key={crit.id} className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-200">
+                          <span className="font-extrabold text-slate-800">
                             {crit.name}
                           </span>
-                          <span className="text-slate-400 text-[11px]">
-                            Maks <strong className="text-amber-400">{crit.maxScore}</strong>
+                          <span className="text-slate-500 text-[11px] font-semibold">
+                            Maks <strong className="text-red-700 font-black">{crit.maxScore}</strong>
                           </span>
                         </div>
 
@@ -453,10 +457,10 @@ export const JudgeForm: React.FC = () => {
                                 Math.max(0, currentValue - 1)
                               )
                             }
-                            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 font-bold flex items-center justify-center flex-shrink-0 touch-manipulation border border-slate-700"
+                            className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-30 disabled:cursor-not-allowed text-slate-900 font-black text-sm flex items-center justify-center flex-shrink-0 touch-manipulation border border-slate-300 shadow-sm"
                             title="Kurangi 1"
                           >
-                            <Minus className="w-3.5 h-3.5" />
+                            <Minus className="w-4 h-4" />
                           </button>
 
                           <input
@@ -473,8 +477,8 @@ export const JudgeForm: React.FC = () => {
                                 Number(e.target.value)
                               )
                             }
-                            className={`w-full h-3 rounded-lg appearance-none accent-amber-500 touch-pan-x ${
-                              isInputDisabled ? 'bg-slate-800 opacity-50 cursor-not-allowed' : 'bg-slate-800 cursor-pointer'
+                            className={`w-full h-3 rounded-lg appearance-none accent-red-600 touch-pan-x ${
+                              isInputDisabled ? 'bg-slate-200 opacity-50 cursor-not-allowed' : 'bg-slate-200 cursor-pointer'
                             }`}
                           />
 
@@ -489,10 +493,10 @@ export const JudgeForm: React.FC = () => {
                                 Math.min(crit.maxScore, currentValue + 1)
                               )
                             }
-                            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 font-bold flex items-center justify-center flex-shrink-0 touch-manipulation border border-slate-700"
+                            className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-30 disabled:cursor-not-allowed text-slate-900 font-black text-sm flex items-center justify-center flex-shrink-0 touch-manipulation border border-slate-300 shadow-sm"
                             title="Tambah 1"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-4 h-4" />
                           </button>
 
                           <input
@@ -514,7 +518,7 @@ export const JudgeForm: React.FC = () => {
                               );
                             }}
                             placeholder="0"
-                            className={`w-11 sm:w-13 bg-slate-950 border border-slate-700 text-center text-xs font-bold text-white rounded-lg py-1.5 focus:outline-none focus:border-amber-500 transition-colors flex-shrink-0 ${
+                            className={`w-12 sm:w-14 bg-slate-50 border-2 border-slate-300 text-center text-sm font-black text-slate-900 rounded-xl py-1.5 focus:outline-none focus:border-red-500 focus:bg-white transition-colors flex-shrink-0 shadow-inner ${
                               isInputDisabled ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           />
@@ -522,9 +526,9 @@ export const JudgeForm: React.FC = () => {
 
                         {/* Quick Rating Preset Buttons for 1-10 Scale */}
                         {crit.maxScore === 10 && !isInputDisabled && (
-                          <div className="flex items-center justify-between gap-1 pt-1.5 overflow-x-auto scrollbar-none">
-                            <span className="text-[10px] text-slate-500 font-semibold flex-shrink-0">Pilih Cepat:</span>
-                            <div className="flex items-center gap-1">
+                          <div className="flex items-center justify-between gap-1 pt-1 overflow-x-auto scrollbar-none">
+                            <span className="text-[11px] text-slate-600 font-bold flex-shrink-0">Pilih Cepat:</span>
+                            <div className="flex items-center gap-1.5">
                               {[1, 5, 6, 7, 8, 9, 10].map((quickVal) => (
                                 <button
                                   key={quickVal}
@@ -537,10 +541,10 @@ export const JudgeForm: React.FC = () => {
                                       quickVal
                                     )
                                   }
-                                  className={`w-6 h-6 rounded-md text-[11px] font-black transition-all border ${
+                                  className={`w-7 h-7 rounded-lg text-xs font-black transition-all border cursor-pointer active:scale-90 ${
                                     currentValue === quickVal
-                                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm scale-110'
-                                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                                      ? 'bg-red-600 text-white border-red-700 shadow-md scale-110'
+                                      : 'bg-slate-100 text-slate-800 border-slate-300 hover:bg-slate-200'
                                   }`}
                                 >
                                   {quickVal}
@@ -557,8 +561,8 @@ export const JudgeForm: React.FC = () => {
 
               {/* Card Footer: Action area per participant */}
               {!isSelf && (
-                <div className="p-3 bg-slate-950/90 border-t border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-400 font-medium text-center sm:text-left">
+                <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-600 font-semibold text-center sm:text-left">
                     {isSystemLocked
                       ? '🔒 Penilaian Final Terkunci'
                       : isLocked
@@ -572,8 +576,8 @@ export const JudgeForm: React.FC = () => {
                       onClick={() => toggleCardLock(activeJudge.id, participant.id)}
                       className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
                         isLocked
-                          ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
-                          : 'bg-slate-800 text-slate-300 border border-slate-700'
+                          ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                          : 'bg-slate-200 text-slate-800 border border-slate-300 hover:bg-slate-300'
                       }`}
                     >
                       {isLocked ? (
@@ -587,8 +591,8 @@ export const JudgeForm: React.FC = () => {
                       )}
                     </button>
                   ) : isLocked ? (
-                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs bg-slate-900 border border-amber-500/30 text-amber-400 select-none">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs bg-emerald-100 border border-emerald-300 text-emerald-800 select-none">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                       <span>Nilai Terkunci</span>
                     </div>
                   ) : null}
@@ -599,18 +603,18 @@ export const JudgeForm: React.FC = () => {
         })}
       </div>
 
-      {/* Bulk Lock Action Bar (Bottom - Sangat membantu untuk Lomba Sepeda Hias 30-100 Peserta) */}
+      {/* Bulk Lock Action Bar (Bottom) */}
       {!isAdmin && !isSystemLocked && (
-        <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900 to-emerald-950/90 border border-emerald-500/50 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl">
+        <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 font-bold">
+            <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center flex-shrink-0 font-bold">
               <Lock className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm sm:text-base text-white flex items-center gap-2">
+              <h3 className="font-black text-sm sm:text-base text-emerald-950 flex items-center gap-2">
                 🔒 Selesai Menilai? Kunci & Kirim Seluruh Nilai Juri ({activeJudge.name})
               </h3>
-              <p className="text-xs text-emerald-200/90 mt-0.5">
+              <p className="text-xs text-emerald-800 mt-0.5 font-medium">
                 Kirim seluruh nilai {participants.length} peserta sekaligus ke Database Server & Kunci permanen.
               </p>
             </div>
@@ -628,7 +632,7 @@ export const JudgeForm: React.FC = () => {
                 alert(`✅ Berhasil! Seluruh ${participants.length} peserta untuk ${activeJudge.name} telah berhasil dikunci permanen & tersimpan di Database Cloud.`);
               }
             }}
-            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-xl shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation hover:scale-102"
+            className="w-full sm:w-auto px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap touch-manipulation"
           >
             <Send className="w-5 h-5" />
             Kunci & Kirim Seluruh Nilai ({participants.length} Peserta)
@@ -637,11 +641,11 @@ export const JudgeForm: React.FC = () => {
       )}
 
       {/* General Notes per Judge */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white">
-          <MessageSquareText className="w-4 h-4 text-amber-400" />
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+          <MessageSquareText className="w-4 h-4 text-red-600" />
           Catatan / Kritik & Saran Juri ({activeJudge.name})
-          <span className="text-[11px] text-slate-400 font-normal">{isAdmin ? '(Read-Only Admin)' : '(Opsional)'}</span>
+          <span className="text-[11px] text-slate-500 font-normal">{isAdmin ? '(Read-Only Admin)' : '(Opsional)'}</span>
         </div>
         <textarea
           rows={3}
@@ -649,8 +653,8 @@ export const JudgeForm: React.FC = () => {
           disabled={isAdmin || isSystemLocked}
           onChange={(e) => updateJudgeGeneralNotes(activeJudge.id, e.target.value)}
           placeholder={isAdmin ? `[Read-Only Admin] Catatan dari ${activeJudge.name}` : `Tuliskan catatan, tanggapan, atau kesan untuk seluruh penampilan lomba bagi ${activeJudge.name}...`}
-          className={`w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-colors ${
-            isAdmin || isSystemLocked ? 'opacity-50 cursor-not-allowed' : 'focus:border-slate-600'
+          className={`w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-red-500 transition-colors shadow-inner ${
+            isAdmin || isSystemLocked ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         />
       </div>

@@ -26,8 +26,8 @@ export const PinLoginModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden relative flex flex-col space-y-5">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden relative flex flex-col space-y-4">
         
         {/* Permata Housing Hero Banner Header */}
         <div className="relative h-36 w-full overflow-hidden flex items-end justify-center pb-4">
@@ -35,13 +35,14 @@ export const PinLoginModal: React.FC = () => {
             src="/permata_housing.jpg"
             alt="Perumahan Permata Discovery"
             fill
-            className="object-cover object-center filter brightness-[0.4]"
+            sizes="100vw"
+            className="object-cover object-center filter brightness-[0.7]"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
           
           <div className="relative z-10 text-center space-y-1.5 px-4">
-            <div className="bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-2xl shadow-xl border border-white/40 inline-block mb-1">
+            <div className="bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-2xl shadow-xl border border-slate-200 inline-block mb-1">
               <Image
                 src="/permata_logo.png"
                 alt="Permata Discovery Logo"
@@ -51,7 +52,7 @@ export const PinLoginModal: React.FC = () => {
                 priority
               />
             </div>
-            <p className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
+            <p className="text-[11px] font-extrabold text-red-700 uppercase tracking-wider bg-white/80 px-2.5 py-0.5 rounded-full inline-block shadow-sm">
               {eventInfo?.eventName || 'HUT KEMERDEKAAN RI KE-81'} • {eventInfo?.location || 'PERMATA DISCOVERY'}
             </p>
           </div>
@@ -60,22 +61,22 @@ export const PinLoginModal: React.FC = () => {
         <div className="px-6 pb-6 space-y-5">
           {/* Modal Title */}
           <div className="text-center space-y-1">
-            <h2 className="text-lg font-extrabold text-white flex items-center justify-center gap-2">
-              <KeyRound className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-extrabold text-slate-900 flex items-center justify-center gap-2">
+              <KeyRound className="w-5 h-5 text-red-600" />
               Sistem Penilaian Lomba
             </h2>
-            <p className="text-xs text-amber-300 font-semibold bg-amber-500/10 border border-amber-500/20 py-1 px-3 rounded-full inline-block mt-1">
+            <p className="text-xs text-red-700 font-bold bg-red-50 border border-red-200 py-1 px-3.5 rounded-full inline-block mt-1">
               {eventInfo?.competitionTitle || 'LOMBA SEPEDA HIAS'}
             </p>
-            <p className="text-[11px] text-slate-400 pt-1">
+            <p className="text-xs text-slate-600 pt-1">
               Masukkan PIN Akses Juri / Ketua RT 1-6 atau PIN Admin Panitia.
             </p>
           </div>
 
           {/* Form Input */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300 block text-center">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 block text-center">
                 PIN Akses (4 Digit)
               </label>
               <input
@@ -84,20 +85,20 @@ export const PinLoginModal: React.FC = () => {
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 placeholder="••••"
-                className="w-full bg-slate-950 border border-slate-700 text-center font-mono font-black text-2xl tracking-[0.5em] text-white rounded-2xl py-3 focus:outline-none focus:border-amber-400 transition-all shadow-inner"
+                className="w-full bg-slate-50 border-2 border-slate-300 text-center font-mono font-black text-2xl tracking-[0.5em] text-slate-900 rounded-2xl py-3 focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner"
                 autoFocus
               />
             </div>
 
             {errorMsg && (
-              <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5 text-center font-medium">
+              <div className="text-xs text-red-700 bg-red-50 border border-red-300 rounded-xl p-2.5 text-center font-bold">
                 {errorMsg}
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-red-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-red-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
             >
               <ShieldCheck className="w-4 h-4" />
               Masuk Aplikasi

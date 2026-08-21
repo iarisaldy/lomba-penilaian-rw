@@ -23,7 +23,7 @@ export default function Home() {
   }, [authState.role]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900">
       {/* Show PIN Login Modal if guest */}
       {authState.role === 'guest' && <PinLoginModal />}
 
@@ -38,15 +38,15 @@ export default function Home() {
       </main>
 
       {/* Footer License */}
-      <footer className="bg-slate-900/80 border-t border-slate-800 py-5 text-center text-xs text-slate-400 no-print mt-12">
+      <footer className="bg-white border-t border-slate-200 py-5 text-center text-xs text-slate-600 no-print mt-12 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 font-semibold text-slate-300">
-            <Trophy className="w-4 h-4 text-amber-400" />
+          <div className="flex items-center gap-2 font-semibold text-slate-700">
+            <Trophy className="w-4 h-4 text-amber-500" />
             <span>Sistem Penilaian Lomba HUT Kemerdekaan RI Ke-81 • Permata Discovery</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Code2 className="w-3.5 h-3.5 text-red-400" />
-            <span>Designed & Developed by <strong className="text-white font-bold tracking-wide">Irfan Arisaldy</strong> © 2026</span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Code2 className="w-3.5 h-3.5 text-red-600" />
+            <span>Designed & Developed by <strong className="text-slate-900 font-bold tracking-wide">Irfan Arisaldy</strong> © 2026</span>
           </div>
         </div>
       </footer>
